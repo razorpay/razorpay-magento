@@ -1,0 +1,111 @@
+<?xml version="1.0"?>
+
+<!--
+/*
+ * Magento
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/osl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@magentocommerce.com so we can send you a copy immediately.
+ *
+ * @category   Razorpay
+ * @package    Razorpay Payments (razorpay.com)
+ * @copyright  Copyright (c) 2015 Razorpay
+ * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ */
+-->
+
+<config>
+    <modules>
+        <Razorpay_Payments>
+            <version>0.1</version>
+        </Razorpay_Payments>
+    </modules>
+    <global>
+    	<models>
+    		<razorpay>
+	    		<class>Razorpay_Payments_Model</class>
+	    	</razorpay>
+    	</models>
+    	<helpers>
+    		<razorpay>
+    			<class>Razorpay_Payments_Helper</class>
+    		</razorpay>
+    	</helpers>
+    	<blocks>
+            <razorpay>
+            	<class>Razorpay_Payments_Block</class>
+            </razorpay>
+        </blocks>
+        <resources>
+            <razorpay_setup>
+                <setup>
+                    <module>Razorpay_Payments</module>
+                </setup>
+                <connection>
+                    <use>directory_setup</use>
+                </connection>
+            </razorpay_setup>
+            <razorpay_write>
+                <connection>
+                    <use>local_write</use>
+                </connection>
+            </razorpay_write>
+            <razorpay_read>
+                <connection>
+                    <use>local_read</use>
+                </connection>
+            </razorpay_read>
+        </resources>
+      <events>
+        <controller_action_postdispatch_checkout_onepage_saveOrder>
+          <observers>
+            <output_razorpay_redirect>
+              <type>singleton</type>
+              <class>Razorpay_Payments_Model_Observer</class>
+              <method>output_razorpay_redirect</method>
+            </output_razorpay_redirect>
+          </observers>
+        </controller_action_postdispatch_checkout_onepage_saveOrder>
+      </events>
+    </global>
+    <frontend>
+        <layout>
+            <updates>
+                <razorpay>
+                    <file>razorpay.xml</file>
+                </razorpay>
+            </updates>
+        </layout>
+        <routers>
+            <razorpay>
+                <use>standard</use>
+                <args>
+                    <module>Razorpay_Payments</module>
+                    <frontName>razorpay</frontName>
+                </args>
+            </razorpay>
+        </routers>
+        <secure_url>
+            <razorpay_redirect>/razorpay/redirect/</razorpay_redirect>
+        </secure_url>
+    </frontend>
+	<default>
+        <payment>
+            <razorpay>
+                <model>razorpay/checkout</model>
+                <active>1</active>
+                <title>Razorpay (Credit Card, Debit Card, Netbanking)</title>
+                <username>Enter Razorpay API Key</username>
+                <password>Enter Razorpay API Secret</password>
+                <sort_order>0</sort_order>
+            </razorpay>
+        </payment>
+    </default>
+</config>
