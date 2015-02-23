@@ -40,6 +40,8 @@ class Razorpay_Payments_Block_Redirect extends Mage_Core_Block_Abstract
                     'key': '".$fields['key_id']."',
                     'amount': '".$fields['amount']."',
                     'name': '".$fields['store_name']."',
+                    'description': 'Order# ".$fields['order_id']."',
+                    'currency': '".$fields['currency_code']."',
                     'handler': function (transaction) {
                         document.getElementById('razorpay_payment_id').value = transaction.razorpay_payment_id;
                         document.getElementById('razorpay-form').submit();
@@ -58,6 +60,7 @@ class Razorpay_Payments_Block_Redirect extends Mage_Core_Block_Abstract
                 function razorpaySubmit(){                  
                     var rzp1 = new Razorpay(razorpay_options);
                     rzp1.open();
+                    rzp1.modal.options.backdropClose = false;
                 }    
                 ";
 
