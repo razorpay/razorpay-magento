@@ -81,24 +81,37 @@ class Razorpay_Payments_RedirectController extends Mage_Core_Controller_Front_Ac
             $result = curl_exec($ch);
             $http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
-            $array = json_decode($result, true);
 
-            //close connection
-            curl_close($ch);
-
-            //Check success response
-            if($http_status === 200 and isset($array['error']) === false){
-                $success = true;    
+            if($result === false) {
+                $success = false;
+                $error = 'Curl error: ' . curl_error($ch);
             }
             else {
-                $error = $array['error']['code'].":".$array['error']['description'];
-                $success = false;
+                $response_array = json_decode($result, true);
+                //Check success response
+                if($http_status === 200 and isset($response_array['error']) === false){
+                    $success = true;    
+                }
+                else {
+                    $success = false;
+
+                    if(!empty($response_array['error']['code'])) {
+                        $error = $response_array['error']['code'].":".$response_array['error']['description'];
+                    }
+                    else {
+                        $error = "RAZORPAY_ERROR:Invalid Response <br/>".$result;
+                    }
+                }
             }
+                
+            //close connection
+            curl_close($ch);
         }
         catch (Exception $e) {
             $success = false;
-            $error ="MAGNETO_ERROR:Request to Razorpay Failed";
+            $error ="MAGENTO_ERROR:Request to Razorpay Failed";
         }
+
 
         if ($success === true) {
             $this->_redirect('checkout/onepage/success');
