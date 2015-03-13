@@ -31,7 +31,7 @@ class Razorpay_Payments_Model_Observer extends Mage_Core_Block_Abstract {
 
             $js = '<script>
                 document.getElementById("review-please-wait").style["display"] = "block";
-                if ($$("a.top-link-cart")) {
+                if ($$("a.top-link-cart") && $$("a.top-link-cart").length !== 0) {
                     $$("a.top-link-cart")[0].href = "'.Mage::getUrl('razorpay/redirect/cart', array('_secure' => true)).'";
                 }
                 if ($$("p.f-left").length !== 0) {
