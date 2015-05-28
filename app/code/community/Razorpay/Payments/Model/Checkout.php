@@ -55,8 +55,8 @@ class Razorpay_Payments_Model_Checkout extends Mage_Payment_Model_Method_Abstrac
     public function getFormFields() {
         $order_id       = $this->getCheckout()->getLastRealOrderId();
         $order          = Mage::getModel('sales/order')->loadByIncrementId($order_id);
-        $amount         = round($order->getGrandTotal(), 2);
-        $currency_code  = $order->getOrderCurrencyCode();
+        $amount         = round($order->getBaseGrandTotal(), 2);
+        $currency_code  = $order->getBaseCurrencyCode();
         $b              = $order->getBillingAddress();
 
         $fields = array();
