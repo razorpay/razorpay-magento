@@ -65,6 +65,7 @@ class Razorpay_Payments_Block_Redirect extends Mage_Core_Block_Abstract
                 ";
 
         $js .= 'var checkoutOrderBtn = $$("button.btn-checkout");
+                if(checkoutOrderBtn.length == 0)  checkoutOrderBtn = $$("button:contains(\'Place Order\')");
                 checkoutOrderBtn[0].removeAttribute("onclick");
                 checkoutOrderBtn[0].observe("click", razorpaySubmit);
 
