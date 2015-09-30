@@ -54,13 +54,17 @@ class Razorpay_Payments_Block_Redirect extends Mage_Core_Block_Abstract
                     notes: {
                         'magento_order_id': '".$fields['order_id']."'
                     },
-                    netbanking: true
+                    netbanking: true,
+                    modal: {
+                        ondismiss: function() {
+                            window.location.href = '".Mage::getUrl('razorpay/redirect/cart')."';
+                        }
+                    }
                 };
                 
                 function razorpaySubmit(){                  
                     var rzp1 = new Razorpay(razorpay_options);
                     rzp1.open();
-                    rzp1.modal.options.backdropClose = false;
                 }    
                 ";
 
