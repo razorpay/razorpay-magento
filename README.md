@@ -8,6 +8,9 @@ Install the extension through magento connect in your account.
 
 Once installed, it can be configured under Configuration->Payment Gateways. If you run into any problems, please make sure you are using the 2.0 magento connect extension and you have Stable set as your preferred state in the magento connect settings.
 
+If you do not see Razorpay in your gateway list, please clear your Magento Cache from your admin
+panel (System -> Cache Management).
+
 ## Alternative Install
 
 Download this repo. Merge the app folder in this repo with the app folder in your magento installation directory. Once installed, it can be configured under Configuration->Payment Gateways.
