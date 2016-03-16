@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <payment>
+            <razorpay>
+                <model>Razorpay\Payments\Model\PaymentMethod</model>
+                <title>Razorpay</title>
+                <merchant_name_override>Magento</merchant_name_override>
+                <payment_action>authorize_capture</payment_action>
+                <active>0</active>
+                <order_status>processing</order_status>
+                <key_id>Key ID</key_id>
+                <key_secret>Key Secret</key_secret>
+            </razorpay>
+        </payment>
+    </default>
+</config>
