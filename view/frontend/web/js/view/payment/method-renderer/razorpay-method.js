@@ -13,9 +13,10 @@ define(
         'mage/url',
         'Magento_Customer/js/model/customer',
         'Magento_Checkout/js/action/place-order',
-        'Magento_Checkout/js/model/full-screen-loader'
+        'Magento_Checkout/js/model/full-screen-loader',
+        'Magento_Ui/js/model/messageList'
     ],
-    function (Component, quote, $, ko, additionalValidators, setPaymentInformationAction, url, customer, placeOrderAction, fullScreenLoader) {
+    function (Component, quote, $, ko, additionalValidators, setPaymentInformationAction, url, customer, placeOrderAction, fullScreenLoader, messageList) {
         'use strict';
 
         return Component.extend({
@@ -64,8 +65,6 @@ define(
 
             initObservable: function() {
                 var self = this;
-
-                this.initChildren();
 
                 if(!this.razorpayDataFrameLoaded) {
                     $.getScript("https://checkout.razorpay.com/v1/checkout.js", function() {
@@ -161,7 +160,9 @@ define(
                     handler: self.placeOrder.bind(this),
                     order_id: data.rzp_order,
                     modal: {
-                        ondismiss: self.isPaymentProcessing.reject("Closed")
+                        ondismiss: function() {
+                            self.isPaymentProcessing.reject("Payment Closed");
+                        }
                     },
                     notes: {
                         merchant_order_id: data.order_id

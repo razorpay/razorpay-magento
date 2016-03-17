@@ -41,6 +41,8 @@ class Order extends \Razorpay\Payments\Controller\BaseController
 
         $receipt_id = $this->getQuote()->getId();
 
+        $code = 400;
+
         try
         {
             $order = $this->rzp->order->create([
@@ -50,29 +52,39 @@ class Order extends \Razorpay\Payments\Controller\BaseController
             ]);
 
             $responseContent = [
-                'success'	=> true,
-                'rzp_order' => $order->id,
-                'order_id'  => $receipt_id,
-                'amount'	=> $order->amount
+                'message'   => 'Unable to create your order. Please contact support.',
+                'parameters' => []
             ];
+
+            if(null !== $order && !empty($order->id))
+            {
+                $responseContent = [
+                    'success'   => true,
+                    'rzp_order' => $order->id,
+                    'order_id'  => $receipt_id,
+                    'amount'    => $order->amount
+                ];
+                $code = 200;
+            }
         }
         catch(\Razorpay\Api\Errors\Error $e)
         {
             $responseContent = [
-                'success'   => false,
-                'message'   => $e->getMessage()
+                'message'   => $e->getMessage(),
+                'parameters' => []
             ];
         }
         catch(\Exception $e)
         {
             $responseContent = [
-                'success'   => false,
-                'message'   => $e->getMessage()
+                'message'   => $e->getMessage(),
+                'parameters' => []
             ];
         }
 
         $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
         $response->setData($responseContent);
+        $response->setHttpResponseCode($code);
 
         return $response;
     }
