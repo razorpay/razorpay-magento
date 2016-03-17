@@ -1,12 +1,9 @@
 <?php
-/**
- * Copyright © 2015 Magento. All rights reserved.
- * See COPYING.txt for license details.
- */
-namespace Razorpay\Payments\Model;
+
+namespace Razorpay\Magento\Model;
 
 use Magento\Payment\Helper\Data as PaymentHelper;
-use \Razorpay\Payments\Model\PaymentMethod;
+use Razorpay\Magento\Model\PaymentMethod;
 use Magento\Checkout\Model\ConfigProviderInterface;
 
 class ConfigProvider implements ConfigProviderInterface
@@ -17,7 +14,7 @@ class ConfigProvider implements ConfigProviderInterface
     protected $methodCode = PaymentMethod::METHOD_CODE;
 
     /**
-     * @var \Razorpay\Payments\Model\Config
+     * @var \Razorpay\Magento\Model\Config
      */
     protected $config;
 
@@ -49,7 +46,7 @@ class ConfigProvider implements ConfigProviderInterface
         \Magento\Framework\Url $urlBuilder,
         \Psr\Log\LoggerInterface $logger,
         PaymentHelper $paymentHelper,
-        \Razorpay\Payments\Model\Config $config,
+        \Razorpay\Magento\Model\Config $config,
         \Magento\Checkout\Model\Session $checkoutSession,
         \Magento\Customer\Model\Session $customerSession
     ) {

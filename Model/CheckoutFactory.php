@@ -1,9 +1,6 @@
 <?php
-/**
- * Copyright © 2015 Magento. All rights reserved.
- * See COPYING.txt for license details.
- */
-namespace Razorpay\Payments\Model;
+
+namespace Razorpay\Magento\Model;
 
 class CheckoutFactory
 {
@@ -29,7 +26,7 @@ class CheckoutFactory
      *
      * @param string $className
      * @param array $data
-     * @return \Magento\Paypal\Model\Express\Checkout
+     * @return \Razorpay\Magento\Model\PaymentMethod
      */
     public function create($className, array $data = [])
     {

@@ -7,7 +7,7 @@ define(
         'use strict';
         rendererList.push({
             type: 'razorpay',
-            component: 'Razorpay_Payments/js/view/payment/method-renderer/razorpay-method'
+            component: 'Razorpay_Magento/js/view/payment/method-renderer/razorpay-method'
         });
         /** Add view logic here if needed */
         return Component.extend({});

@@ -1,7 +1,3 @@
-/**
- * Copyright © 2015 Magento. All rights reserved.
- * See COPYING.txt for license details.
- */
 define(
     [
         'Magento_Checkout/js/view/payment/default',
@@ -21,7 +17,7 @@ define(
 
         return Component.extend({
             defaults: {
-                template: 'Razorpay_Payments/payment/razorpay-form',
+                template: 'Razorpay_Magento/payment/razorpay-form',
                 razorpayDataFrameLoaded: false,
                 rzp_response: {}
             },

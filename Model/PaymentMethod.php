@@ -1,9 +1,6 @@
 <?php
-/**
- * Copyright © 2015 Magento. All rights reserved.
- * See COPYING.txt for license details.
- */
-namespace Razorpay\Payments\Model;
+
+namespace Razorpay\Magento\Model;
 
 use Razorpay\Api\Api;
 use Magento\Framework\Exception\LocalizedException;
@@ -14,7 +11,7 @@ use Magento\Payment\Model\InfoInterface;
 
 /**
  * Class PaymentMethod
- * @package Razorpay\Payments\Model
+ * @package Razorpay\Magento\Model
  * @SuppressWarnings(PHPMD.TooManyFields)
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  * @SuppressWarnings(PHPMD.ExcessiveClassComplexity)
@@ -67,7 +64,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     protected $requestMaskedFields      = null;
 
     /**
-     * @var \Razorpay\Payments\Model\Config
+     * @var \Razorpay\Magento\Model\Config
      */
     protected $config;
 
@@ -104,7 +101,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      * @param \Magento\Payment\Helper\Data $paymentData
      * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
      * @param \Magento\Payment\Model\Method\Logger $logger
-     * @param \Razorpay\Payment\Model\Config $config
+     * @param \Razorpay\Magento\Model\Config $config
      * @param \Magento\Framework\App\RequestInterface $request
      * @param TransactionCollectionFactory $salesTransactionCollectionFactory
      * @param \Magento\Framework\App\ProductMetadataInterface $productMetaData
@@ -123,7 +120,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         \Magento\Payment\Helper\Data $paymentData,
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         \Magento\Payment\Model\Method\Logger $logger,
-        \Razorpay\Payments\Model\Config $config,
+        \Razorpay\Magento\Model\Config $config,
         \Magento\Framework\App\RequestInterface $request,
         TransactionCollectionFactory $salesTransactionCollectionFactory,
         \Magento\Framework\App\ProductMetadataInterface $productMetaData,

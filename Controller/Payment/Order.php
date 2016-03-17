@@ -1,11 +1,11 @@
 <?php
 
-namespace Razorpay\Payments\Controller\Payment;
+namespace Razorpay\Magento\Controller\Payment;
 
-use Razorpay\Payments\Model\PaymentMethod;
+use Razorpay\Magento\Model\PaymentMethod;
 use Magento\Framework\Controller\ResultFactory;
 
-class Order extends \Razorpay\Payments\Controller\BaseController
+class Order extends \Razorpay\Magento\Controller\BaseController
 {
 	protected $quote;
 
@@ -16,14 +16,15 @@ class Order extends \Razorpay\Payments\Controller\BaseController
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession
+     * @param \Magento\Razorpay\Model\CheckoutFactory $checkoutFactory
      * @param \Magento\Razorpay\Model\Config\Payment $razorpayConfig
      */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Checkout\Model\Session $checkoutSession,
-        \Razorpay\Payments\Model\CheckoutFactory $checkoutFactory,
-        \Razorpay\Payments\Model\Config $config
+        \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
+        \Razorpay\Magento\Model\Config $config
     ) {
         parent::__construct(
             $context,

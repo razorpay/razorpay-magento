@@ -1,18 +1,18 @@
 <?php
 
-namespace Razorpay\Payments\Controller;
+namespace Razorpay\Magento\Controller;
 
 use Razorpay\Api\Api;
-use Razorpay\Payments\Model\Config;
+use Razorpay\Magento\Model\Config;
 use Magento\Framework\App\RequestInterface;
 
 /**
- * Razorpay Checkout Controller
+ * Razorpay Base Controller
  */
 abstract class BaseController extends \Magento\Framework\App\Action\Action
 {
     /**
-     * @var \Razorpay\Payments\Model\CheckoutFactory
+     * @var \Razorpay\Magento\Model\CheckoutFactory
      */
     protected $checkoutFactory;
 
@@ -32,7 +32,7 @@ abstract class BaseController extends \Magento\Framework\App\Action\Action
     protected $checkoutSession;
 
     /**
-     * @var \Razorpay\Payments\Model\Checkout
+     * @var \Razorpay\Magento\Model\Checkout
      */
     protected $checkout;
 
@@ -40,13 +40,13 @@ abstract class BaseController extends \Magento\Framework\App\Action\Action
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession
-     * @param \Razorpay\Payments\Model\Config $config
+     * @param \Razorpay\Magento\Model\Config $config
      */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Checkout\Model\Session $checkoutSession,
-        \Razorpay\Payments\Model\Config $config
+        \Razorpay\Magento\Model\Config $config
     ) {
         parent::__construct($context);
         $this->customerSession = $customerSession;
@@ -88,7 +88,7 @@ abstract class BaseController extends \Magento\Framework\App\Action\Action
     }
 
     /**
-     * @return \Razorpay\Payments\Model\Checkout
+     * @return \Razorpay\Magento\Model\Checkout
      */
     protected function getCheckout()
     {

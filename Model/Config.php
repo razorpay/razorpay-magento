@@ -1,9 +1,6 @@
 <?php
-/**
- * Copyright © 2015 Magento. All rights reserved.
- * See COPYING.txt for license details.
- */
-namespace Razorpay\Payments\Model;
+
+namespace Razorpay\Magento\Model;
 
 use \Magento\Framework\App\Config\ScopeConfigInterface;
 
