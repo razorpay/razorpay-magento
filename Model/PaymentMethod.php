@@ -216,12 +216,12 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
             $txn = $this->rzp->payment->fetch($payment_id);
 
-            $_preparedamount *= 100; // Converting to basic price entity
+            $_preparedamount = $amount*100; // Converting to basic price entity
 
-            $result = $txn->capture(array('amount' => $_preparedamount));
+            $result = (array) $txn->capture(array('amount' => $_preparedamount));
 
             $this->_debug([$orderId.' - '.$amount]);
-            $this->_debug($this->_convertObjToArray($result));
+            $this->_debug($result);
             if (isset($result['error']) === false) {
                 $payment->setStatus(self::STATUS_APPROVED)
                     ->setAmountPaid($amount)
