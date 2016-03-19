@@ -4,16 +4,24 @@ This extension utilizes Razorpay API and provides seamless integration with Mage
 
 ### Installation
 
-Install the extension through magento connect in your account. 
+Install the extension through composer package manager.
 
-Once installed, it can be configured under Configuration->Payment Gateways. If you run into any problems, please make sure you are using the 2.0 magento connect extension and you have Stable set as your preferred state in the magento connect settings.
+```
+composer require razorpay/magento dev-master-2.x
+bin/magento module:enable Razorpay_Magneto
+```
+
+
+You can check if the module has been installed using `bin/magento module:status`
+
+You should be able to see `Razorpay_Magento` in the module list
+
+
+Go to `Admin -> Stores -> Configuration -> Payment Method -> Razorpay` to configure Razorpay
+
 
 If you do not see Razorpay in your gateway list, please clear your Magento Cache from your admin
 panel (System -> Cache Management).
-
-## Alternative Install
-
-Download this repo. Merge the app folder in this repo with the app folder in your magento installation directory. Once installed, it can be configured under Configuration->Payment Gateways.
 
 ### Support
 
