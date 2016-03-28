@@ -6,4 +6,11 @@
             </block>
         </reference>
     </checkout_onepage_review>
+    <firecheckout_index_index>
+        <reference name="content">
+            <block type="razorpay/iframe" name="razorpay.iframe" as="razorpay_iframe">
+                <action method="setBlockId"><block_id>razorpayiframe</block_id></action>
+            </block>
+        </reference>
+    </firecheckout_index_index>
 </layout>
