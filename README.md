@@ -7,8 +7,8 @@ This extension utilizes Razorpay API and provides seamless integration with Mage
 Install the extension through composer package manager.
 
 ```
-composer require razorpay/magento dev-master-2.x
-bin/magento module:enable Razorpay_Magneto
+composer require razorpay/magento
+bin/magento module:enable Razorpay_Magento
 ```
 
 
