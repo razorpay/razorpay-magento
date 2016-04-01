@@ -1,26 +1,4 @@
 <?xml version="1.0"?>
-
-<!--
-/*
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the MIT License
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/MIT
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * @category   Razorpay
- * @package    Razorpay Payments (razorpay.com)
- * @copyright  Copyright (c) 2015 Razorpay
- * @license    http://opensource.org/licenses/MIT  MIT License
- */
--->
-
 <config>
     <modules>
         <Razorpay_Payments>
@@ -28,52 +6,29 @@
         </Razorpay_Payments>
     </modules>
     <global>
-    	<models>
-    		<razorpay>
-	    		<class>Razorpay_Payments_Model</class>
-	    	</razorpay>
-    	</models>
-    	<helpers>
-    		<razorpay>
-    			<class>Razorpay_Payments_Helper</class>
-    		</razorpay>
-    	</helpers>
-    	<blocks>
-            <razorpay>
-            	<class>Razorpay_Payments_Block</class>
-            </razorpay>
+        <blocks>
+            <razorpay_payments>
+                <class>Razorpay_Payments_Block</class>
+            </razorpay_payments>
         </blocks>
+        <models>
+            <razorpay_payments>
+                <class>Razorpay_Payments_Model</class>
+            </razorpay_payments>
+        </models>
+        <helpers>
+            <razorpay_payments>
+                <class>Razorpay_Payments_Helper</class>
+            </razorpay_payments>
+        </helpers>
         <resources>
-            <razorpay_setup>
+            <razorpay_payments_setup>
                 <setup>
                     <module>Razorpay_Payments</module>
+                    <class>Mage_Core_Model_Resource_Setup</class>
                 </setup>
-                <connection>
-                    <use>directory_setup</use>
-                </connection>
-            </razorpay_setup>
-            <razorpay_write>
-                <connection>
-                    <use>local_write</use>
-                </connection>
-            </razorpay_write>
-            <razorpay_read>
-                <connection>
-                    <use>local_read</use>
-                </connection>
-            </razorpay_read>
+            </razorpay_payments_setup>
         </resources>
-      <events>
-        <controller_action_postdispatch_checkout_onepage_saveOrder>
-          <observers>
-            <output_razorpay_redirect>
-              <type>singleton</type>
-              <class>Razorpay_Payments_Model_Observer</class>
-              <method>output_razorpay_redirect</method>
-            </output_razorpay_redirect>
-          </observers>
-        </controller_action_postdispatch_checkout_onepage_saveOrder>
-      </events>
     </global>
     <frontend>
         <layout>
@@ -93,18 +48,20 @@
             </razorpay>
         </routers>
         <secure_url>
-            <razorpay_redirect>/razorpay/redirect/</razorpay_redirect>
+            <razorpay_order>/razorpay/order</razorpay_order>
         </secure_url>
     </frontend>
-	<default>
+    <default>
         <payment>
             <razorpay>
-                <model>razorpay/checkout</model>
-                <active>1</active>
-                <title>Razorpay (Credit Card, Debit Card, Netbanking)</title>
-                <username>Enter Razorpay API Key</username>
-                <password>Enter Razorpay API Secret</password>
-                <sort_order>0</sort_order>
+                <model>razorpay_payments/paymentmethod</model>
+                <title>Razorpay</title>
+                <merchant_name_override>Magento</merchant_name_override>
+                <payment_action>authorize_capture</payment_action>
+                <active>0</active>
+                <order_status>processing</order_status>
+                <key_id>Key ID</key_id>
+                <key_secret>Key Secret</key_secret>
             </razorpay>
         </payment>
     </default>

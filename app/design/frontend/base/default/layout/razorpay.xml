@@ -1,9 +1,32 @@
 <layout version="0.1.0">
-    <checkout_onepage_review>
-        <reference name="checkout.onepage.review.info.items.after">
-            <block type="razorpay/iframe" name="razorpay.iframe" as="razorpay_iframe">
-                <action method="setBlockId"><block_id>razorpayiframe</block_id></action>
+    <checkout_onepage_index>
+        <reference name="head">
+            <block type="core/text" name="razorpay.checkout">
+                <action method="setText">
+                    <text>
+                       <![CDATA[<script type="text/javascript" src="https://checkout.razorpay.com/v1/checkout.js"></script>]]>
+                    </text>
+                </action>
+            </block>
+            <action method="addJs"><file>razorpay/razorpay-utils.js</file></action>
+        </reference>
+        <reference name="before_body_end">
+            <block type="razorpay_payments/setuputils" name="razorpay_payments_setuputils" template="razorpay/setuputils.phtml" />
+        </reference>
+    </checkout_onepage_index>
+    <checkout_onepage_savepayment>
+        <reference name="checkout.onepage.review.info.items.before">
+            <block type="razorpay_payments/placeorder" name="razorpay_payments_placeorder" template="razorpay/placeorder.phtml">
+                <action method="setData">
+                    <key>form_id</key>
+                    <value>co-payment-form</value>
+                </action>
             </block>
         </reference>
-    </checkout_onepage_review>
+    </checkout_onepage_savepayment>
+    <checkout_onepage_paymentmethod>
+        <reference name="root">
+            <block type="core/template" name="razorpay_payments_order" template="razorpay/order.phtml" output="toHtml"/>
+        </reference>
+    </checkout_onepage_paymentmethod>
 </layout>
