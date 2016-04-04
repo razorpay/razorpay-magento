@@ -1,0 +1,31 @@
+<script type="text/javascript">
+    var defaultPlaceOrderButton = $$('button[type=submit][class~="btn-checkout"]')[0];
+    defaultPlaceOrderButton.setAttribute('onclick', '');
+
+    var paymentIdField = 'rzp_payment_id';
+
+    var onSuccess = function(data) {
+        $(paymentIdField).value = data.razorpay_payment_id;
+        review.save();
+    };
+
+    var onError = function(message) {
+        alert(message);
+        checkout.back();
+    };
+
+    var beforeStart = function() {
+        defaultPlaceOrderButton.disabled = true;
+    };
+
+    var onUserClose = function() {
+        defaultPlaceOrderButton.disabled = false;
+        $(paymentIdField).remove();
+    };
+
+    var placeOrder = function() {
+        razorpayUtils.placeOrder(onSuccess, onUserClose, beforeStart, '<?php echo $this->getFormId()?>', paymentIdField);
+    };
+
+    Event.observe(defaultPlaceOrderButton, 'click', placeOrder);
+</script>
