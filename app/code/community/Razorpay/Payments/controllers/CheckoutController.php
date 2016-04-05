@@ -17,7 +17,9 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
     {
         $amount = (int) ((float) $this->_getQuote()->getGrandTotal())*100;
 
-        if (!($orderId = $this->_getQuote()->getReservedOrderId()))
+        $orderId = $this->_getQuote()->getReservedOrderId();
+
+        if (!$orderId)
         {
             $this->_getQuote()->reserveOrderId()->save();
             $orderId = $this->_getQuote()->getReservedOrderId();

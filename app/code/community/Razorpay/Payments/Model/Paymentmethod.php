@@ -2,7 +2,7 @@
 
 class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Abstract
 {
-    const CHANNEL_NAME                  = 'Razorpay/Magento%s/%s';
+    const CHANNEL_NAME                  = 'Razorpay/Magento%s_%s/%s';
     const METHOD_CODE                   = 'razorpay';
     const CURRENCY                      = 'INR';
     const VERSION                       = '0.2.0';
@@ -52,7 +52,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
 
         $requestFields = Mage::app()->getRequest()->getPost();
 
-        $paymentId = $requestFields['payment']['rzp_payment_id'];
+        $paymentId = $requestFields['payment']['razorpay_payment_id'];
 
         $order = $payment->getOrder();
         $orderId = $order->getIncrementId();
@@ -102,7 +102,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         {
             $edition = 'EE';
         }
-        return sprintf(self::CHANNEL_NAME, $edition, self::VERSION);
+        return sprintf(self::CHANNEL_NAME, $edition, Mage::getVersion(), self::VERSION);
     }
 
     /**

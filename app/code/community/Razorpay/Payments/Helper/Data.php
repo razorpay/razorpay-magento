@@ -45,7 +45,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
             $response = $this->sendRequest($url, $postData);
 
             $returnArray = array(
-                'rzp_order_id'  => $response['id']
+                'razorpay_order_id'  => $response['id']
             );
 
             return $returnArray;

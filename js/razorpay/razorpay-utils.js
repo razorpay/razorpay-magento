@@ -58,7 +58,7 @@ RazorpayUtils.prototype = {
 
     placeOrder: function(onSuccess, onUserClose, beforeStart, formId, paymentIdField)
     {
-        var rzp;
+        var checkout;
 
         if (typeof beforeStart == 'function') {
             beforeStart();
@@ -66,12 +66,12 @@ RazorpayUtils.prototype = {
 
         this.createHiddenInput({name: "payment[" + paymentIdField +"]", id: paymentIdField}, formId);
 
-        var rzpOptions = {
+        var options = {
             key: this.keyId,
             name: this.merchantName,
             amount: this.orderInfo.amount,
             handler: onSuccess,
-            order_id: this.orderInfo.rzp_order_id,
+            order_id: this.orderInfo.razorpay_order_id,
             modal: {
                 ondismiss: function() {
                     onUserClose();
@@ -87,8 +87,8 @@ RazorpayUtils.prototype = {
             }
         };
 
-        rzp = new Razorpay(rzpOptions);
+        checkout = new Razorpay(options);
 
-        rzp.open();
+        checkout.open();
     }
 };

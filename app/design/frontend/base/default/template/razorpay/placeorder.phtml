@@ -2,7 +2,7 @@
     var defaultPlaceOrderButton = $$('button[type=submit][class~="btn-checkout"]')[0];
     defaultPlaceOrderButton.setAttribute('onclick', '');
 
-    var paymentIdField = 'rzp_payment_id';
+    var paymentIdField = 'razorpay_payment_id';
 
     var onSuccess = function(data) {
         $(paymentIdField).value = data.razorpay_payment_id;
