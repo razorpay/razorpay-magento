@@ -11,6 +11,8 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
     const KEY_ID                        = 'key_id';
     const KEY_SECRET                    = 'key_secret';
 
+    protected $successHttpCodes         = array(200, 201, 202, 203, 204, 205, 206, 207, 208, 226);
+
     public function __construct()
     {
         $this->urls = array(
@@ -73,7 +75,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
                 return true;
             }
 
-            throw new Exception('Capture_Error: Unable to capture payment ' . $paymentId);
+            throw new Exception('CAPTURE_ERROR: Unable to capture payment ' . $paymentId);
         }
 
         throw new Exception('MAGENTO_ERROR: Payment Method not available');
@@ -106,6 +108,8 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
         curl_close($ch);
 
+        $responseArray = array();
+
         if ($response === false)
         {
             $error = 'CURL_ERROR: ' . curl_error($ch);
@@ -114,9 +118,12 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
         }
         else
         {
-            $responseArray = json_decode($response, true);
+            if (!empty($response))
+            {
+                $responseArray = json_decode($response, true);
+            }
 
-            if ($httpStatus === 200 and isset($responseArray['error']) === false)
+            if (in_array($httpStatus, $this->successHttpCodes, true) and isset($responseArray['error']) === false)
             {
                 return $responseArray;
             }
@@ -124,7 +131,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
             {
                 if (!empty($responseArray['error']['code']))
                 {
-                    $error = $responseArray['error']['code'].":".$responseArray['error']['description'];
+                    $error = $responseArray['error']['code'].": ".$responseArray['error']['description'];
                 }
                 else
                 {

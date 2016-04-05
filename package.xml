@@ -17,7 +17,7 @@
         </author>
     </authors>
     <date>2016-04-05</date>
-    <time>09:03:20</time>
+    <time>12:48:44</time>
     <contents>
         <target name="magecommunity">
             <dir name="Razorpay">
@@ -27,7 +27,7 @@
                         <file name="Setuputils.php" hash="3d38f8ba62b42fc4decb7dbc7d4e8e1e"/>
                     </dir>
                     <dir name="Helper">
-                        <file name="Data.php" hash="7b1cfcd6cf5dff9cedc0b25b8634faff"/>
+                        <file name="Data.php" hash="f621f235eaf3fbaa2bc54e4e15fc3c2d"/>
                     </dir>
                     <dir name="Model">
                         <file name="Paymentmethod.php" hash="0fbad0dbec0c8dcf1d597a4a3d15b1c7"/>
