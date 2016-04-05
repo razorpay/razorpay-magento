@@ -2,20 +2,25 @@
 
 class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 {
-    const CONFIG_PATH_RAZORPAY_ENABLED      = 'payment/razorpay/active';
+    const CONFIG_PATH_RAZORPAY_ENABLED  = 'payment/razorpay/active';
+
+    const BASE_URL                      = 'https://api.razorpay.com/v1/';
+
+    const PAYMENT_MODEL                 = 'razorpay_payments/paymentmethod';
+
+    const KEY_ID                        = 'key_id';
+    const KEY_SECRET                    = 'key_secret';
 
     public function __construct()
     {
-        $baseUrl = 'https://api.razorpay.com/v1/';
-
         $this->urls = array(
-            'order'     => $baseUrl . 'orders',
-            'payment'   => $baseUrl . 'payments',
-            'capture'   => $baseUrl . 'payments/:id/capture',
-            'refund'    => $baseUrl . 'payments/:id/refund'
+            'order'     => self::BASE_URL . 'orders',
+            'payment'   => self::BASE_URL . 'payments',
+            'capture'   => self::BASE_URL . 'payments/:id/capture',
+            'refund'    => self::BASE_URL . 'payments/:id/refund'
         );
 
-        $this->userAgent = Mage::getModel('razorpay_payments/paymentmethod')->_getChannel();
+        $this->userAgent = Mage::getModel(self::PAYMENT_MODEL)->_getChannel();
     }
 
     public function isRazorpayEnabled()
@@ -25,87 +30,61 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
     public function createOrder($receipt, $amount)
     {
-        $currency = Razorpay_Payments_Model_Paymentmethod::CURRENCY;
-
-        $paymentModel = Mage::getModel('razorpay_payments/paymentmethod');
-
-        $keyId = $paymentModel->getConfigData('key_id');
-        $keySecret = $paymentModel->getConfigData('key_secret');
-
-        $url = $this->getRelativeUrl('order');
-
-        $postData = array(
-            'receipt'   => $receipt,
-            'amount'    => $amount,
-            'currency'  => $currency
-        );
-
-        $ch = curl_init();
-
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_USERPWD, $keyId . ":" . $keySecret);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 60);
-        curl_setopt($ch, CURLOPT_USERAGENT, $this->userAgent);
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-
-        $response = curl_exec($ch);
-        $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-        curl_close($ch);
-
-        if($response === false)
+        if ($this->isRazorpayEnabled())
         {
-            $error = 'Curl error: ' . curl_error($ch);
+            $currency = Razorpay_Payments_Model_Paymentmethod::CURRENCY;
 
-            throw new Exception($error);
-        }
-        else {
-            $responseArray = json_decode($response, true);
+            $url = $this->getRelativeUrl('order');
 
-            if($httpStatus === 200 and isset($responseArray['error']) === false)
-            {
-                $success = true;
+            $postData = array(
+                'receipt'   => $receipt,
+                'amount'    => $amount,
+                'currency'  => $currency
+            );
 
-                $returnArray = array(
-                    'rzp_order_id'  => $responseArray['id']
-                );
-            }
-            else
-            {
-                if(!empty($responseArray['error']['code']))
-                {
-                    $error = $responseArray['error']['code'].":".$responseArray['error']['description'];
-                }
-                else
-                {
-                    $error = "RAZORPAY_ERROR:Invalid Response <br/>".$response;
-                }
+            $response = $this->sendRequest($url, $postData);
 
-                throw new Exception($error);
-            }
+            $returnArray = array(
+                'rzp_order_id'  => $response['id']
+            );
+
+            return $returnArray;
         }
 
-        return $returnArray;
+        throw new Exception('MAGENTO_ERROR: Payment Method not available');
     }
 
     public function capturePayment($paymentId, $amount)
     {
-        $currency = Razorpay_Payments_Model_Paymentmethod::CURRENCY;
+        if ($this->isRazorpayEnabled())
+        {
+            $url = $this->getRelativeUrl('capture', array(
+                ':id'   => $paymentId
+            ));
 
-        $paymentModel = Mage::getModel('razorpay_payments/paymentmethod');
+            $postData = array(
+                'amount'    => $amount
+            );
 
-        $keyId = $paymentModel->getConfigData('key_id');
-        $keySecret = $paymentModel->getConfigData('key_secret');
+            $response = $this->sendRequest($url, $postData);
 
-        $url = $this->getRelativeUrl('capture', array(
-            ':id'   => $paymentId
-        ));
+            if ($response['status'] === 'captured')
+            {
+                return true;
+            }
 
-        $postData = array(
-            'amount'    => $amount
-        );
+            throw new Exception('Capture_Error: Unable to capture payment ' . $paymentId);
+        }
+
+        throw new Exception('MAGENTO_ERROR: Payment Method not available');
+    }
+
+    public function sendRequest($url, $content, $method = 'POST')
+    {
+        $paymentModel = Mage::getModel(self::PAYMENT_MODEL);
+
+        $keyId = $paymentModel->getConfigData(self::KEY_ID);
+        $keySecret = $paymentModel->getConfigData(self::KEY_SECRET);
 
         $ch = curl_init();
 
@@ -113,18 +92,23 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
         curl_setopt($ch, CURLOPT_USERPWD, $keyId . ":" . $keySecret);
         curl_setopt($ch, CURLOPT_TIMEOUT, 60);
         curl_setopt($ch, CURLOPT_USERAGENT, $this->userAgent);
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+
+        if ($method === 'POST')
+        {
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $content);
+        }
+
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
         $response = curl_exec($ch);
         $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
         curl_close($ch);
 
-        if($response === false)
+        if ($response === false)
         {
-            $error = 'Curl error: ' . curl_error($ch);
+            $error = 'CURL_ERROR: ' . curl_error($ch);
 
             throw new Exception($error);
         }
@@ -132,31 +116,29 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
         {
             $responseArray = json_decode($response, true);
 
-            if($httpStatus === 200 and isset($responseArray['error']) === false)
+            if ($httpStatus === 200 and isset($responseArray['error']) === false)
             {
-                $success = true;
+                return $responseArray;
             }
             else
             {
-                if(!empty($responseArray['error']['code']))
+                if (!empty($responseArray['error']['code']))
                 {
                     $error = $responseArray['error']['code'].":".$responseArray['error']['description'];
                 }
                 else
                 {
-                    $error = "RAZORPAY_ERROR:Invalid Response <br/>".$response;
+                    $error = "RAZORPAY_ERROR: Invalid Response <br/>".$response;
                 }
 
                 throw new Exception($error);
             }
         }
-
-        return $success;
     }
 
     public function getRelativeUrl($name, $data = null)
     {
-        if($data)
+        if ($data)
         {
             return strtr($this->urls[$name], $data);
         }

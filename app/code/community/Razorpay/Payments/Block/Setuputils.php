@@ -6,7 +6,7 @@ class Razorpay_Payments_Block_Setuputils extends Mage_Core_Block_Template
     const MERCHANT_NAME = 'payment/razorpay/merchant_name_override';
     
     /**
-     * Returns data.js script source from store config
+     * Returns key_id from store config
      * 
      * @return string
      */

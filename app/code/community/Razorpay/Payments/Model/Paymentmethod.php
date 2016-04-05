@@ -2,9 +2,10 @@
 
 class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Abstract
 {
-    const CHANNEL_NAME                  = 'Razorpay_SI_Magento%s_V2';
+    const CHANNEL_NAME                  = 'Razorpay/Magento%s/%s';
     const METHOD_CODE                   = 'razorpay';
     const CURRENCY                      = 'INR';
+    const VERSION                       = '0.2.0';
 
     protected $_code                    = self::METHOD_CODE;
     protected $_canOrder                = true;
@@ -43,7 +44,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
      * 
      * @param Varien_Object $payment
      * @param decimal $amount
-     * @return Braintree_Payments_Model_Paymentmethod
+     * @return Razorpay_Payments_Model_Paymentmethod
      */
     public function capture(Varien_Object $payment, $amount)
     {
@@ -64,17 +65,22 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
             $this->_debug($orderId.' - '.$amount);
             $this->_debug($result);
 
-            if ($result) {
+            if ($result)
+            {
                 $payment->setStatus(self::STATUS_APPROVED)
                     ->setAmountPaid($amount)
                     ->setLastTransId($paymentId)
                     ->setTransactionId($paymentId)
                     ->setIsTransactionClosed(true)
                     ->setShouldCloseParentTransaction(true);
-            } else {
+            }
+            else
+            {
                 Mage::throwException('There was an error capturing the transaction.');
             }
-        } catch (Exception $e) {
+        }
+        catch (Exception $e)
+        {
             Mage::throwException(
                 'There was an error capturing the transaction.' .
                 ' ' . $e->getMessage()
@@ -92,10 +98,11 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
     public function _getChannel()
     {
         $edition = 'CE';
-        if (Mage::getEdition() == Mage::EDITION_ENTERPRISE) {
+        if (Mage::getEdition() == Mage::EDITION_ENTERPRISE)
+        {
             $edition = 'EE';
         }
-        return sprintf(self::CHANNEL_NAME, $edition);
+        return sprintf(self::CHANNEL_NAME, $edition, self::VERSION);
     }
 
     /**
@@ -108,10 +115,14 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
      */
     public function getConfigData($field, $storeId = null)
     {
-        if (null === $storeId) {
-            if (Mage::app()->getStore()->isAdmin()) {
+        if (null === $storeId)
+        {
+            if (Mage::app()->getStore()->isAdmin())
+            {
                 $storeId = Mage::getSingleton('adminhtml/session_quote')->getStoreId();
-            } else {
+            }
+            else
+            {
                 $storeId = $this->getStore();
             }
         }

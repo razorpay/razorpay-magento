@@ -4,11 +4,6 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
 {
     protected $order;
 
-    public function getCheckout()
-    {
-        return Mage::getSingleton('checkout/session');
-    }
-
     protected function _expireAjax()
     {
         if (!Mage::getSingleton('checkout/session')->getQuote()->hasItems())
@@ -18,19 +13,11 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
         }
     }
 
-    public function indexAction()
-    {
-        $this->loadLayout();
-        $block = $this->getLayout()->createBlock('razorpay/redirect');
-        $this->getLayout()->getBlock('content')->append($block);
-        $this->renderLayout();
-    }
-
     public function orderAction()
     {
         $amount = (int) ((float) $this->_getQuote()->getGrandTotal())*100;
 
-        if(!($orderId = $this->_getQuote()->getReservedOrderId()))
+        if (!($orderId = $this->_getQuote()->getReservedOrderId()))
         {
             $this->_getQuote()->reserveOrderId()->save();
             $orderId = $this->_getQuote()->getReservedOrderId();
@@ -67,6 +54,7 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
         {
             $this->_quote = Mage::getSingleton('checkout/session')->getQuote();
         }
+
         return $this->_quote;
     }
 
