@@ -1,107 +1,94 @@
 <?xml version="1.0"?>
 
-<!--
-/*
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the MIT License
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/MIT
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * @category   Razorpay
- * @package    Razorpay Payments (razorpay.com)
- * @copyright  Copyright (c) 2015 Razorpay
- * @license    http://opensource.org/licenses/MIT  MIT License
- */
--->
-
 <config>
     <sections>
         <payment>
-          <groups>
-                  <razorpay translate="label">
+            <groups>
+                <razorpay translate="label">
                     <label>Razorpay</label>
-                    <frontend_type>text</frontend_type>
-                    <sort_order>0</sort_order>
+                    <sort_order>23</sort_order>
                     <show_in_default>1</show_in_default>
                     <show_in_website>1</show_in_website>
                     <show_in_store>1</show_in_store>
+                    <comment>
+                        <![CDATA[<a href="https://razorpay.com/" target="_blank">Click here to sign up for Razorpay account</a>]]>
+                    </comment>
                     <fields>
-                        <title translate="label">
-                            <label>Title</label>
-                            <frontend_type>text</frontend_type>
-                            <sort_order>1</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                        </title>
-                        <active translate="label">
+                        <active>
                             <label>Enabled</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
-                            <sort_order>2</sort_order>
+                            <sort_order>110</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>0</show_in_store>
                         </active>
-                        <username translate="label">
-                            <label>API Key Id</label>
-                            <comment>**Required (Enter test key id for testing) **</comment>
+                        <title translate="label">
+                            <label>Title</label>
                             <frontend_type>text</frontend_type>
-                            <sort_order>3</sort_order>
+                            <sort_order>120</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </title>
+                        <merchant_name_override translate="label">
+                            <label>Override Merchant Name</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>140</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>0</show_in_store>
-                        </username>
-                        <password translate="label">
+                        </merchant_name_override>
+                        <key_id translate="label">
+                            <label>API Key</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>40</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>0</show_in_store>
+                        </key_id>
+                        <key_secret translate="label">
                             <label>API Key Secret</label>
-                            <comment>**Required (Enter test key secret for testing)**</comment>
                             <frontend_type>text</frontend_type>
-                            <sort_order>4</sort_order>
+                            <sort_order>40</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>0</show_in_store>
-                        </password>
-                        <allowspecific translate="label">
-                            <label>Payment Applicable From</label>
+                        </key_secret>
+                        <order_status translate="label">
+                            <label>New Order Status</label>
                             <frontend_type>select</frontend_type>
-                            <sort_order>5</sort_order>
+                            <source_model>adminhtml/system_config_source_order_status_processing</source_model>
+                            <sort_order>160</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>0</show_in_store>
+                        </order_status>
+                        <allowspecific translate="label">
+                            <label>Payment from Applicable Countries</label>
+                            <frontend_type>allowspecific</frontend_type>
+                            <sort_order>170</sort_order>
                             <source_model>adminhtml/system_config_source_payment_allspecificcountries</source_model>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>0</show_in_store>
                         </allowspecific>
                         <specificcountry translate="label">
-                            <label>Countries Payment Applicable From</label>
+                            <label>Payment from Specific Countries</label>
                             <frontend_type>multiselect</frontend_type>
-                            <sort_order>6</sort_order>
+                            <sort_order>180</sort_order>
                             <source_model>adminhtml/system_config_source_country</source_model>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>0</show_in_store>
                         </specificcountry>
-                        <order_status translate="label">
-                            <label>New Order Status</label>
-                            <frontend_type>select</frontend_type>
-                            <source_model>adminhtml/system_config_source_order_status_newprocessing</source_model>
-                            <sort_order>7</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>0</show_in_store>
-                        </order_status>
                         <sort_order translate="label">
-                            <label>Sort order</label>
+                            <label>Sort Order</label>
                             <frontend_type>text</frontend_type>
-                            <sort_order>8</sort_order>
+                            <sort_order>20</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
-                            <show_in_store>0</show_in_store>
+                            <show_in_store>1</show_in_store>
                         </sort_order>
                     </fields>
                 </razorpay>

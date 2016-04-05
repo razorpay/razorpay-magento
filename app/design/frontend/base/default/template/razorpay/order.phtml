@@ -1,0 +1,36 @@
+<?php $_code = Razorpay_Payments_Model_Paymentmethod::METHOD_CODE; ?>
+<?php if (Mage::helper('razorpay_payments')->isRazorpayEnabled()) : ?>
+<script type="text/javascript">
+
+Payment.addMethods({
+    save: function(){
+        if (checkout.loadWaiting!=false) return;
+
+        var validator = new Validation(this.form);
+        if (this.validate() && validator.validate()) {
+            checkout.setLoadWaiting('payment');
+
+            var makeNativeAjaxRequest = function(thisClass){
+
+                new Ajax.Request(
+                    thisClass.saveUrl,
+                    {
+                        method:'post',
+                        onComplete: thisClass.onComplete,
+                        onSuccess: thisClass.onSave,
+                        onFailure: checkout.ajaxFailure.bind(checkout),
+                        parameters: Form.serialize(thisClass.form)
+                    }
+                );
+            };
+
+            if (this.currentMethod == '<?php echo $_code; ?>') {
+                razorpayUtils.createOrder(makeNativeAjaxRequest.bind(null, this));
+            } else {
+                makeNativeAjaxRequest(this);
+            }
+        }
+    }
+});
+</script>
+<?php endif; ?>
