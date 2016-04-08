@@ -1,0 +1,93 @@
+<?php $helper = Mage::helper('razorpay_payments'); ?>
+<?php if ($helper->isIwdOpcExtensionEnabled()) :?>
+    <?php $code = Razorpay_Payments_Model_Paymentmethod::METHOD_CODE ; ?>
+    <script type="text/javascript">
+        if (typeof razorpayUtils === "undefined") {
+            var razorpayUtils = new RazorpayUtils();
+        }
+        var paymentIdField = 'razorpay_payment_id';
+        var formId = '<?php echo $this->getFormId()?>';
+
+        // Remove native extension event listener for place order button
+        var removeSubmitOrderEvents = function() {
+            $j_opc(document).off('click', '.opc-btn-checkout');
+        };
+
+        // Add Razorpay event listener for place order button to allow custom flow
+        var addRazorpayFlow = function() {
+            $j_opc(document).on('click', '.opc-btn-checkout', processRazorpayOrder);
+        };
+
+        // Set up again native extension event listener for place order button and click button
+        var processNativeExtensionOrder = function() {
+            IWD.OPC.Checkout.hideLoader();
+            removeSubmitOrderEvents();
+
+            IWD.OPC.initSaveOrder();
+
+            $j_opc('.opc-btn-checkout').disabled = 'false';
+            $j_opc('.opc-btn-checkout').click();
+            removeSubmitOrderEvents();
+            setTimeout(addRazorpayFlow(), 500);
+        };
+
+        // Show error message using extension tools
+        var showErrorMessage = function(message) {
+            $j_opc('.opc-message-container').html(message);
+            $j_opc('.opc-message-wrapper').show();
+            IWD.OPC.Checkout.hideLoader();
+            $j_opc('.opc-btn-checkout').disabled = 'false';
+        };
+
+        // Process custom flow
+        var processRazorpayOrder = function() {
+            if (payment.currentMethod == '<?php echo $code; ?>') {
+                // Payment method is Razorpay Credit Card
+                IWD.OPC.Checkout.showLoader();
+
+                var $paymentId = $(paymentIdField);
+
+                var captureOrder = $paymentId && ($paymentId.value != '');
+
+                if (razorpayUtils.isOrderSet()) {
+                    placeRazorpayOrder();
+                } else {
+                    razorpayUtils.createOrder(placeRazorpayOrder, showErrorMessage);
+                }
+            } else {
+                // Selected payment method is not Razorpay
+                processNativeExtensionOrder();
+            }
+        };
+
+        var placeRazorpayOrder = function() {
+
+            var onSuccess = function(data) {
+                $(paymentIdField).value = data.razorpay_payment_id;
+
+                processNativeExtensionOrder();
+            }
+
+            var onUserClose = function(){
+                IWD.OPC.Checkout.hideLoader();
+            };
+            var beforeStart = function(){
+                IWD.OPC.Checkout.showLoader();
+            };
+
+            razorpayUtils.placeOrder(
+                onSuccess,
+                onUserClose,
+                beforeStart,
+                formId,
+                paymentIdField
+            );
+
+        };
+
+        $j_opc(document).ready(function(){
+            removeSubmitOrderEvents();
+            addRazorpayFlow();
+        });
+    </script>
+<?php endif; ?>

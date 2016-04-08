@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
     <name>Razorpay_Payments</name>
-    <version>0.2.0</version>
+    <version>0.2.1</version>
     <stability>beta</stability>
     <license>MIT</license>
     <channel>community</channel>
@@ -16,8 +16,8 @@
             <email>vivek@razorpay.com</email>
         </author>
     </authors>
-    <date>2016-04-05</date>
-    <time>12:48:44</time>
+    <date>2016-04-08</date>
+    <time>14:52:30</time>
     <contents>
         <target name="magecommunity">
             <dir name="Razorpay">
@@ -27,7 +27,7 @@
                         <file name="Setuputils.php" hash="3d38f8ba62b42fc4decb7dbc7d4e8e1e"/>
                     </dir>
                     <dir name="Helper">
-                        <file name="Data.php" hash="f621f235eaf3fbaa2bc54e4e15fc3c2d"/>
+                        <file name="Data.php" hash="3eb01c681f348c86a4ec3c7dc7855439"/>
                     </dir>
                     <dir name="Model">
                         <file name="Paymentmethod.php" hash="0fbad0dbec0c8dcf1d597a4a3d15b1c7"/>
@@ -47,11 +47,16 @@
                 <dir name="base">
                     <dir name="default">
                         <dir name="layout">
-                            <file name="razorpay.xml" hash="82e6979dec67b86fa01bf44fb69ed696"/>
+                            <file name="razorpay.xml" hash="c0098eef0d3e3571a97834c9cdfd90d5"/>
                         </dir>
                         <dir name="template">
                             <dir name="razorpay">
-                                <file name="order.phtml" hash="71858be7b18793d6814bb6d4400d8223"/>
+                                <dir name="extensions">
+                                    <dir name="iwd_opc">
+                                        <file name="payments.phtml" hash="195d90aed4db69cdef2eeb578a780b46"/>
+                                    </dir>
+                                </dir>
+                                <file name="order.phtml" hash="1493e996886160b37b930251f7ac78ce"/>
                                 <file name="placeorder.phtml" hash="fb8f5945e404a55be6c7c86038d6d77b"/>
                                 <file name="setuputils.phtml" hash="a4257d4ba888ce8c8c943e08ac052240"/>
                             </dir>
@@ -68,7 +73,7 @@
         <target name="mage">
             <dir name="js">
                 <dir name="razorpay">
-                    <file name="razorpay-utils.js" hash="a5cd7e74d8f6131586ba829c82f3dd2e"/>
+                    <file name="razorpay-utils.js" hash="0e0cc3ec6b477a1fb397951141f1ca35"/>
                 </dir>
             </dir>
         </target>

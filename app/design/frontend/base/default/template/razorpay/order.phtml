@@ -24,8 +24,10 @@ Payment.addMethods({
                 );
             };
 
+            var onFailure = checkout.ajaxFailure.bind(checkout);
+
             if (this.currentMethod == '<?php echo $_code; ?>') {
-                razorpayUtils.createOrder(makeNativeAjaxRequest.bind(null, this));
+                razorpayUtils.createOrder(makeNativeAjaxRequest.bind(null, this), onFailure);
             } else {
                 makeNativeAjaxRequest(this);
             }

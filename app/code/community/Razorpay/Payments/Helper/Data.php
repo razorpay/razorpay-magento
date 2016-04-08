@@ -152,4 +152,10 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
         return $this->urls[$name];
     }
+
+    public function isIwdOpcExtensionEnabled()
+    {
+        return (Mage::getStoreConfigFlag('opc/global/status') and
+            Mage::helper('core')->isModuleOutputEnabled('IWD_Opc'));
+    }
 }

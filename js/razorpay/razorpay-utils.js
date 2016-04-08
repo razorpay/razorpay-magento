@@ -18,6 +18,10 @@ RazorpayUtils.prototype = {
         return this.merchantName;
     },
 
+    isOrderSet: function() {
+        return !!this.orderInfo;
+    },
+
     createHiddenInput: function(attributes, formId){
         var element, attr, value;
         element = document.createElement('input');
@@ -35,7 +39,7 @@ RazorpayUtils.prototype = {
         $(formId).appendChild(element);
     },
 
-    createOrder: function(onSuccess) {
+    createOrder: function(onSuccess, onFailure) {
         var self = this;
 
         function success(event) {
@@ -51,7 +55,7 @@ RazorpayUtils.prototype = {
             {
                 method:'post',
                 onSuccess: success,
-                onFailure: checkout.ajaxFailure.bind(checkout)
+                onFailure: onFailure
             }
         );
     },
