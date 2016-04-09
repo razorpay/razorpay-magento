@@ -2,9 +2,6 @@
 <?php if ($helper->isIwdOpcExtensionEnabled()) :?>
     <?php $code = Razorpay_Payments_Model_Paymentmethod::METHOD_CODE ; ?>
     <script type="text/javascript">
-        if (typeof razorpayUtils === "undefined") {
-            var razorpayUtils = new RazorpayUtils();
-        }
         var paymentIdField = 'razorpay_payment_id';
         var formId = '<?php echo $this->getFormId()?>';
 
