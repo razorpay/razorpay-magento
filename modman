@@ -1,0 +1,5 @@
+app/code/community/Razorpay/Payments                    app/code/community/Razorpay/Payments
+app/design/frontend/base/default/layout/razorpay.xml    app/design/frontend/base/default/layout/razorpay.xml
+app/design/frontend/base/default/template/razorpay      app/design/frontend/base/default/template/razorpay
+app/etc/modules/Razorpay_Payments.xml                   app/etc/modules/Razorpay_Payments.xml
+js/razorpay                                             js/razorpay
