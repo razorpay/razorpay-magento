@@ -1,0 +1,66 @@
+<?php $helper = Mage::helper('razorpay_payments'); ?>
+<?php if ($helper->isRazorpayEnabled()) : ?>
+    <?php $code = Razorpay_Payments_Model_Paymentmethod::METHOD_CODE ; ?>
+    <script type="text/javascript">
+        var formId = 'firecheckout-form';
+        var paymentIdField = 'razorpay_payment_id';
+        var nativeButton = $$('#review-buttons-container .btn-checkout').first();
+
+        // Change native extension place order button onclick
+        nativeButton.setAttribute('onclick', 'processRazorpayOrder()');
+
+        // Click extension "place order" button
+        var processNativeExtensionOrder = function(){
+            nativeButton.show();
+
+            checkout.save();
+        };
+
+        var showErrorMessage = function(message){
+            alert(message);
+
+            nativeButton.show();
+        };
+
+        var processRazorpayOrder = function() {
+            if (payment.currentMethod == '<?php echo $code ?>') {
+                var $paymentId = $(paymentIdField);
+
+                var captureOrder = $paymentId && ($paymentId.value != '');
+
+                if (razorpayUtils.isOrderSet()) {
+                    placeRazorpayOrder();
+                } else {
+                    razorpayUtils.createOrder(placeRazorpayOrder, showErrorMessage);
+                }
+            } else {
+                processNativeExtensionOrder();
+            }
+        };
+
+        var placeRazorpayOrder = function() {
+            var onUserClose = function() {
+                nativeButton.disabled = false;
+                nativeButton.show();
+            };
+
+            var onSuccess = function(data) {
+                $(paymentIdField).value = data.razorpay_payment_id;
+
+                processNativeExtensionOrder();
+            };
+
+            var beforeStart = function() {
+                nativeButton.disabled = true;
+            };
+
+            razorpayUtils.placeOrder(
+                onSuccess,
+                onUserClose,
+                beforeStart,
+                formId,
+                paymentIdField
+            );
+        };
+    </script>
+<?php endif; ?>
