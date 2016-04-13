@@ -42,10 +42,6 @@
                 // Payment method is Razorpay Credit Card
                 IWD.OPC.Checkout.showLoader();
 
-                var $paymentId = $(paymentIdField);
-
-                var captureOrder = $paymentId && ($paymentId.value != '');
-
                 if (razorpayUtils.isOrderSet()) {
                     placeRazorpayOrder();
                 } else {

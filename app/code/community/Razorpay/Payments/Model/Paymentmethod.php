@@ -5,7 +5,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
     const CHANNEL_NAME                  = 'Razorpay/Magento%s_%s/%s';
     const METHOD_CODE                   = 'razorpay';
     const CURRENCY                      = 'INR';
-    const VERSION                       = '0.2.0';
+    const VERSION                       = '0.2.2';
 
     protected $_code                    = self::METHOD_CODE;
     protected $_canOrder                = true;
@@ -30,7 +30,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
 
     /**
      * Authorizes specified amount
-     * 
+     *
      * @param Varien_Object $payment
      * @param decimal $amount
      */
@@ -41,7 +41,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
 
     /**
      * Captures specified amount
-     * 
+     *
      * @param Varien_Object $payment
      * @param decimal $amount
      * @return Razorpay_Payments_Model_Paymentmethod
@@ -92,7 +92,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
 
     /**
      * Format param "channel" for transaction
-     * 
+     *
      * @return string
      */
     public function _getChannel()
