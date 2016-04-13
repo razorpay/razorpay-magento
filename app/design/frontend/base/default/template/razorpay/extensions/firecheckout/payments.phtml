@@ -24,9 +24,6 @@
 
         var processRazorpayOrder = function() {
             if (payment.currentMethod == '<?php echo $code ?>') {
-                var $paymentId = $(paymentIdField);
-
-                var captureOrder = $paymentId && ($paymentId.value != '');
 
                 if (razorpayUtils.isOrderSet()) {
                     placeRazorpayOrder();

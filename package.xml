@@ -16,8 +16,8 @@
             <email>vivek@razorpay.com</email>
         </author>
     </authors>
-    <date>2016-04-11</date>
-    <time>12:30:48</time>
+    <date>2016-04-13</date>
+    <time>06:34:34</time>
     <contents>
         <target name="magecommunity">
             <dir name="Razorpay">
@@ -53,10 +53,10 @@
                             <dir name="razorpay">
                                 <dir name="extensions">
                                     <dir name="firecheckout">
-                                        <file hash="94d637cf1486510e95f7b23f95b6efe4" name="payments.phtml"/>
+                                        <file hash="b792a741e5e8839202e93e6b9442b58b" name="payments.phtml"/>
                                     </dir>
                                     <dir name="iwd_opc">
-                                        <file hash="b5525d043934d55eda8bfb90a89efcd9" name="payments.phtml"/>
+                                        <file hash="48fec536ebfee1dbe0c48c208f41b5c8" name="payments.phtml"/>
                                     </dir>
                                 </dir>
                                 <file hash="1493e996886160b37b930251f7ac78ce" name="order.phtml"/>
