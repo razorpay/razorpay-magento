@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
     <name>Razorpay_Payments</name>
-    <version>0.2.2</version>
+    <version>1.1.2</version>
     <stability>beta</stability>
     <license>MIT</license>
     <channel>community</channel>
