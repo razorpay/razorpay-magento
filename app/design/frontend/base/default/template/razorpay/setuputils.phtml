@@ -1,3 +1,4 @@
+<?php if (Mage::helper('razorpay_payments')->isRazorpayEnabled()) : ?>
 <script type="text/javascript">
     var razorpayUtils = new RazorpayUtils({
     	orderUrl: '<?php echo $this->getUrl('razorpay/checkout/order') ?>'
@@ -6,3 +7,4 @@
     razorpayUtils.setKeyId('<?php echo $this->getKeyId(); ?>');
     razorpayUtils.setMerchantName('<?php echo $this->getMerchantName(); ?>');
 </script>
+<?php endif; ?>
