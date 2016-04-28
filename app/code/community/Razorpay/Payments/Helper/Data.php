@@ -27,7 +27,9 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
     public function isRazorpayEnabled()
     {
-        return Mage::getStoreConfigFlag(self::CONFIG_PATH_RAZORPAY_ENABLED);
+        return Mage::getSingleton('checkout/type_onepage')->getQuote()->getPayment()->getMethod() ==
+            Razorpay_Payments_Model_Paymentmethod::METHOD_CODE and
+            Mage::getStoreConfigFlag(self::CONFIG_PATH_RAZORPAY_ENABLED);
     }
 
     public function createOrder($receipt, $amount)

@@ -1,3 +1,4 @@
+<?php if (Mage::helper('razorpay_payments')->isRazorpayEnabled()) : ?>
 <script type="text/javascript">
     var defaultPlaceOrderButton = $$('button[type=submit][class~="btn-checkout"]')[0];
     defaultPlaceOrderButton.setAttribute('onclick', '');
@@ -29,3 +30,4 @@
 
     Event.observe(defaultPlaceOrderButton, 'click', placeOrder);
 </script>
+<?php endif; ?>
