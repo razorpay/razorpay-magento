@@ -79,4 +79,28 @@
         </reference>
     </firecheckout_index_index>
     <!-- Compatibility with FireCheckout extension end-->
+
+    <onestepcheckout_index_index>
+        <reference name="head">
+            <block type="core/text" name="razorpay.checkout">
+                <action method="setText">
+                    <text>
+                       <![CDATA[<script type="text/javascript" src="https://checkout.razorpay.com/v1/checkout.js"></script>]]>
+                    </text>
+                </action>
+            </block>
+            <action method="addJs"><file>razorpay/razorpay-utils.js</file></action>
+        </reference>
+        <reference name="before_body_end">
+            <block type="razorpay_payments/setuputils" name="razorpay_payments_setuputils" template="razorpay/setuputils.phtml" />
+        </reference>
+        <reference name="before_body_end">
+            <block type="core/template" name="razorpay_placeorder_appzabonestepcheckout" template="razorpay/extensions/appzab_osc/payments.phtml">
+                <action method="setData">
+                    <key>form_id</key>
+                    <value>co-payment-form</value>
+                </action>
+            </block>
+        </reference>
+    </onestepcheckout_index_index>
 </layout>

@@ -1,0 +1,62 @@
+<?php if (Mage::helper('razorpay_payments')->isRazorpayEnabled()) : ?>
+<script type="text/javascript">
+    <?php $code = Razorpay_Payments_Model_Paymentmethod::METHOD_CODE ; ?>
+    var formId = 'co-form';
+    var paymentIdField = 'razorpay_payment_id';
+    var defaultPlaceOrderButton = $$('button[type=button][class~="btn-checkout"]')[0];
+    defaultPlaceOrderButton.setAttribute('onclick', 'processRazorpayOrder()');
+
+    var processNativeExtensionOrder = function(){
+        review.save();
+    };
+
+    var onError = function(message) {
+        $("review-please").update('');
+        $('review-btn').disabled = '';
+
+        checkout.ajaxFailure(message);
+    };
+
+    var processRazorpayOrder = function() {
+        review.loadingbox();
+
+        if (payment.currentMethod == '<?php echo $code ?>') {
+
+            if (razorpayUtils.isOrderSet()) {
+                review.onComplete();
+                placeRazorpayOrder();
+            } else {
+                razorpayUtils.createOrder(placeRazorpayOrder, onError);
+            }
+        } else {
+            processNativeExtensionOrder();
+        }
+    };
+
+    var placeRazorpayOrder = function() {
+        var onUserClose = function() {
+            $("review-please").update('');
+
+            defaultPlaceOrderButton.disabled = false;
+        };
+
+        var onSuccess = function(data) {
+            $(paymentIdField).value = data.razorpay_payment_id;
+
+            processNativeExtensionOrder();
+        };
+
+        var beforeStart = function() {
+            defaultPlaceOrderButton.disabled = true;
+        };
+
+        razorpayUtils.placeOrder(
+            onSuccess,
+            onUserClose,
+            beforeStart,
+            formId,
+            paymentIdField
+        );
+    };
+</script>
+<?php endif; ?>
