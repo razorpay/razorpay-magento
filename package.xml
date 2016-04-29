@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
     <name>Razorpay_Payments</name>
-    <version>1.1.3</version>
+    <version>1.1.4</version>
     <stability>beta</stability>
     <license>MIT</license>
     <channel>community</channel>
@@ -16,8 +16,8 @@
             <email>vivek@razorpay.com</email>
         </author>
     </authors>
-    <date>2016-04-27</date>
-    <time>20:40:09</time>
+    <date>2016-04-29</date>
+    <time>04:16:53</time>
     <contents>
         <target name="magecommunity">
             <dir name="Razorpay">
@@ -27,16 +27,16 @@
                         <file hash="3d38f8ba62b42fc4decb7dbc7d4e8e1e" name="Setuputils.php"/>
                     </dir>
                     <dir name="Helper">
-                        <file hash="862a7cf6dbcb9366db3cec82aa1f5c12" name="Data.php"/>
+                        <file hash="3eb01c681f348c86a4ec3c7dc7855439" name="Data.php"/>
                     </dir>
                     <dir name="Model">
-                        <file hash="a0292a6eec7d6edca1eb0e7202ab9fbc" name="Paymentmethod.php"/>
+                        <file hash="1571f59de8d2e17a93ae75171fac4d4b" name="Paymentmethod.php"/>
                     </dir>
                     <dir name="controllers">
                         <file hash="e50ee030f720f26ef439a1dc6b8c66f8" name="CheckoutController.php"/>
                     </dir>
                     <dir name="etc">
-                        <file hash="25576319d03f9d410b507e2d968a7b2f" name="config.xml"/>
+                        <file hash="414512a1dc637d2d5de728b63344c2df" name="config.xml"/>
                         <file hash="890c3193ccf85870cb0bd25f31ddf076" name="system.xml"/>
                     </dir>
                 </dir>
@@ -47,11 +47,14 @@
                 <dir name="base">
                     <dir name="default">
                         <dir name="layout">
-                            <file hash="dc0cba4c3a7fca3d05300a613703f60a" name="razorpay.xml"/>
+                            <file hash="21fa3b940fd5aa033c79a4c4a26eb5e4" name="razorpay.xml"/>
                         </dir>
                         <dir name="template">
                             <dir name="razorpay">
                                 <dir name="extensions">
+                                    <dir name="appzab_osc">
+                                        <file hash="b8ac62ac314940ceda9a94bb7149043a" name="payments.phtml"/>
+                                    </dir>
                                     <dir name="firecheckout">
                                         <file hash="b792a741e5e8839202e93e6b9442b58b" name="payments.phtml"/>
                                     </dir>
