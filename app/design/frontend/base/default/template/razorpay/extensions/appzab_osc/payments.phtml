@@ -18,18 +18,22 @@
     };
 
     var processRazorpayOrder = function() {
-        review.loadingbox();
+        var validator = new Validation(formId);
 
-        if (payment.currentMethod == '<?php echo $code ?>') {
+        if (validator.validate()) {
+            review.loadingbox();
 
-            if (razorpayUtils.isOrderSet()) {
-                review.onComplete();
-                placeRazorpayOrder();
+            if (payment.currentMethod == '<?php echo $code ?>') {
+
+                if (razorpayUtils.isOrderSet()) {
+                    review.onComplete();
+                    placeRazorpayOrder();
+                } else {
+                    razorpayUtils.createOrder(placeRazorpayOrder, onError);
+                }
             } else {
-                razorpayUtils.createOrder(placeRazorpayOrder, onError);
+                processNativeExtensionOrder();
             }
-        } else {
-            processNativeExtensionOrder();
         }
     };
 

@@ -38,6 +38,19 @@
 
         // Process custom flow
         var processRazorpayOrder = function() {
+            var addressForm = new VarienForm('opc-address-form-billing');
+
+            if (!addressForm.validator.validate()){
+                return;
+            }
+
+            if (!$j_opc('input[name="billing[use_for_shipping]"]').prop('checked')){
+                var addressForm = new VarienForm('opc-address-form-shipping');
+                if (!addressForm.validator.validate()){
+                    return;
+                }
+            }
+
             if (payment.currentMethod == '<?php echo $code; ?>') {
                 // Payment method is Razorpay Credit Card
                 IWD.OPC.Checkout.showLoader();

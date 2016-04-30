@@ -79,7 +79,7 @@
         </reference>
     </firecheckout_index_index>
     <!-- Compatibility with FireCheckout extension end-->
-
+    <!-- Compatibility with AppZab OneStepCheckout extension start-->
     <onestepcheckout_index_index>
         <reference name="head">
             <block type="core/text" name="razorpay.checkout">
@@ -103,4 +103,5 @@
             </block>
         </reference>
     </onestepcheckout_index_index>
+    <!-- Compatibility with AppZab OneStepCheckout extension end-->
 </layout>

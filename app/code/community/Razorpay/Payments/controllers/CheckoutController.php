@@ -32,10 +32,10 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
         $bA = $this->_getQuote()->getBillingAddress();
 
         $responseArray['customer_name']     = $bA->getFirstname() . " " . $bA->getLastname();
-        $responseArray['customer_phone']    = $bA->getTelephone();
+        $responseArray['customer_phone']    = $bA->getTelephone() ?: '';
         $responseArray['order_id']          = $orderId;
         $responseArray['amount']            = $amount;
-        $responseArray['customer_email']    = $this->_getQuote()->getData('customer_email');
+        $responseArray['customer_email']    = $this->_getQuote()->getData('customer_email') ?: '';
 
         $this->getResponse()
             ->setHttpResponseCode(200)

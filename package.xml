@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
     <name>Razorpay_Payments</name>
-    <version>1.1.4</version>
+    <version>1.1.5</version>
     <stability>beta</stability>
     <license>MIT</license>
     <channel>community</channel>
@@ -16,8 +16,8 @@
             <email>vivek@razorpay.com</email>
         </author>
     </authors>
-    <date>2016-04-29</date>
-    <time>04:16:53</time>
+    <date>2016-04-30</date>
+    <time>09:08:54</time>
     <contents>
         <target name="magecommunity">
             <dir name="Razorpay">
@@ -30,13 +30,13 @@
                         <file hash="3eb01c681f348c86a4ec3c7dc7855439" name="Data.php"/>
                     </dir>
                     <dir name="Model">
-                        <file hash="1571f59de8d2e17a93ae75171fac4d4b" name="Paymentmethod.php"/>
+                        <file hash="3f91cadcb46727d639d35e7d3c745b0d" name="Paymentmethod.php"/>
                     </dir>
                     <dir name="controllers">
-                        <file hash="e50ee030f720f26ef439a1dc6b8c66f8" name="CheckoutController.php"/>
+                        <file hash="5d119068ed59ebe6bc27ff235762cb2c" name="CheckoutController.php"/>
                     </dir>
                     <dir name="etc">
-                        <file hash="414512a1dc637d2d5de728b63344c2df" name="config.xml"/>
+                        <file hash="238a09b888c75cd5c9d48fb45c192da9" name="config.xml"/>
                         <file hash="890c3193ccf85870cb0bd25f31ddf076" name="system.xml"/>
                     </dir>
                 </dir>
@@ -47,19 +47,19 @@
                 <dir name="base">
                     <dir name="default">
                         <dir name="layout">
-                            <file hash="21fa3b940fd5aa033c79a4c4a26eb5e4" name="razorpay.xml"/>
+                            <file hash="ac7bed7cced69cef2e1759b1d617c28c" name="razorpay.xml"/>
                         </dir>
                         <dir name="template">
                             <dir name="razorpay">
                                 <dir name="extensions">
                                     <dir name="appzab_osc">
-                                        <file hash="b8ac62ac314940ceda9a94bb7149043a" name="payments.phtml"/>
+                                        <file hash="9c06defd3a6a805f5bfdf9395dd87529" name="payments.phtml"/>
                                     </dir>
                                     <dir name="firecheckout">
-                                        <file hash="b792a741e5e8839202e93e6b9442b58b" name="payments.phtml"/>
+                                        <file hash="5df51cb66507cab9e0026125a6a8f6a2" name="payments.phtml"/>
                                     </dir>
                                     <dir name="iwd_opc">
-                                        <file hash="48fec536ebfee1dbe0c48c208f41b5c8" name="payments.phtml"/>
+                                        <file hash="a9ce71c2b5b5159d219f5fdddac0cdcb" name="payments.phtml"/>
                                     </dir>
                                 </dir>
                                 <file hash="1493e996886160b37b930251f7ac78ce" name="order.phtml"/>

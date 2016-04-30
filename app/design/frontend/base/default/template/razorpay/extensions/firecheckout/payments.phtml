@@ -23,15 +23,19 @@
         };
 
         var processRazorpayOrder = function() {
-            if (payment.currentMethod == '<?php echo $code ?>') {
+            var validator = new Validation(formId);
 
-                if (razorpayUtils.isOrderSet()) {
-                    placeRazorpayOrder();
+            if (validator.validate()) {
+                if (payment.currentMethod == '<?php echo $code ?>') {
+
+                    if (razorpayUtils.isOrderSet()) {
+                        placeRazorpayOrder();
+                    } else {
+                        razorpayUtils.createOrder(placeRazorpayOrder, showErrorMessage);
+                    }
                 } else {
-                    razorpayUtils.createOrder(placeRazorpayOrder, showErrorMessage);
+                    processNativeExtensionOrder();
                 }
-            } else {
-                processNativeExtensionOrder();
             }
         };
 
