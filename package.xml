@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
     <name>Razorpay_Payments</name>
-    <version>1.1.5</version>
+    <version>1.1.6</version>
     <stability>beta</stability>
     <license>MIT</license>
     <channel>community</channel>
@@ -16,8 +16,8 @@
             <email>vivek@razorpay.com</email>
         </author>
     </authors>
-    <date>2016-04-30</date>
-    <time>09:08:54</time>
+    <date>2016-05-05</date>
+    <time>07:25:18</time>
     <contents>
         <target name="magecommunity">
             <dir name="Razorpay">
@@ -30,13 +30,13 @@
                         <file hash="3eb01c681f348c86a4ec3c7dc7855439" name="Data.php"/>
                     </dir>
                     <dir name="Model">
-                        <file hash="3f91cadcb46727d639d35e7d3c745b0d" name="Paymentmethod.php"/>
+                        <file hash="044b94ddc09ff4bab47dad25bfe84326" name="Paymentmethod.php"/>
                     </dir>
                     <dir name="controllers">
                         <file hash="5d119068ed59ebe6bc27ff235762cb2c" name="CheckoutController.php"/>
                     </dir>
                     <dir name="etc">
-                        <file hash="238a09b888c75cd5c9d48fb45c192da9" name="config.xml"/>
+                        <file hash="d2ea53be9c50e6888d5d86737ea41b67" name="config.xml"/>
                         <file hash="890c3193ccf85870cb0bd25f31ddf076" name="system.xml"/>
                     </dir>
                 </dir>
@@ -63,7 +63,7 @@
                                     </dir>
                                 </dir>
                                 <file hash="1493e996886160b37b930251f7ac78ce" name="order.phtml"/>
-                                <file hash="f4d8d340819b98359a78558e82b92a55" name="placeorder.phtml"/>
+                                <file hash="d2d234f0f02e6f5228910d2e67946db9" name="placeorder.phtml"/>
                                 <file hash="6a96d6f95747d64b37fb6b848ef13007" name="setuputils.phtml"/>
                             </dir>
                         </dir>
