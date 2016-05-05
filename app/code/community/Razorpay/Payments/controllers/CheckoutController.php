@@ -62,7 +62,7 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
 
     /**
     * Returns checkout model instance, native onepage checkout is used
-    * 
+    *
     * @return Mage_Checkout_Model_Type_Onepage
     */
     protected function _getCheckout()
