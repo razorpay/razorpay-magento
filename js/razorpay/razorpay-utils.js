@@ -74,6 +74,9 @@ RazorpayUtils.prototype = {
             key: this.keyId,
             name: this.merchantName,
             amount: this.orderInfo.amount,
+            currency: this.orderInfo.currency,
+            display_amount: this.orderInfo.quote_amount,
+            display_currency: this.orderInfo.quote_currency,
             handler: onSuccess,
             order_id: this.orderInfo.razorpay_order_id,
             modal: {

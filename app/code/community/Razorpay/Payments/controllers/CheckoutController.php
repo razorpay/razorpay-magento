@@ -15,7 +15,10 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
 
     public function orderAction()
     {
-        $amount = (int) ((float) $this->_getQuote()->getGrandTotal())*100;
+        $amount             = (int) ((float) $this->_getQuote()->getBaseGrandTotal())*100;
+        $base_currency      = $this->_getQuote()->getBaseCurrencyCode();
+        $quote_currency     = $this->_getQuote()->getQuoteCurrencyCode();
+        $quote_amount       = round($this->_getQuote()->getGrandTotal(), 2);
 
         $orderId = $this->_getQuote()->getReservedOrderId();
 
@@ -35,7 +38,10 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
         $responseArray['customer_phone']    = $bA->getTelephone() ?: '';
         $responseArray['order_id']          = $orderId;
         $responseArray['amount']            = $amount;
+        $responseArray['currency']          = $base_currency;
         $responseArray['customer_email']    = $this->_getQuote()->getData('customer_email') ?: '';
+        $responseArray['quote_currency']    = $quote_currency;
+        $responseArray['quote_amount']      = $quote_amount;
 
         $this->getResponse()
             ->setHttpResponseCode(200)
