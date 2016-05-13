@@ -74,6 +74,7 @@ RazorpayUtils.prototype = {
             key: this.keyId,
             name: this.merchantName,
             amount: this.orderInfo.amount,
+            currency: this.orderInfo.currency,
             handler: onSuccess,
             order_id: this.orderInfo.razorpay_order_id,
             modal: {
@@ -90,6 +91,12 @@ RazorpayUtils.prototype = {
                 email: this.orderInfo.customer_email
             }
         };
+
+        if (this.orderInfo.quote_currency !== 'INR')
+        {
+            options.display_amount      = this.orderInfo.quote_amount;
+            options.display_currency    = this.orderInfo.quote_currency;
+        }
 
         checkout = new Razorpay(options);
 
