@@ -38,7 +38,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
     public function execute()
     {
-        $amount = (int) round($this->getQuote()->getGrandTotal(), 2)*100;
+        $amount = (int) (round($this->getQuote()->getGrandTotal(), 2)*100);
 
         $receipt_id = $this->getQuote()->getId();
 
