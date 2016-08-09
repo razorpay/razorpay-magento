@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+
+<config>
+    <modules>
+        <Razorpay_Payments>
+            <active>true</active>
+            <codePool>community</codePool>
+            <depends>
+                <Mage_Payment />
+            </depends>
+        </Razorpay_Payments>
+    </modules>
+</config>

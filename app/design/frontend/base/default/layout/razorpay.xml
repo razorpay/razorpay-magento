@@ -1,0 +1,14 @@
+<layout version="1.1.2">
+    <razorpay_checkout_index>
+        <reference name="head">
+            <block type="core/text" name="razorpay.checkout">
+                <action method="setText">
+                    <text>
+                       <![CDATA[<script type="text/javascript" src="https://checkout.razorpay.com/v1/checkout.js"></script>]]>
+                    </text>
+                </action>
+            </block>
+            <action method="addJs"><file>razorpay/razorpay-utils.js</file></action>
+        </reference>
+    </checkout_onepage_index>
+</layout>
