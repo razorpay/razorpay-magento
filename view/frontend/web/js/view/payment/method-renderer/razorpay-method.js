@@ -154,7 +154,7 @@ define(
                     name: self.getMerchantName(),
                     amount: data.amount,
                     handler: function (data) {
-                        this.rzp_response = data;
+                        self.rzp_response = data;
                         self.placeOrder(data);
                     },
                     order_id: data.rzp_order,
