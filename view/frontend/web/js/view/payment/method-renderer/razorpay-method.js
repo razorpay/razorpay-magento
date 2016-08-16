@@ -153,7 +153,10 @@ define(
                     key: self.getKeyId(),
                     name: self.getMerchantName(),
                     amount: data.amount,
-                    handler: self.placeOrder.bind(this),
+                    handler: function (data) {
+                        self.rzp_response = data;
+                        self.placeOrder(data);
+                    },
                     order_id: data.rzp_order,
                     modal: {
                         ondismiss: function() {
@@ -171,28 +174,6 @@ define(
                 });
 
                 this.rzp.open();
-            },
-
-            placeOrder: function (data, event) {
-                var self = this,
-                    placeOrder;
-
-                this.rzp_response = data;
-
-                if (event) {
-                    event.preventDefault();
-                }
-
-                if (this.validate() && additionalValidators.validate()) {
-                    this.isPlaceOrderActionAllowed(false);
-                    placeOrder = placeOrderAction(this.getData(), this.redirectAfterPlaceOrder, this.messageContainer);
-
-                    $.when(placeOrder).fail(function () {
-                        self.isPlaceOrderActionAllowed(true);
-                    }).done(this.afterPlaceOrder.bind(this));
-                    return true;
-                }
-                return false;
             },
 
             getData: function() {
