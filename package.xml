@@ -16,8 +16,8 @@
             <email>vivek@razorpay.com</email>
         </author>
     </authors>
-    <date>2016-08-08</date>
-    <time>03:32:36</time>
+    <date>2016-08-22</date>
+    <time>14:48:33</time>
     <contents>
         <target name="magecommunity">
             <dir name="Razorpay">
@@ -29,7 +29,7 @@
                         <file hash="d4a2ba787b4578ff870c0380e165ce28" name="Data.php"/>
                     </dir>
                     <dir name="Model">
-                        <file hash="d189914c02f7c7ec97013b04d024a175" name="Paymentmethod.php"/>
+                        <file hash="19f3fc54b308984e9f3bd2d07c1ceb26" name="Paymentmethod.php"/>
                     </dir>
                     <dir name="controllers">
                         <file hash="6402350485984f971ef298ffff759084" name="CheckoutController.php"/>

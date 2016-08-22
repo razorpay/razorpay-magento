@@ -141,7 +141,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         if ($success === true)
         {
             $order->sendNewOrderEmail();
-            $order->setState(Mage_Sales_Model_Order::STATE_PAYMENT_REVIEW, true);
+            $order->setState(Mage_Sales_Model_Order::STATE_PROCESSING, true);
             $order->addStatusHistoryComment('Payment Successful. Razorpay Payment Id:'.$paymentId);
             $order->save();
         }
