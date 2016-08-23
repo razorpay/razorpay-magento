@@ -16,8 +16,8 @@
             <email>vivek@razorpay.com</email>
         </author>
     </authors>
-    <date>2016-08-22</date>
-    <time>14:48:33</time>
+    <date>2016-08-23</date>
+    <time>11:43:28</time>
     <contents>
         <target name="magecommunity">
             <dir name="Razorpay">
@@ -66,7 +66,7 @@
             <dir>
                 <dir name="js">
                     <dir name="razorpay">
-                        <file hash="33097a68f1f37aa416d6b45f11d1c6e4" name="razorpay-utils.js"/>
+                        <file hash="7d8379be889bfe8445515c48f111e79f" name="razorpay-utils.js"/>
                     </dir>
                 </dir>
             </dir>

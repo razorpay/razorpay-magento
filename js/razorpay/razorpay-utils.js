@@ -16,6 +16,7 @@ RazorpayUtils.prototype = {
         if (!paymentIdField) {
             paymentIdField = "razorpay_payment_id";
         }
+
         var checkout;
 
         var options = {
