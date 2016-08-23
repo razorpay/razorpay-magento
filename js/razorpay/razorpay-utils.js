@@ -8,8 +8,14 @@ RazorpayUtils.prototype = {
         return this.options.merchant_mame;
     },
 
-    placeOrder: function(onSuccess, onDismiss, formId = "razorpay", paymentIdField = "razorpay_payment_id")
+    placeOrder: function(onSuccess, onDismiss, formId, paymentIdField)
     {
+        if (!formId) {
+            formId = "razorpay";
+        }
+        if (!paymentIdField) {
+            paymentIdField = "razorpay_payment_id";
+        }
         var checkout;
 
         var options = {
