@@ -11,6 +11,8 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
     const KEY_ID                        = 'key_id';
     const KEY_SECRET                    = 'key_secret';
 
+    const REQUEST_TIMEOUT               = 60;
+
     protected $successHttpCodes         = array(200, 201, 202, 203, 204, 205, 206, 207, 208, 226);
 
     public function __construct()
@@ -32,7 +34,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
     public function createOrder($order)
     {
-        $amount             = (int) ((float) $order->getBaseGrandTotal())*100;
+        $amount             = (int) ($order->getBaseGrandTotal() * 100);
         $base_currency      = $order->getBaseCurrencyCode();
         $quote_currency     = $order->getCurrencyCode();
         $quote_amount       = round($order->getGrandTotal(), 2);
@@ -43,13 +45,13 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
         $url = $this->getRelativeUrl('order');
 
-        $postData = array(
+        $data = array(
             'receipt'   => $orderId,
             'amount'    => $amount,
             'currency'  => $currency
         );
 
-        $response = $this->sendRequest($url, $postData);
+        $response = $this->sendRequest($url, 'POST', $data);
 
         $responseArray = array(
             'razorpay_order_id'  => $response['id']
@@ -80,66 +82,48 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
                 ':id'   => $paymentId
             ));
 
-            $postData = array(
+            $data = array(
                 'amount'    => $amount
             );
 
-            $response = $this->sendRequest($url, $postData);
+            $response = $this->sendRequest($url, 'POST', $data);
 
             if ($response['status'] === 'captured')
             {
                 return true;
             }
 
-            throw new \Exception('CAPTURE_ERROR: Unable to capture payment ' . $paymentId);
+            Mage::throwException('CAPTURE_ERROR: Unable to capture payment ' . $paymentId);
         }
 
-        throw new \Exception('MAGENTO_ERROR: Payment Method not available');
+        Mage::throwException('MAGENTO_ERROR: Payment Method not available');
     }
 
-    public function sendRequest($url, $content, $method = 'POST')
+    public function sendRequest($url, $method = 'POST', $content = array())
     {
-        $paymentModel = Mage::getModel(self::PAYMENT_MODEL);
-
-        $keyId = $paymentModel->getConfigData(self::KEY_ID);
-        $keySecret = $paymentModel->getConfigData(self::KEY_SECRET);
-
-        $ch = curl_init();
-
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_USERPWD, $keyId . ":" . $keySecret);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 60);
-        curl_setopt($ch, CURLOPT_USERAGENT, $this->userAgent);
-
-        if ($method === 'POST')
-        {
-            curl_setopt($ch, CURLOPT_POST, 1);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $content);
-        }
-
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $ch = $this->getCurlHandle($url, $method, $content);
 
         $response = curl_exec($ch);
         $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        $curlErrorNo = curl_errno($ch);
+        $curlError = curl_error($ch);
 
         curl_close($ch);
 
         $responseArray = array();
 
-        if (curl_errno($ch))
+        if ($response === false)
         {
-            $error = 'CURL_ERROR: ' . curl_error($ch);
+            $error = 'CURL_ERROR: ' . $curlError;
 
             Mage::throwException($error);
         }
         else
         {
-            if (!empty($response))
-            {
-                $responseArray = json_decode($response, true);
-            }
+            $responseArray = json_decode($response, true);
 
-            if (in_array($httpStatus, $this->successHttpCodes, true) and isset($responseArray['error']) === false)
+            if (in_array($httpStatus, $this->successHttpCodes) and isset($responseArray['error']) === false)
             {
                 return $responseArray;
             }
@@ -157,6 +141,54 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
                 Mage::throwException($error);
             }
         }
+    }
+
+    private function getCurlHandle($url, $method = 'POST', $content = array())
+    {
+        $paymentModel = Mage::getModel(self::PAYMENT_MODEL);
+
+        $keyId = $paymentModel->getConfigData(self::KEY_ID);
+        $keySecret = $paymentModel->getConfigData(self::KEY_SECRET);
+
+        $method = strtoupper($method);
+
+        //cURL Request
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_USERPWD, $keyId . ":" . $keySecret);
+        curl_setopt($ch, CURLOPT_TIMEOUT, self::REQUEST_TIMEOUT);
+
+        if (is_array($content))
+        {
+            $data = http_build_query($content);
+        }
+        else if (is_string($content))
+        {
+            $data = $content;
+        }
+
+        switch ($method)
+        {
+            case 'POST':
+                curl_setopt($ch, CURLOPT_POST, true);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+                break;
+            case 'PATCH':
+            case 'PUT':
+                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+                break;
+            case 'DELETE':
+                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
+                break;
+        }
+
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_CAINFO, dirname(__FILE__) . '/ca-bundle.crt');
+
+        return $ch;
     }
 
     /**
