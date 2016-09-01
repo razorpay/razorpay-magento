@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
     <name>Razorpay</name>
-    <version>1.1.9</version>
+    <version>1.1.10</version>
     <stability>stable</stability>
     <license>MIT</license>
     <channel>community</channel>
@@ -16,8 +16,8 @@
             <email>vivek@razorpay.com</email>
         </author>
     </authors>
-    <date>2016-08-23</date>
-    <time>11:55:00</time>
+    <date>2016-09-01</date>
+    <time>11:11:13</time>
     <contents>
         <target name="magecommunity">
             <dir name="Razorpay">
@@ -26,16 +26,17 @@
                         <file hash="15049195e1e3d519298a3bd5095990fe" name="Checkout.php"/>
                     </dir>
                     <dir name="Helper">
-                        <file hash="d4a2ba787b4578ff870c0380e165ce28" name="Data.php"/>
+                        <file hash="5143672bc4dc15ee3e8a50d580d021a9" name="Data.php"/>
+                        <file hash="308c55e7a7d56a27fcfb3983169c3491" name="ca-bundle.crt"/>
                     </dir>
                     <dir name="Model">
-                        <file hash="f764ff9427d6441e61d40db1a072ee18" name="Paymentmethod.php"/>
+                        <file hash="e5d83b6288add31a60aa8e2656e47887" name="Paymentmethod.php"/>
                     </dir>
                     <dir name="controllers">
                         <file hash="6402350485984f971ef298ffff759084" name="CheckoutController.php"/>
                     </dir>
                     <dir name="etc">
-                        <file hash="a0a02c2085612604adea739d543a10d9" name="config.xml"/>
+                        <file hash="ee05ae1c78daa8f263de0f3c6d25a9df" name="config.xml"/>
                         <file hash="3045e0b5d2d2d0b52e47c23a64f99445" name="system.xml"/>
                     </dir>
                 </dir>
