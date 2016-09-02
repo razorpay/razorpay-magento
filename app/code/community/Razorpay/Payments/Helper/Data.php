@@ -176,14 +176,11 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
                 break;
             case 'PATCH':
             case 'PUT':
-                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
                 curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-                break;
-            case 'DELETE':
-                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
                 break;
         }
 
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
         curl_setopt($ch, CURLOPT_CAINFO, dirname(__FILE__) . '/ca-bundle.crt');
