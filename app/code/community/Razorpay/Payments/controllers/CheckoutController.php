@@ -44,7 +44,9 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
 
         $model = Mage::getModel('razorpay_payments/paymentmethod');
 
-        $success = $model->capturePayment($response);
+        $success = $model->validateSignature($response); 
+
+        $_SESSION['razorpay_order_id'] = "";
 
         if ($success === true)
         {

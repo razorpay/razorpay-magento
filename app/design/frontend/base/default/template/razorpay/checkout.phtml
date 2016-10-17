@@ -5,6 +5,8 @@
 
     var onSuccess = function(data) {
         $('razorpay_payment_id').value = data.razorpay_payment_id;
+        $('razorpay_order_id').value = data.razorpay_order_id;
+        $('razorpay_signature').value = data.razorpay_signature;
 
         $('razorpay').submit();
     };
@@ -18,7 +20,9 @@
 
 <form name="razorpay" id="razorpay" method="post" action="<?php echo $this->getSuccessUrl(); ?>">
     <input id="razorpay_payment_id" name="razorpay_payment_id" type="hidden" value=""/>
-    <input id="magento_order_id" name="magento_order_id" type="hidden" value="<?php echo $this->getMagentoOrderId(); ?>"/>
+    <input id="razorpay_order_id"   name="razorpay_order_id"   type="hidden" value=""/>
+    <input id="razorpay_signature"  name="razorpay_signature"  type="hidden" value=""/>
+    <input id="magento_order_id"    name="magento_order_id"    type="hidden" value="<?php echo $this->getMagentoOrderId(); ?>"/>
 </form>
 
 <h1>Please wait...</h1>

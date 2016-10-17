@@ -9,77 +9,10 @@
     <summary>Razorpay extension to accept payments from multiple banks and wallets.</summary>
     <description>Razorpay is a payment aggregator to accept payments from various method including netbanking, credit card, debit card, wallets etc.</description>
     <notes>This version uses the Razorpay API v1 for the best possible experience.</notes>
-    <authors>
-        <author>
-            <name>Vivek</name>
-            <user>crims0n</user>
-            <email>vivek@razorpay.com</email>
-        </author>
-    </authors>
-    <date>2016-09-02</date>
-    <time>03:21:30</time>
-    <contents>
-        <target name="magecommunity">
-            <dir name="Razorpay">
-                <dir name="Payments">
-                    <dir name="Block">
-                        <file hash="15049195e1e3d519298a3bd5095990fe" name="Checkout.php"/>
-                    </dir>
-                    <dir name="Helper">
-                        <file hash="25f10d720b3a9f3679b1a4a5b9764fb4" name="Data.php"/>
-                        <file hash="308c55e7a7d56a27fcfb3983169c3491" name="ca-bundle.crt"/>
-                    </dir>
-                    <dir name="Model">
-                        <file hash="e5d83b6288add31a60aa8e2656e47887" name="Paymentmethod.php"/>
-                    </dir>
-                    <dir name="controllers">
-                        <file hash="6402350485984f971ef298ffff759084" name="CheckoutController.php"/>
-                    </dir>
-                    <dir name="etc">
-                        <file hash="ee05ae1c78daa8f263de0f3c6d25a9df" name="config.xml"/>
-                        <file hash="3045e0b5d2d2d0b52e47c23a64f99445" name="system.xml"/>
-                    </dir>
-                </dir>
-            </dir>
-        </target>
-        <target name="magedesign">
-            <dir name="frontend">
-                <dir name="base">
-                    <dir name="default">
-                        <dir name="layout">
-                            <file hash="733e8107f58a1a76fc13f5b11090a6df" name="razorpay.xml"/>
-                        </dir>
-                        <dir name="template">
-                            <dir name="razorpay">
-                                <file hash="f475fa98caab729800fe098b59208db9" name="checkout.phtml"/>
-                            </dir>
-                        </dir>
-                    </dir>
-                </dir>
-            </dir>
-        </target>
-        <target name="mageetc">
-            <dir name="modules">
-                <file hash="84978ab3d49e7f70fc8e1aa00cb2dc36" name="Razorpay_Payments.xml"/>
-            </dir>
-        </target>
-        <target name="mage">
-            <dir>
-                <dir name="js">
-                    <dir name="razorpay">
-                        <file hash="7d8379be889bfe8445515c48f111e79f" name="razorpay-utils.js"/>
-                    </dir>
-                </dir>
-            </dir>
-        </target>
-    </contents>
+    <authors><author><name>Mayank Amencherla</name><user>mayank</user><email>mayank.amencherla@razorpay.com</email></author></authors>
+    <date>2016-10-17</date>
+    <time>14:47:06</time>
+    <contents><target name="magecommunity"><dir name="Razorpay"><dir name="Payments"><dir><dir name="Block"><file name="Checkout.php" hash="15049195e1e3d519298a3bd5095990fe"/></dir><dir name="Helper"><file name="Data.php" hash="95f9cf2b8e23174e118426b572e459b1"/><file name="ca-bundle.crt" hash="308c55e7a7d56a27fcfb3983169c3491"/></dir><dir name="Model"><file name="Paymentmethod.php" hash="9b68bb675669c92fc8f622b132550059"/></dir><dir name="controllers"><file name="CheckoutController.php" hash="44104ebba44903852b2cd1ff72fc7716"/></dir><dir name="etc"><file name="config.xml" hash="ee05ae1c78daa8f263de0f3c6d25a9df"/><file name="system.xml" hash="3045e0b5d2d2d0b52e47c23a64f99445"/></dir></dir><file name=".DS_Store" hash="1c7812553fc63e42ab9d3aac48b5018e"/></dir></dir></target><target name="magedesign"><dir name="frontend"><dir name="base"><dir name="default"><dir name="layout"><file name="razorpay.xml" hash="733e8107f58a1a76fc13f5b11090a6df"/></dir><dir name="template"><dir name="razorpay"><file name="checkout.phtml" hash="568d98738658141ef1ce47edc5363494"/></dir></dir></dir></dir></dir></target><target name="mageetc"><dir name="modules"><file name="Razorpay_Payments.xml" hash="84978ab3d49e7f70fc8e1aa00cb2dc36"/></dir></target><target name="mage"><dir name="js"><dir name="razorpay"><file name="razorpay-utils.js" hash="7d8379be889bfe8445515c48f111e79f"/></dir></dir></target></contents>
     <compatible/>
-    <dependencies>
-        <required>
-            <php>
-                <min>5.4.45</min>
-                <max>5.6.26</max>
-            </php>
-        </required>
-    </dependencies>
+    <dependencies><required><php><min>5.4.45</min><max>5.6.26</max></php></required></dependencies>
 </package>

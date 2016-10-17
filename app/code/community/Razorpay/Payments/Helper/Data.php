@@ -46,14 +46,19 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
         $url = $this->getRelativeUrl('order');
 
         $data = array(
-            'receipt'   => $orderId,
-            'amount'    => $amount,
-            'currency'  => $currency
+            'receipt'         => $orderId,
+            'amount'          => $amount,
+            'currency'        => $currency,
+            'payment_capture' => 1
         );
 
         $response = $this->sendRequest($url, 'POST', $data);
 
+        session_start();
+        $_SESSION['razorpay_order_id'] = $response['id'];
+
         $responseArray = array(
+            // order id has to be stored and fetched later from the db or session
             'razorpay_order_id'  => $response['id']
         );
 
@@ -72,31 +77,6 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
         $order->save();
 
         return $responseArray;
-    }
-
-    public function capturePayment($paymentId, $amount)
-    {
-        if ($this->isRazorpayEnabled())
-        {
-            $url = $this->getRelativeUrl('capture', array(
-                ':id'   => $paymentId
-            ));
-
-            $data = array(
-                'amount'    => $amount
-            );
-
-            $response = $this->sendRequest($url, 'POST', $data);
-
-            if ($response['status'] === 'captured')
-            {
-                return true;
-            }
-
-            Mage::throwException('CAPTURE_ERROR: Unable to capture payment ' . $paymentId);
-        }
-
-        Mage::throwException('MAGENTO_ERROR: Payment Method not available');
     }
 
     public function sendRequest($url, $method = 'POST', $content = array())

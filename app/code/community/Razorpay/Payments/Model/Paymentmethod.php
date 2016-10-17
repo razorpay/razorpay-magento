@@ -12,7 +12,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
     protected $_isInitializeNeeded      = false;
     protected $_isGateway               = true;
     protected $_canAuthorize            = true;
-    protected $_canCapture              = true;
+    protected $_canCapture              = false;
     protected $_canCapturePartial       = false;
     protected $_canRefund               = false;
     protected $_canVoid                 = false;
@@ -110,55 +110,16 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         return [$result, $error];
     }
 
-    public function capturePayment($response)
+    public function validateSignature($response)
     {
-        $order = Mage::getModel('sales/order');
-        $payment = Mage::getModel('sales/order_payment');
-        $order->loadByIncrementId($response['magento_order_id']);
-
-        $payment->setOrder($order);
-
+        // I have to use the order_id from the server and not the response object.
+        
+        $signature = hash_hmac('sha256', $_SESSION['razorpay_order_id'] . "|" . $response['razorpay_payment_id'], $this->getConfigData('key_secret'));
+        
         $success = false;
 
-        $paymentId = null;
-
-        if (empty($response['razorpay_payment_id']) === false)
-        {
-            $paymentId = $response['razorpay_payment_id'];
-
-            try
-            {
-                $amount = $order->getBaseGrandTotal();
-
-                list($success, $error) = $this->captureOrder($payment, $amount);
-            }
-            catch (\Exception $e)
-            {
-                $success = false;
-            }
-        }
-
-        if ($success === true)
-        {
-            $order->sendNewOrderEmail();
-            $order->setState(Mage_Sales_Model_Order::STATE_PROCESSING, true);
-            $order->addStatusHistoryComment('Payment Successful. Razorpay Payment Id:'.$paymentId);
-            $order->save();
-        }
-        else
-        {
-            if (isset($error))
-            {
-                $desc = $error . (isset($paymentId) ? '. Payment ID: ' . $paymentId : '. Most probably user closed the popup.');
-            }
-            else
-            {
-                $desc = 'Payment failed. Most probably user closed the popup.';
-            }
-
-            $order->setState(Mage_Sales_Model_Order::STATE_CANCELED, true);
-            $order->addStatusHistoryComment($desc);
-            $order->save();
+        if($signature === $response['razorpay_signature']){
+            $success = true;
         }
 
         return $success;
