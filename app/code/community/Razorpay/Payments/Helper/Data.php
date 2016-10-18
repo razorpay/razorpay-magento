@@ -54,8 +54,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
         $response = $this->sendRequest($url, 'POST', $data);
 
-        session_start();
-        $_SESSION['razorpay_order_id'] = $response['id'];
+        Mage::getSingleton('core/session')->setSessionVariable($response['id']);
 
         $responseArray = array(
             // order id has to be stored and fetched later from the db or session
