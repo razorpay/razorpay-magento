@@ -11,23 +11,19 @@
     <notes>This version uses the Razorpay API v1 for the best possible experience.</notes>
     <authors>
         <author>
-            <name>Vivek Kumar</name>
-            <user>crims0n</user>
-            <email>vivek@razorpay.com</email>
-        </author>
-        <author>
             <name>Abhay Rana</name>
             <user>captn3mO</user>
             <email>nemo@razorpay.com</email>
-        </author>
-        <author>
+            <name>Vivek Kumar</name>
+            <user>crims0n</user>
+            <email>vivek@razorpay.com</email>
             <name>Mayank Amencherla</name>
             <user>mayank</user>
             <email>mayank.amencherla@razorpay.com</email>
         </author>
     </authors>
     <date>2016-10-18</date>
-    <time>08:56:54</time>
+    <time>15:37:59</time>
     <contents>
         <target name="magecommunity">
             <dir name="Razorpay">
@@ -37,14 +33,14 @@
                             <file hash="15049195e1e3d519298a3bd5095990fe" name="Checkout.php"/>
                         </dir>
                         <dir name="Helper">
-                            <file hash="12f883f730000aa2fcae30d0da35298f" name="Data.php"/>
+                            <file hash="bbf4955d0095e8f53022936eca12aab6" name="Data.php"/>
                             <file hash="308c55e7a7d56a27fcfb3983169c3491" name="ca-bundle.crt"/>
                         </dir>
                         <dir name="Model">
-                            <file hash="dee6b838de62b2fdd38a66c7b5e8ffe7" name="Paymentmethod.php"/>
+                            <file hash="3a06966d04bb508ff85ec8a355a7f943" name="Paymentmethod.php"/>
                         </dir>
                         <dir name="controllers">
-                            <file hash="fbc156fdf09ae8d8623657d060ecafb1" name="CheckoutController.php"/>
+                            <file hash="d7b1742fe6f37803208a93795915a81b" name="CheckoutController.php"/>
                         </dir>
                         <dir name="etc">
                             <file hash="ee05ae1c78daa8f263de0f3c6d25a9df" name="config.xml"/>

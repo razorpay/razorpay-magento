@@ -46,7 +46,7 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
 
         $success = $model->validateSignature($response); 
 
-        Mage::getSingleton('core/session')->unsSessionVariable();
+        Mage::getSingleton('core/session')->unsRazorpayOrderID();
 
         if ($success === true)
         {
