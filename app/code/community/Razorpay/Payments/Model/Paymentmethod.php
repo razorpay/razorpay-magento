@@ -118,7 +118,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         
         $success = false;
 
-        if($signature === $response['razorpay_signature']){
+        if( hash_equals($signature , $response['razorpay_signature']) ){
             $success = true;
         }
 
