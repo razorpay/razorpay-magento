@@ -8,6 +8,8 @@ use Magento\Sales\Model\Order\Payment\Transaction;
 use Magento\Sales\Model\ResourceModel\Order\Payment\Transaction\CollectionFactory as TransactionCollectionFactory;
 use Magento\Sales\Model\Order\Payment\Transaction as PaymentTransaction;
 use Magento\Payment\Model\InfoInterface;
+use Razorpay\Magento\Model\Config;
+use Magento\Catalog\Model\Session;
 
 /**
  * Class PaymentMethod
@@ -36,7 +38,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     /**
      * @var bool
      */
-    protected $_canCapture              = true;
+    protected $_canCapture              = true; // sessions , set this to false
 
     /**
      * @var bool
@@ -192,6 +194,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         return $this;
     }
 
+    // Remove this method
     /**
      * Captures specified amount
      *
@@ -202,6 +205,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      */
     public function capture(InfoInterface $payment, $amount)
     {
+        // Use Order's API for this
         try {
             /** @var \Magento\Sales\Model\Order\Payment $payment */
             $order = $payment->getOrder();
@@ -210,16 +214,15 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             $request = $this->getPostData();
 
             $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
-
-            $txn = $this->rzp->payment->fetch($payment_id);
-
-            $_preparedamount = $amount*100; // Converting to basic price entity
-
-            $result = (array) $txn->capture(array('amount' => $_preparedamount));
+            
+            // Check if this works
+            $success = $this->validateSignature($request);
 
             $this->_debug([$orderId.' - '.$amount]);
             $this->_debug($result);
-            if (isset($result['error']) === false) {
+            
+            // if success of validate signature is true
+            if ($success === true) {
                 $payment->setStatus(self::STATUS_APPROVED)
                     ->setAmountPaid($amount)
                     ->setLastTransId($payment_id)
@@ -238,6 +241,23 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         }
 
         return $this;
+    }
+
+    protected function validateSignature($request)
+    {
+        $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
+        $rzp_signature = $request['paymentMethod']['additional_data']['rzp_signature'];
+
+        // Make sure this stuff works
+        $signature = hash_hmac('sha256', $this->catalogSession->getRazorpayOrderID() . "|" . $payment_id, $this->getConfigData(Config::KEY_PRIVATE_KEY));
+        
+        $success = false;
+        if (hash_equals ($signature , $response['razorpay_signature']))
+        {
+            $success = true;
+        }
+        
+        return $success;
     }
 
     protected function getPostData()
