@@ -4,6 +4,7 @@ namespace Razorpay\Magento\Controller\Payment;
 
 use Razorpay\Magento\Model\PaymentMethod;
 use Magento\Framework\Controller\ResultFactory;
+use Magento\Catalog\Model\Session;
 
 class Order extends \Razorpay\Magento\Controller\BaseController
 {
@@ -49,7 +50,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             $order = $this->rzp->order->create([
                 'amount' => $amount,
                 'receipt' => $receipt_id,
-                'currency' => $this->_currency
+                'currency' => $this->_currency,
+                'payment_capture' => 1                 // auto-capture
             ]);
 
             $responseContent = [
@@ -66,6 +68,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                     'amount'    => $order->amount
                 ];
                 $code = 200;
+
+                $this->catalogSession->setRazorpayOrderID($response['id']);
             }
         }
         catch(\Razorpay\Api\Errors\Error $e)

@@ -182,7 +182,10 @@ define(
                     "po_number": null,
                     "additional_data": {
                         rzp_payment_id: this.rzp_response.razorpay_payment_id,
-                        order_id: this.merchant_order_id
+                        order_id: this.merchant_order_id,
+                        // change
+                        rzp_order_id: this.rzp_response.razorpay_order_id,
+                        rzp_signature: this.rzp_response.razorpay_signature
                     }
                 };
             }
