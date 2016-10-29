@@ -4,7 +4,6 @@ namespace Razorpay\Magento\Controller\Payment;
 
 use Razorpay\Magento\Model\PaymentMethod;
 use Magento\Framework\Controller\ResultFactory;
-use Magento\Catalog\Model\Session;
 
 class Order extends \Razorpay\Magento\Controller\BaseController
 {
@@ -25,13 +24,15 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Checkout\Model\Session $checkoutSession,
         \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
-        \Razorpay\Magento\Model\Config $config
+        \Razorpay\Magento\Model\Config $config,
+        \Magento\Catalog\Model\Session $catalogSession
     ) {
         parent::__construct(
             $context,
             $customerSession,
             $checkoutSession,
-            $config
+            $config,
+            $catalogSession
         );
 
         $this->checkoutFactory = $checkoutFactory;
