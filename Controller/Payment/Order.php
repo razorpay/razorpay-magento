@@ -70,7 +70,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 ];
                 $code = 200;
 
-                $this->catalogSession->setRazorpayOrderID($response['id']);
+                $this->catalogSession->setRazorpayOrderID($order->id);
             }
         }
         catch(\Razorpay\Api\Errors\Error $e)

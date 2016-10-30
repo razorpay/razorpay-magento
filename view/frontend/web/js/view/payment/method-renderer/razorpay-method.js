@@ -117,8 +117,8 @@ define(
                 var self = this;
 
                 $.ajax({
-                    type: 'GET',
-                    url: url.build('razorpay/payment/order'),
+                    type: 'POST',
+                    url: url.build('razorpay/payment/order'), // Could be the source of the error 400
 
                     /**
                      * Success callback
