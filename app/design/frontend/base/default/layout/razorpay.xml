@@ -10,5 +10,5 @@
             </block>
             <action method="addJs"><file>razorpay/razorpay-utils.js</file></action>
         </reference>
-    </checkout_onepage_index>
+    </razorpay_checkout_index>
 </layout>
