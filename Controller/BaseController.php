@@ -46,8 +46,7 @@ abstract class BaseController extends \Magento\Framework\App\Action\Action
         \Magento\Framework\App\Action\Context $context,
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Checkout\Model\Session $checkoutSession,
-        \Razorpay\Magento\Model\Config $config,
-        \Magento\Catalog\Model\Session $catalogSession
+        \Razorpay\Magento\Model\Config $config
     ) {
         parent::__construct($context);
         $this->customerSession = $customerSession;
@@ -57,8 +56,6 @@ abstract class BaseController extends \Magento\Framework\App\Action\Action
         $this->key_id = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
         $this->key_secret = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
 
-        $this->catalogSession = $catalogSession;
-        
         $this->rzp = new Api($this->key_id, $this->key_secret);
     }
 

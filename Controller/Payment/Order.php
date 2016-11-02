@@ -36,6 +36,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         );
 
         $this->checkoutFactory = $checkoutFactory;
+        $this->catalogSession = $catalogSession;
     }
 
     public function execute()
@@ -93,5 +94,10 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $response->setHttpResponseCode($code);
 
         return $response;
+    }
+
+    public function getCatalogSession()
+    {
+        return $this->catalogSession->getRazorpayOrderID();
     }
 }

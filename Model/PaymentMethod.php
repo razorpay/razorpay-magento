@@ -128,6 +128,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         \Magento\Framework\App\ProductMetadataInterface $productMetaData,
         \Magento\Directory\Model\RegionFactory $regionFactory,
         \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
+        \Razorpay\Magento\Controller\Payment\Order $order,
         \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
         \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
         array $data = []
@@ -155,6 +156,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $this->key_secret = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
 
         $this->rzp = new Api($this->key_id, $this->key_secret);
+
+        $this->order = $order;
 
         $this->rzp->setHeader('User-Agent', 'Razorpay/'. $this->getChannel());
     }
@@ -215,12 +218,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
             $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
             
-            // Check if this works
             $success = $this->validateSignature($request);
 
-            $this->_debug([$orderId.' - '.$amount]);
-            $this->_debug($result);
-            
             // if success of validate signature is true
             if ($success === true) {
                 $payment->setStatus(self::STATUS_APPROVED)
@@ -248,11 +247,10 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
         $rzp_signature = $request['paymentMethod']['additional_data']['rzp_signature'];
 
-        // Make sure this stuff works
-        $signature = hash_hmac('sha256', $this->catalogSession->getRazorpayOrderID() . "|" . $payment_id, $this->getConfigData(Config::KEY_PRIVATE_KEY));
+        $signature = hash_hmac('sha256', $this->order->getCatalogSession() . "|" . $payment_id, $this->config->getConfigData(Config::KEY_PRIVATE_KEY));
         
         $success = false;
-        if (hash_equals ($signature , $response['razorpay_signature']))
+        if (hash_equals ($signature , $rzp_signature))
         {
             $success = true;
         }
