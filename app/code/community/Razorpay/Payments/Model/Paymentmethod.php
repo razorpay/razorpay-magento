@@ -112,13 +112,16 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
 
     public function validateSignature($response)
     {
-        // I have to use the order_id from the server and not the response object.
-
         $requestFields = Mage::app()->getRequest()->getPost();
 
         $paymentId = $requestFields['razorpay_payment_id'];
+
+        $razorpay_payment_id = $response['razorpay_payment_id'];
+        $razorpay_order_id = Mage::getSingleton('core/session')->getRazorpayOrderID();
+
+        $key_secret = $this->getConfigData('key_secret');
         
-        $signature = hash_hmac('sha256', Mage::getSingleton('core/session')->getRazorpayOrderID() . "|" . $response['razorpay_payment_id'], $this->getConfigData('key_secret'));
+        $signature = hash_hmac('sha256', $razorpay_order_id . "|" . $razorpay_payment_id, $key_secret);
 
         $session = Mage::getSingleton('checkout/session');
         $order = Mage::getModel('sales/order');
@@ -132,7 +135,6 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
             $order->addStatusHistoryComment('Payment Successful. Razorpay Payment Id:'.$paymentId);
             $order->save();
         }
-
         else
         {
             $success = false;

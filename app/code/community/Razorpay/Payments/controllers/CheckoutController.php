@@ -46,6 +46,7 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
 
         $success = $model->validateSignature($response); 
 
+        // Unsetting the session variable upon completion of signature verification
         Mage::getSingleton('core/session')->unsRazorpayOrderID();
 
         if ($success === true)
