@@ -11,33 +11,45 @@
     <notes>This version uses the Razorpay API v1 for the best possible experience.</notes>
     <authors>
         <author>
-            <name>Vivek</name>
+            <name>Abhay Rana</name>
+            <user>captn3mO</user>
+            <email>nemo@razorpay.com</email>
+        </author>
+        <author>
+            <name>Vivek Kumar</name>
             <user>crims0n</user>
             <email>vivek@razorpay.com</email>
         </author>
+        <author>
+            <name>Mayank Amencherla</name>
+            <user>mayank</user>
+            <email>mayank.amencherla@razorpay.com</email>
+        </author>
     </authors>
-    <date>2016-09-02</date>
-    <time>03:21:30</time>
+    <date>2016-10-18</date>
+    <time>15:37:59</time>
     <contents>
         <target name="magecommunity">
             <dir name="Razorpay">
                 <dir name="Payments">
-                    <dir name="Block">
-                        <file hash="15049195e1e3d519298a3bd5095990fe" name="Checkout.php"/>
-                    </dir>
-                    <dir name="Helper">
-                        <file hash="25f10d720b3a9f3679b1a4a5b9764fb4" name="Data.php"/>
-                        <file hash="308c55e7a7d56a27fcfb3983169c3491" name="ca-bundle.crt"/>
-                    </dir>
-                    <dir name="Model">
-                        <file hash="e5d83b6288add31a60aa8e2656e47887" name="Paymentmethod.php"/>
-                    </dir>
-                    <dir name="controllers">
-                        <file hash="6402350485984f971ef298ffff759084" name="CheckoutController.php"/>
-                    </dir>
-                    <dir name="etc">
-                        <file hash="ee05ae1c78daa8f263de0f3c6d25a9df" name="config.xml"/>
-                        <file hash="3045e0b5d2d2d0b52e47c23a64f99445" name="system.xml"/>
+                    <dir>
+                        <dir name="Block">
+                            <file hash="15049195e1e3d519298a3bd5095990fe" name="Checkout.php"/>
+                        </dir>
+                        <dir name="Helper">
+                            <file hash="bbf4955d0095e8f53022936eca12aab6" name="Data.php"/>
+                            <file hash="308c55e7a7d56a27fcfb3983169c3491" name="ca-bundle.crt"/>
+                        </dir>
+                        <dir name="Model">
+                            <file hash="3a06966d04bb508ff85ec8a355a7f943" name="Paymentmethod.php"/>
+                        </dir>
+                        <dir name="controllers">
+                            <file hash="d7b1742fe6f37803208a93795915a81b" name="CheckoutController.php"/>
+                        </dir>
+                        <dir name="etc">
+                            <file hash="ee05ae1c78daa8f263de0f3c6d25a9df" name="config.xml"/>
+                            <file hash="3045e0b5d2d2d0b52e47c23a64f99445" name="system.xml"/>
+                        </dir>
                     </dir>
                 </dir>
             </dir>
@@ -51,7 +63,7 @@
                         </dir>
                         <dir name="template">
                             <dir name="razorpay">
-                                <file hash="f475fa98caab729800fe098b59208db9" name="checkout.phtml"/>
+                                <file hash="568d98738658141ef1ce47edc5363494" name="checkout.phtml"/>
                             </dir>
                         </dir>
                     </dir>
@@ -64,11 +76,9 @@
             </dir>
         </target>
         <target name="mage">
-            <dir>
-                <dir name="js">
-                    <dir name="razorpay">
-                        <file hash="7d8379be889bfe8445515c48f111e79f" name="razorpay-utils.js"/>
-                    </dir>
+            <dir name="js">
+                <dir name="razorpay">
+                    <file hash="7d8379be889bfe8445515c48f111e79f" name="razorpay-utils.js"/>
                 </dir>
             </dir>
         </target>
@@ -78,7 +88,7 @@
         <required>
             <php>
                 <min>5.4.45</min>
-                <max>5.6.24</max>
+                <max>5.6.26</max>
             </php>
         </required>
     </dependencies>
