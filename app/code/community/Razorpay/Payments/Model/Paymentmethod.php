@@ -86,6 +86,11 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
 
         $requestFields = Mage::app()->getRequest()->getPost();
 
+        if (isset($requestFields['razorpay_payment_id']) === false)
+        {
+            throw new Exception('Razorpay Payment Id is not defined');
+        }
+
         $paymentId = $requestFields['razorpay_payment_id'];
 
         $_preparedAmount = $amount * 100;
@@ -107,14 +112,15 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
             $error = $e->getMessage();
         }
 
-        return [$result, $error];
+        return array($result, $error);
     }
 
     public function validateSignature($response)
     {
-        $requestFields = Mage::app()->getRequest()->getPost();
-
-        $paymentId = $requestFields['razorpay_payment_id'];
+        if (isset($response['razorpay_payment_id']) === false)
+        {
+            throw new Exception('Razorpay Payment Id is not defined');
+        }
 
         $razorpay_payment_id = $response['razorpay_payment_id'];
         $razorpay_order_id = Mage::getSingleton('core/session')->getRazorpayOrderID();
@@ -126,6 +132,11 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         $session = Mage::getSingleton('checkout/session');
         $order = Mage::getModel('sales/order');
         $order->loadByIncrementId($session->getLastRealOrderId());
+
+        if (isset($response['razorpay_signature']) === false)
+        {
+            throw new Exception('Razorpay Signature is not defined');
+        }
 
         if (hash_equals($signature , $response['razorpay_signature']))
         {
