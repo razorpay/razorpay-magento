@@ -88,7 +88,9 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
 
         if (isset($requestFields['razorpay_payment_id']) === false)
         {
-            throw new Exception('Razorpay Payment Id is not defined');
+            $url = Mage::getUrl('checkout/onepage/failure');
+
+            Mage::app()->getResponse()->setRedirect($url)->sendResponse();
         }
 
         $paymentId = $requestFields['razorpay_payment_id'];
@@ -119,7 +121,9 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
     {
         if (isset($response['razorpay_payment_id']) === false)
         {
-            throw new Exception('Razorpay Payment Id is not defined');
+            $url = Mage::getUrl('checkout/onepage/failure');
+
+            Mage::app()->getResponse()->setRedirect($url)->sendResponse();
         }
 
         $razorpay_payment_id = $response['razorpay_payment_id'];
