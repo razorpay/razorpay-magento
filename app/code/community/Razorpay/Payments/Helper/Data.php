@@ -45,37 +45,46 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
         $url = $this->getRelativeUrl('order');
 
-        $data = array(
-            'receipt'         => $orderId,
-            'amount'          => $amount,
-            'currency'        => $currency,
-            'payment_capture' => 1
-        );
+        if ($order->getStatus() === 'processing')
+        {
+            $data = array(
+                'receipt'         => $orderId,
+                'amount'          => $amount,
+                'currency'        => $currency,
+                'payment_capture' => 1
+            );
 
-        $response = $this->sendRequest($url, 'POST', $data);
+            $response = $this->sendRequest($url, 'POST', $data);
 
-        Mage::getSingleton('core/session')->setRazorpayOrderID($response['id']);
+            Mage::getSingleton('core/session')->setRazorpayOrderID($response['id']);
 
-        $responseArray = array(
-            // order id has to be stored and fetched later from the db or session
-            'razorpay_order_id'  => $response['id']
-        );
+            $responseArray = array(
+                // order id has to be stored and fetched later from the db or session
+                'razorpay_order_id'  => $response['id']
+            );
 
-        $bA = $order->getBillingAddress();
+            $bA = $order->getBillingAddress();
 
-        $responseArray['customer_name']     = $bA->getFirstname() . " " . $bA->getLastname();
-        $responseArray['customer_phone']    = $bA->getTelephone() ?: '';
-        $responseArray['order_id']          = $orderId;
-        $responseArray['base_amount']       = $amount;
-        $responseArray['base_currency']     = $base_currency;
-        $responseArray['customer_email']    = $order->getData('customer_email') ?: '';
-        $responseArray['quote_currency']    = $quote_currency;
-        $responseArray['quote_amount']      = $quote_amount;
+            $responseArray['customer_name']     = $bA->getFirstname() . " " . $bA->getLastname();
+            $responseArray['customer_phone']    = $bA->getTelephone() ?: '';
+            $responseArray['order_id']          = $orderId;
+            $responseArray['base_amount']       = $amount;
+            $responseArray['base_currency']     = $base_currency;
+            $responseArray['customer_email']    = $order->getData('customer_email') ?: '';
+            $responseArray['quote_currency']    = $quote_currency;
+            $responseArray['quote_amount']      = $quote_amount;
 
-        $order->addStatusToHistory($order->getStatus(), 'Razorpay Order ID: ' . $responseArray['razorpay_order_id']);
-        $order->save();
+            $order->addStatusToHistory($order->getStatus(), 'Razorpay Order ID: ' . $responseArray['razorpay_order_id']);
+            $order->save();
 
-        return $responseArray;
+            return $responseArray;
+        }
+        else
+        {
+            $url = Mage::getUrl('checkout/onepage/failure');
+
+            Mage::app()->getResponse()->setRedirect($url)->sendResponse();
+        }
     }
 
     public function sendRequest($url, $method = 'POST', $content = array())
