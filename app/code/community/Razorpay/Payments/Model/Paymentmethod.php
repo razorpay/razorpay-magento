@@ -127,7 +127,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         $order = Mage::getModel('sales/order');
         $order->loadByIncrementId($session->getLastRealOrderId());
 
-        if (hash_equals($signature , $response['razorpay_signature']))
+        if ($this->hash_equals($signature , $response['razorpay_signature']))
         {
             $success = true;
             $order->sendNewOrderEmail();
@@ -172,6 +172,26 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
             $edition = 'EE';
         }
         return sprintf(self::CHANNEL_NAME, $edition, Mage::getVersion(), self::VERSION);
+    }
+
+    protected function hash_equals($str1, $str2)
+    {
+        if (strlen($str1) !== strlen($str2))
+            return false;
+
+        else
+        {
+            $res = $str1 ^ $str2;
+
+            $ret = 0;
+
+            for ($i = strlen($res) - 1; $i >= 0; $i--)
+            {
+                $ret |= ord($res[$i]);
+            }
+
+            return !$ret;
+        }
     }
 
     /**
