@@ -157,16 +157,16 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
             return hash_equals($str1, $str2);
         }
 
-        if (strlen($a) !== strlen($b)) 
+        if (strlen($str1) !== strlen($str2)) 
         {
             return false;
         }
 
         $result = 0;
         
-        for ($i = 0; $i < strlen($a); $i++) 
+        for ($i = 0; $i < strlen($str1); $i++) 
         {
-            $result |= ord($a[$i]) ^ ord($b[$i]);
+            $result |= ord($str1[$i]) ^ ord($str2[$i]);
         }
         
         return ($result == 0);
