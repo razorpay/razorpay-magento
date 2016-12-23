@@ -127,7 +127,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         $order = Mage::getModel('sales/order');
         $order->loadByIncrementId($session->getLastRealOrderId());
 
-        if ($this->string_equals($signature , $response['razorpay_signature']))
+        if ($this->hash_equals($signature , $response['razorpay_signature']))
         {
             $success = true;
             $order->sendNewOrderEmail();
@@ -150,7 +150,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
      * Taken from https://stackoverflow.com/questions/10576827/secure-string-compare-function
      * under the MIT license
      */
-    protected function string_equals($str1, $str2)
+    protected function hash_equals($str1, $str2)
     {
         if (function_exists('hash_equals'))
         {
@@ -169,7 +169,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
             $result |= ord($a[$i]) ^ ord($b[$i]);
         }
         
-        return $result == 0;
+        return ($result == 0);
     }
 
     public function getFields($order)
