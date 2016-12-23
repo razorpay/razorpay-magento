@@ -127,7 +127,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         $order = Mage::getModel('sales/order');
         $order->loadByIncrementId($session->getLastRealOrderId());
 
-        if ($this->hash_equals($signature , $response['razorpay_signature']))
+        if ($this->string_equals($signature , $response['razorpay_signature']))
         {
             $success = true;
             $order->sendNewOrderEmail();
@@ -144,6 +144,32 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         }
 
         return $success;
+    }
+
+    /*
+     * Taken from https://stackoverflow.com/questions/10576827/secure-string-compare-function
+     * under the MIT license
+     */
+    protected function string_equals($str1, $str2)
+    {
+        if (function_exists('hash_equals'))
+        {
+            return hash_equals($str1, $str2);
+        }
+
+        if (strlen($a) !== strlen($b)) 
+        {
+            return false;
+        }
+
+        $result = 0;
+        
+        for ($i = 0; $i < strlen($a); $i++) 
+        {
+            $result |= ord($a[$i]) ^ ord($b[$i]);
+        }
+        
+        return $result == 0;
     }
 
     public function getFields($order)
@@ -172,26 +198,6 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
             $edition = 'EE';
         }
         return sprintf(self::CHANNEL_NAME, $edition, Mage::getVersion(), self::VERSION);
-    }
-
-    protected function hash_equals($str1, $str2)
-    {
-        if (strlen($str1) !== strlen($str2))
-            return false;
-
-        else
-        {
-            $res = $str1 ^ $str2;
-
-            $ret = 0;
-
-            for ($i = strlen($res) - 1; $i >= 0; $i--)
-            {
-                $ret |= ord($res[$i]);
-            }
-
-            return !$ret;
-        }
     }
 
     /**
