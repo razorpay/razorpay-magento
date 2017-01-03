@@ -197,7 +197,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         return $this;
     }
 
-    // Remove this method
     /**
      * Captures specified amount
      *
@@ -208,7 +207,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      */
     public function capture(InfoInterface $payment, $amount)
     {
-        // Use Order's API for this
         try {
             /** @var \Magento\Sales\Model\Order\Payment $payment */
             $order = $payment->getOrder();
@@ -247,9 +245,13 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
         $rzp_signature = $request['paymentMethod']['additional_data']['rzp_signature'];
 
-        $signature = hash_hmac('sha256', $this->order->getCatalogSession() . "|" . $payment_id, $this->config->getConfigData(Config::KEY_PRIVATE_KEY));
+        $signature = hash_hmac('sha256', 
+                                $this->order->getCatalogSession() . "|" . 
+                                $payment_id, 
+                                $this->config->getConfigData(Config::KEY_PRIVATE_KEY));
         
         $success = false;
+
         if ($this->hash_equals($signature , $rzp_signature))
         {
             $success = true;
@@ -262,23 +264,23 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      * Taken from https://stackoverflow.com/questions/10576827/secure-string-compare-function
      * under the MIT license
      */
-    protected function hash_equals($str1, $str2)
+    protected function hash_equals($generatedString, $actualString)
     {
         if (function_exists('hash_equals'))
         {
-            return hash_equals($str1, $str2);
+            return hash_equals($generatedString, $actualString);
         }
 
-        if (strlen($str1) !== strlen($str2))
+        if (strlen($generatedString) !== strlen($actualString))
         {
             return false;
         }
 
         $result = 0;
 
-        for ($i=0; $i<strlen($str1); $i++)
+        for ($i=0; $i<strlen($generatedString); $i++)
         {
-            $result |= ord($str[$i]) ^ ord($str[$i]);
+            $result |= ord($generatedString[$i]) ^ ord($actualString[$i]);
         }
 
         return ($result === 0);
