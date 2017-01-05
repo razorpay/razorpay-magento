@@ -242,17 +242,18 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
     protected function validateSignature($request)
     {
-        $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
-        $rzp_signature = $request['paymentMethod']['additional_data']['rzp_signature'];
+        $paymentId = $request['paymentMethod']['additional_data']['rzp_payment_id'];
+        $rzpSignature = $request['paymentMethod']['additional_data']['rzp_signature'];
 
-        $signature = hash_hmac('sha256', 
-                                $this->order->getCatalogSession() . "|" . 
-                                $payment_id, 
-                                $this->config->getConfigData(Config::KEY_PRIVATE_KEY));
+        $stringToHash = $this->order->getCatalogSession() . "|" . $paymentId;
+
+        $keySecret = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
+
+        $signature = hash_hmac('sha256', $stringToHash, $keySecret);
         
         $success = false;
 
-        if ($this->hash_equals($signature , $rzp_signature))
+        if ($this->hash_equals($signature , $rzpSignature))
         {
             $success = true;
         }
