@@ -96,7 +96,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         return $response;
     }
 
-    public function getCatalogSession()
+    public function getOrderID()
     {
         return $this->catalogSession->getRazorpayOrderID();
     }

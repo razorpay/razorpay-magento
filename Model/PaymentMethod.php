@@ -245,7 +245,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $paymentId = $request['paymentMethod']['additional_data']['rzp_payment_id'];
         $rzpSignature = $request['paymentMethod']['additional_data']['rzp_signature'];
 
-        $stringToHash = $this->order->getCatalogSession() . "|" . $paymentId;
+        $stringToHash = $this->order->getOrderID() . "|" . $paymentId;
 
         $keySecret = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
 
