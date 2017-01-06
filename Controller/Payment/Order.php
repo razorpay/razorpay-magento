@@ -24,16 +24,19 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Checkout\Model\Session $checkoutSession,
         \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
-        \Razorpay\Magento\Model\Config $config
+        \Razorpay\Magento\Model\Config $config,
+        \Magento\Catalog\Model\Session $catalogSession
     ) {
         parent::__construct(
             $context,
             $customerSession,
             $checkoutSession,
-            $config
+            $config,
+            $catalogSession
         );
 
         $this->checkoutFactory = $checkoutFactory;
+        $this->catalogSession = $catalogSession;
     }
 
     public function execute()
@@ -49,7 +52,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             $order = $this->rzp->order->create([
                 'amount' => $amount,
                 'receipt' => $receipt_id,
-                'currency' => $this->_currency
+                'currency' => $this->_currency,
+                'payment_capture' => 1                 // auto-capture
             ]);
 
             $responseContent = [
@@ -66,6 +70,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                     'amount'    => $order->amount
                 ];
                 $code = 200;
+
+                $this->catalogSession->setRazorpayOrderID($order->id);
             }
         }
         catch(\Razorpay\Api\Errors\Error $e)
@@ -88,5 +94,10 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $response->setHttpResponseCode($code);
 
         return $response;
+    }
+
+    public function getOrderID()
+    {
+        return $this->catalogSession->getRazorpayOrderID();
     }
 }

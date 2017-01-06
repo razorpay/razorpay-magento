@@ -8,6 +8,8 @@ use Magento\Sales\Model\Order\Payment\Transaction;
 use Magento\Sales\Model\ResourceModel\Order\Payment\Transaction\CollectionFactory as TransactionCollectionFactory;
 use Magento\Sales\Model\Order\Payment\Transaction as PaymentTransaction;
 use Magento\Payment\Model\InfoInterface;
+use Razorpay\Magento\Model\Config;
+use Magento\Catalog\Model\Session;
 
 /**
  * Class PaymentMethod
@@ -36,7 +38,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     /**
      * @var bool
      */
-    protected $_canCapture              = true;
+    protected $_canCapture              = true; // sessions , set this to false
 
     /**
      * @var bool
@@ -126,6 +128,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         \Magento\Framework\App\ProductMetadataInterface $productMetaData,
         \Magento\Directory\Model\RegionFactory $regionFactory,
         \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
+        \Razorpay\Magento\Controller\Payment\Order $order,
         \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
         \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
         array $data = []
@@ -153,6 +156,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $this->key_secret = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
 
         $this->rzp = new Api($this->key_id, $this->key_secret);
+
+        $this->order = $order;
 
         $this->rzp->setHeader('User-Agent', 'Razorpay/'. $this->getChannel());
     }
@@ -210,16 +215,11 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             $request = $this->getPostData();
 
             $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
+            
+            $success = $this->validateSignature($request);
 
-            $txn = $this->rzp->payment->fetch($payment_id);
-
-            $_preparedamount = $amount*100; // Converting to basic price entity
-
-            $result = (array) $txn->capture(array('amount' => $_preparedamount));
-
-            $this->_debug([$orderId.' - '.$amount]);
-            $this->_debug($result);
-            if (isset($result['error']) === false) {
+            // if success of validate signature is true
+            if ($success === true) {
                 $payment->setStatus(self::STATUS_APPROVED)
                     ->setAmountPaid($amount)
                     ->setLastTransId($payment_id)
@@ -238,6 +238,53 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         }
 
         return $this;
+    }
+
+    protected function validateSignature($request)
+    {
+        $paymentId = $request['paymentMethod']['additional_data']['rzp_payment_id'];
+        $rzpSignature = $request['paymentMethod']['additional_data']['rzp_signature'];
+
+        $stringToHash = $this->order->getOrderID() . "|" . $paymentId;
+
+        $keySecret = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
+
+        $signature = hash_hmac('sha256', $stringToHash, $keySecret);
+        
+        $success = false;
+
+        if ($this->hash_equals($signature , $rzpSignature))
+        {
+            $success = true;
+        }
+        
+        return $success;
+    }
+
+    /*
+     * Taken from https://stackoverflow.com/questions/10576827/secure-string-compare-function
+     * under the MIT license
+     */
+    protected function hash_equals($generatedString, $actualString)
+    {
+        if (function_exists('hash_equals'))
+        {
+            return hash_equals($generatedString, $actualString);
+        }
+
+        if (strlen($generatedString) !== strlen($actualString))
+        {
+            return false;
+        }
+
+        $result = 0;
+
+        for ($i=0; $i<strlen($generatedString); $i++)
+        {
+            $result |= ord($generatedString[$i]) ^ ord($actualString[$i]);
+        }
+
+        return ($result === 0);
     }
 
     protected function getPostData()
