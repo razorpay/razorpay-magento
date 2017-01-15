@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
     <name>Razorpay</name>
-    <version>1.1.12</version>
+    <version>1.1.13</version>
     <stability>stable</stability>
     <license>MIT</license>
     <channel>community</channel>
@@ -17,7 +17,7 @@
         </author>
         <author>
             <name>Abhay Rana</name>
-            <user>captn3mo</user>
+            <user>captn3m0</user>
             <email>nemo@razorpay.com</email>
         </author>
         <author>
@@ -26,8 +26,8 @@
             <email>vivek@razorpay.com</email>
         </author>
     </authors>
-    <date>2016-12-23</date>
-    <time>16:40:46</time>
+    <date>2017-01-15</date>
+    <time>18:52:40</time>
     <contents>
         <target name="magecommunity">
             <dir name="Razorpay">
@@ -40,7 +40,7 @@
                         <file hash="308c55e7a7d56a27fcfb3983169c3491" name="ca-bundle.crt"/>
                     </dir>
                     <dir name="Model">
-                        <file hash="b7098d3b7be217d300f4c484c35fe463" name="Paymentmethod.php"/>
+                        <file hash="a46c3b59469714524acec4702394a659" name="Paymentmethod.php"/>
                     </dir>
                     <dir name="controllers">
                         <file hash="6828300fcebf068f19209504cacd9dd7" name="CheckoutController.php"/>
@@ -76,7 +76,7 @@
         <target name="mage">
             <dir name="js">
                 <dir name="razorpay">
-                    <file hash="7d8379be889bfe8445515c48f111e79f" name="razorpay-utils.js"/>
+                    <file hash="67e54789bb3f1723dcff535273ad961c" name="razorpay-utils.js"/>
                 </dir>
             </dir>
         </target>
