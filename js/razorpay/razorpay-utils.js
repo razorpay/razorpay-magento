@@ -5,7 +5,7 @@ RazorpayUtils.prototype = {
     },
 
     getMerchantName: function() {
-        return this.options.merchant_mame;
+        return this.options.merchant_name;
     },
 
     placeOrder: function(onSuccess, onDismiss, formId, paymentIdField)
