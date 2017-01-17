@@ -139,9 +139,12 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
 
         if (isset($response['razorpay_signature']) === false)
         {
-            throw new Exception('Razorpay Signature is not defined');
+            $success = false;
+            $order->setState(Mage_Sales_Model_Order::STATE_CANCELED, true);
+            $order->addStatusHistoryComment('Razorpay Signature is not defined');
+            $order->save();
         }
-
+        
         if (hash_equals($signature , $response['razorpay_signature']))
         {
             $success = true;
