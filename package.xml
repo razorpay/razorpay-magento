@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
     <name>Razorpay</name>
-    <version>1.1.11</version>
+    <version>1.1.13</version>
     <stability>stable</stability>
     <license>MIT</license>
     <channel>community</channel>
@@ -16,39 +16,37 @@
             <email>mayank.amencherla@razorpay.com</email>
         </author>
         <author>
+            <name>Abhay Rana</name>
+            <user>captn3m0</user>
+            <email>nemo@razorpay.com</email>
+        </author>
+        <author>
             <name>Vivek Kumar</name>
             <user>crims0n</user>
             <email>vivek@razorpay.com</email>
         </author>
-        <author>
-            <name>Mayank Amencherla</name>
-            <user>mayank</user>
-            <email>mayank.amencherla@razorpay.com</email>
-        </author>
     </authors>
-    <date>2016-11-24</date>
-    <time>14:22:16</time>
+    <date>2017-01-15</date>
+    <time>18:52:40</time>
     <contents>
         <target name="magecommunity">
             <dir name="Razorpay">
                 <dir name="Payments">
                     <dir name="Block">
                         <file hash="15049195e1e3d519298a3bd5095990fe" name="Checkout.php"/>
-                        <file hash="09ad9b449bf873a6b2b3bce55923219b" name="Placeorder.php"/>
-                        <file hash="3d38f8ba62b42fc4decb7dbc7d4e8e1e" name="Setuputils.php"/>
                     </dir>
                     <dir name="Helper">
                         <file hash="bbf4955d0095e8f53022936eca12aab6" name="Data.php"/>
                         <file hash="308c55e7a7d56a27fcfb3983169c3491" name="ca-bundle.crt"/>
                     </dir>
                     <dir name="Model">
-                        <file hash="9010f9914121e6772a2804633c2838b8" name="Paymentmethod.php"/>
+                        <file hash="a46c3b59469714524acec4702394a659" name="Paymentmethod.php"/>
                     </dir>
                     <dir name="controllers">
                         <file hash="6828300fcebf068f19209504cacd9dd7" name="CheckoutController.php"/>
                     </dir>
                     <dir name="etc">
-                        <file hash="882222bd136679604c7a0e3351cd67c9" name="config.xml"/>
+                        <file hash="1e19742b383a22af4518394c6a5e9a93" name="config.xml"/>
                         <file hash="3045e0b5d2d2d0b52e47c23a64f99445" name="system.xml"/>
                     </dir>
                 </dir>
@@ -78,7 +76,7 @@
         <target name="mage">
             <dir name="js">
                 <dir name="razorpay">
-                    <file hash="7d8379be889bfe8445515c48f111e79f" name="razorpay-utils.js"/>
+                    <file hash="67e54789bb3f1723dcff535273ad961c" name="razorpay-utils.js"/>
                 </dir>
             </dir>
         </target>

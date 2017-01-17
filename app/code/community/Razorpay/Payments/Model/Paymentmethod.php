@@ -5,7 +5,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
     const CHANNEL_NAME                  = 'Razorpay/Magento%s_%s/%s';
     const METHOD_CODE                   = 'razorpay';
     const CURRENCY                      = 'INR';
-    const VERSION                       = '1.1.11';
+    const VERSION                       = '1.1.13';
 
     protected $_code                    = self::METHOD_CODE;
     protected $_canOrder                = false;
@@ -145,7 +145,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
             $order->save();
         }
         
-        if (hash_equals($signature , $response['razorpay_signature']))
+        if ($this->hash_equals($signature , $response['razorpay_signature']))
         {
             $success = true;
             $order->sendNewOrderEmail();
@@ -162,6 +162,32 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         }
 
         return $success;
+    }
+
+    /*
+     * Taken from https://stackoverflow.com/questions/10576827/secure-string-compare-function
+     * under the MIT license
+     */
+    protected function hash_equals($str1, $str2)
+    {
+        if (function_exists('hash_equals'))
+        {
+            return hash_equals($str1, $str2);
+        }
+
+        if (strlen($str1) !== strlen($str2)) 
+        {
+            return false;
+        }
+
+        $result = 0;
+        
+        for ($i = 0; $i < strlen($str1); $i++) 
+        {
+            $result |= ord($str1[$i]) ^ ord($str2[$i]);
+        }
+        
+        return ($result == 0);
     }
 
     public function getFields($order)
