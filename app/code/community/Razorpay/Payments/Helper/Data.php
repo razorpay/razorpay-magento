@@ -79,6 +79,12 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
             return $responseArray;
         }
+        else if ($order->getStatus() === 'complete')
+        {
+            $url = Mage::getUrl('checkout/onepage/success');
+
+            Mage::app()->getResponse()->setRedirect($url)->sendResponse();
+        }
         else
         {
             $url = Mage::getUrl('checkout/onepage/failure');
