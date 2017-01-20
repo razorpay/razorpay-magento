@@ -31,8 +31,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             $context,
             $customerSession,
             $checkoutSession,
-            $config,
-            $catalogSession
+            $config
         );
 
         $this->checkoutFactory = $checkoutFactory;
