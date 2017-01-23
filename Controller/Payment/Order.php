@@ -41,7 +41,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
     public function execute()
     {
-        $amount = (int) (round($this->getQuote()->getGrandTotal(), 2)*100);
+        $amount = (int) (round($this->getQuote()->getBaseGrandTotal(), 2)*100);
 
         $receipt_id = $this->getQuote()->getId();
 
@@ -64,11 +64,14 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             if(null !== $order && !empty($order->id))
             {
                 $responseContent = [
-                    'success'   => true,
-                    'rzp_order' => $order->id,
-                    'order_id'  => $receipt_id,
-                    'amount'    => $order->amount
+                    'success'        => true,
+                    'rzp_order'      => $order->id,
+                    'order_id'       => $receipt_id,
+                    'amount'         => $order->amount,
+                    'quote_currency' => $this->getQuote()->getQuoteCurrencyCode(),
+                    'quote_amount'   => round($this->getQuote()->getGrandTotal(), 2)
                 ];
+
                 $code = 200;
 
                 $this->catalogSession->setRazorpayOrderID($order->id);

@@ -92,6 +92,10 @@ define(
                     email: billing_address.email
                 };
 
+                if (quote.totals()['quote_currency_code'] !== 'INR'){
+                    this.amount = quote.totals()['base_grand_total']*100;
+                }
+
                 if (!customer.isLoggedIn()) {
                     this.user.email = quote.guestEmail;
                 }
@@ -107,7 +111,7 @@ define(
                         self.handleError(result);
                     }
                 );
-
+                
                 self.getRzpOrderId();
 
                 return;
@@ -149,7 +153,7 @@ define(
 
                 this.merchant_order_id = data.order_id;
 
-                this.rzp = new Razorpay({
+                var options = {
                     key: self.getKeyId(),
                     name: self.getMerchantName(),
                     amount: data.amount,
@@ -171,7 +175,14 @@ define(
                         contact: this.user.contact,
                         email: this.user.email
                     }
-                });
+                };
+
+                if (data.quote_currency !== 'INR'){
+                    options.display_currency = data.quote_currency;
+                    options.display_amount = data.quote_amount;
+                }
+
+                this.rzp = new Razorpay(options);
 
                 this.rzp.open();
             },
