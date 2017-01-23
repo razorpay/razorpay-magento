@@ -83,7 +83,7 @@ define(
                 fullScreenLoader.startLoader();
                 this.messageContainer.clear();
 
-                this.amount = quote.totals()['grand_total']*100;
+                this.amount = quote.totals()['base_grand_total'] * 100;
                 billing_address = quote.billingAddress();
 
                 this.user = {
@@ -149,7 +149,7 @@ define(
 
                 this.merchant_order_id = data.order_id;
 
-                this.rzp = new Razorpay({
+                var options = {
                     key: self.getKeyId(),
                     name: self.getMerchantName(),
                     amount: data.amount,
@@ -171,7 +171,15 @@ define(
                         contact: this.user.contact,
                         email: this.user.email
                     }
-                });
+                };
+
+                if (data.quote_currency !== 'INR')
+                {
+                    options.display_currency = data.quote_currency;
+                    options.display_amount = data.quote_amount;
+                }
+
+                this.rzp = new Razorpay(options);
 
                 this.rzp.open();
             },
