@@ -15,6 +15,11 @@
             "name": "Vivek",
             "email": "vivek@razorpay.com",
             "role": "Developer"
+        },
+        {
+            "name": "Mayank Amencherla",
+            "email": "mayank.amencherla@razorpay.com",
+            "role": "Developer"
         }
     ],
     "support": {
