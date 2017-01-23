@@ -41,7 +41,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
     public function execute()
     {
-        $amount = (int) (round($this->getQuote()->getBaseGrandTotal(), 2)*100);
+        $amount = (int) (round($this->getQuote()->getBaseGrandTotal(), 2) * 100);
 
         $receipt_id = $this->getQuote()->getId();
 
@@ -61,7 +61,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 'parameters' => []
             ];
 
-            if(null !== $order && !empty($order->id))
+            if (null !== $order && !empty($order->id))
             {
                 $responseContent = [
                     'success'        => true,

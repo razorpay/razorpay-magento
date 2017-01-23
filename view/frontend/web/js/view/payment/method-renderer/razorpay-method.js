@@ -83,7 +83,7 @@ define(
                 fullScreenLoader.startLoader();
                 this.messageContainer.clear();
 
-                this.amount = quote.totals()['base_grand_total']*100;
+                this.amount = quote.totals()['base_grand_total'] * 100;
                 billing_address = quote.billingAddress();
 
                 this.user = {
