@@ -107,7 +107,7 @@ define(
                         self.handleError(result);
                     }
                 );
-                
+
                 self.getRzpOrderId();
 
                 return;
@@ -173,7 +173,8 @@ define(
                     }
                 };
 
-                if (data.quote_currency !== 'INR'){
+                if (data.quote_currency !== 'INR')
+                {
                     options.display_currency = data.quote_currency;
                     options.display_amount = data.quote_amount;
                 }
