@@ -83,7 +83,7 @@ define(
                 fullScreenLoader.startLoader();
                 this.messageContainer.clear();
 
-                this.amount = quote.totals()['grand_total']*100;
+                this.amount = quote.totals()['base_grand_total']*100;
                 billing_address = quote.billingAddress();
 
                 this.user = {
@@ -91,10 +91,6 @@ define(
                     contact: billing_address.telephone,
                     email: billing_address.email
                 };
-
-                if (quote.totals()['quote_currency_code'] !== 'INR'){
-                    this.amount = quote.totals()['base_grand_total']*100;
-                }
 
                 if (!customer.isLoggedIn()) {
                     this.user.email = quote.guestEmail;
