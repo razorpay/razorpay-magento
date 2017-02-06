@@ -25,6 +25,8 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
         $order = Mage::getModel('sales/order');
         $order->loadByIncrementId($session->getLastRealOrderId());
 
+        $order->setState('new', true);
+
         $this->loadLayout();
 
         $razorpay_block = $this->getLayout()
