@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
     <name>Razorpay</name>
-    <version>1.1.14</version>
-    <stability>stable</stability>
+    <version>1.1.15</version>
+    <stability>devel</stability>
     <license>MIT</license>
     <channel>community</channel>
     <extends/>
@@ -16,18 +16,18 @@
             <email>mayank.amencherla@razorpay.com</email>
         </author>
         <author>
+            <name>Vivek Kumar</name>
+            <user>crims0n</user>
+            <email>vivek.kumar@razorpay.com</email>
+        </author>
+        <author>
             <name>Abhay Rana</name>
             <user>captn3m0</user>
             <email>nemo@razorpay.com</email>
         </author>
-        <author>
-            <name>Vivek Kumar</name>
-            <user>crims0n</user>
-            <email>vivek@razorpay.com</email>
-        </author>
     </authors>
-    <date>2017-02-06</date>
-    <time>12:32:06</time>
+    <date>2017-02-25</date>
+    <time>10:15:09</time>
     <contents>
         <target name="magecommunity">
             <dir name="Razorpay">
@@ -40,7 +40,7 @@
                         <file hash="308c55e7a7d56a27fcfb3983169c3491" name="ca-bundle.crt"/>
                     </dir>
                     <dir name="Model">
-                        <file hash="d816dc47ea40d1a4e2ed9169480eacb2" name="Paymentmethod.php"/>
+                        <file hash="381cf3abf3acd93bc83f0225c72edf61" name="Paymentmethod.php"/>
                     </dir>
                     <dir name="controllers">
                         <file hash="548f8a2241fd5989486883608a5495af" name="CheckoutController.php"/>
@@ -50,6 +50,11 @@
                         <file hash="3045e0b5d2d2d0b52e47c23a64f99445" name="system.xml"/>
                     </dir>
                 </dir>
+            </dir>
+        </target>
+        <target name="mageetc">
+            <dir name="modules">
+                <file hash="84978ab3d49e7f70fc8e1aa00cb2dc36" name="Razorpay_Payments.xml"/>
             </dir>
         </target>
         <target name="magedesign">
@@ -64,11 +69,6 @@
                         </dir>
                     </dir>
                 </dir>
-            </dir>
-        </target>
-        <target name="mageetc">
-            <dir name="modules">
-                <file hash="84978ab3d49e7f70fc8e1aa00cb2dc36" name="Razorpay_Payments.xml"/>
             </dir>
         </target>
         <target name="mage">
