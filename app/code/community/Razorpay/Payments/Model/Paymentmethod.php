@@ -16,7 +16,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
     protected $_canCapturePartial       = false;
     protected $_canRefund               = false;
     protected $_canVoid                 = false;
-    protected $_canUseInternal          = false;
+    protected $_canUseInternal          = true;
     protected $_canUseCheckout          = true;
     protected $_canRefundInvoicePartial = false;
     protected $_canUseForMultishipping  = false;
