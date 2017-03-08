@@ -141,9 +141,22 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
             $order->setState(Mage_Sales_Model_Order::STATE_CANCELED, true);
             $order->addStatusHistoryComment('Payment failed. Most probably user closed the popup.');
             $order->save();
+            $this->updateInventory($order);
         }
 
         return $success;
+    }
+
+    protected function updateInventory($order)
+    {
+        $stockItem = Mage::getModel('cataloginventory/stock_item');
+
+        $items = $order->getAllItems();
+
+        foreach ($items as $item)
+        {
+            $item->cancel();
+        }
     }
 
     /*
