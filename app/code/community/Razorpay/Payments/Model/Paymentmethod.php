@@ -5,7 +5,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
     const CHANNEL_NAME                  = 'Razorpay/Magento%s_%s/%s';
     const METHOD_CODE                   = 'razorpay';
     const CURRENCY                      = 'INR';
-    const VERSION                       = '1.1.15';
+    const VERSION                       = '1.1.16';
 
     protected $_code                    = self::METHOD_CODE;
     protected $_canOrder                = false;
