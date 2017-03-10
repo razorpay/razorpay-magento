@@ -86,6 +86,13 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
 
         $requestFields = Mage::app()->getRequest()->getPost();
 
+        if (isset($requestFields['razorpay_payment_id']) === false)
+        {
+            $url = Mage::getUrl('checkout/onepage/failure');
+
+            Mage::app()->getResponse()->setRedirect($url)->sendResponse();
+        }
+
         $paymentId = $requestFields['razorpay_payment_id'];
 
         $_preparedAmount = $amount * 100;
@@ -107,14 +114,17 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
             $error = $e->getMessage();
         }
 
-        return [$result, $error];
+        return array($result, $error);
     }
 
     public function validateSignature($response)
     {
-        $requestFields = Mage::app()->getRequest()->getPost();
+        if (isset($response['razorpay_payment_id']) === false)
+        {
+            $url = Mage::getUrl('checkout/onepage/failure');
 
-        $paymentId = $requestFields['razorpay_payment_id'];
+            Mage::app()->getResponse()->setRedirect($url)->sendResponse();
+        }
 
         $razorpay_payment_id = $response['razorpay_payment_id'];
         $razorpay_order_id = Mage::getSingleton('core/session')->getRazorpayOrderID();
@@ -127,6 +137,14 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         $order = Mage::getModel('sales/order');
         $order->loadByIncrementId($session->getLastRealOrderId());
 
+        if (isset($response['razorpay_signature']) === false)
+        {
+            $success = false;
+            $order->setState(Mage_Sales_Model_Order::STATE_CANCELED, true);
+            $order->addStatusHistoryComment('Razorpay Signature is not defined');
+            $order->save();
+        }
+        
         if ($this->hash_equals($signature , $response['razorpay_signature']))
         {
             $success = true;
