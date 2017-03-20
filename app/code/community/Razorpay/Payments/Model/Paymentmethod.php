@@ -73,43 +73,6 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         return $url;
     }
 
-    /**
-     * Captures specified amount
-     *
-     * @param Varien_Object $payment
-     * @param decimal $amount
-     * @return Razorpay_Payments_Model_Paymentmethod
-     */
-    public function captureOrder(Varien_Object $order, $amount)
-    {
-        $helper = Mage::helper('razorpay_payments');
-
-        $requestFields = Mage::app()->getRequest()->getPost();
-
-        $paymentId = $requestFields['razorpay_payment_id'];
-
-        $_preparedAmount = $amount * 100;
-
-        $result = false;
-        $error = null;
-
-        try {
-            $result = $helper->capturePayment($paymentId, $_preparedAmount);
-
-            $this->_debug($orderId.' - '.$amount);
-            $this->_debug($result);
-
-            $result = true;
-        }
-        catch (Exception $e)
-        {
-            $result = false;
-            $error = $e->getMessage();
-        }
-
-        return [$result, $error];
-    }
-
     public function validateSignature($response)
     {
         $requestFields = Mage::app()->getRequest()->getPost();
