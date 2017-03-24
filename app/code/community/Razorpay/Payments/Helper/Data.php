@@ -32,6 +32,50 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
         return Mage::getStoreConfigFlag(self::CONFIG_PATH_RAZORPAY_ENABLED);
     }
 
+    protected function verifyOrderAmount($razorpayOrderId, $order)
+    {
+        $url = $this->getRelativeUrl('order') . '/' . $razorpayOrderId;
+
+        $razorpayOrder = $this->sendRequest($url, 'GET');
+
+        $orderData = $this->getRazorpayOrderData($order);
+
+        $orderData['id'] = $razorpayOrderId;
+
+        $razorpayOrderKeys = array_keys($orderData);
+
+        foreach ($razorpayOrderKeys as $key)
+        {
+            if ($razorpayOrder[$key] !== $orderData[$key])
+            {
+                return false;
+            }
+        }
+
+        Mage::log('Razorpay Order Amount Verified');
+
+        return true;
+    }
+
+    protected function getRazorpayOrderData($order)
+    {
+        $amount  = (int) ($order->getBaseGrandTotal() * 100);
+
+        $orderId = $order->getRealOrderId();
+
+        $currency = Razorpay_Payments_Model_Paymentmethod::CURRENCY;
+
+        $data = array(
+            'receipt'         => $orderId,
+            'amount'          => $amount,
+            'currency'        => $currency,
+        );
+
+        Mage::log(['razorpayOrderData' => $data]);
+
+        return $data;
+    }
+
     public function createOrder($order)
     {
         $amount             = (int) ($order->getBaseGrandTotal() * 100);
@@ -43,22 +87,32 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
         $currency = Razorpay_Payments_Model_Paymentmethod::CURRENCY;
 
-        $url = $this->getRelativeUrl('order');
+        $razorpayOrderId = Mage::getSingleton('core/session')->getRazorpayOrderID();
 
-        $data = array(
-            'receipt'         => $orderId,
-            'amount'          => $amount,
-            'currency'        => $currency,
-            'payment_capture' => 1
-        );
+        if ($razorpayOrderId === null)
+        {
+            Mage::log(['razorpayOrderId' => 'NULL']);
+        }
 
-        $response = $this->sendRequest($url, 'POST', $data);
+        if (($razorpayOrderId === null) or 
+            (($razorpayOrderId) and ($this->verifyOrderAmount($razorpayOrderId, $order) === false)))
+        {
+            $data = $this->getRazorpayOrderData($order);
 
-        Mage::getSingleton('core/session')->setRazorpayOrderID($response['id']);
+            $data['payment_capture'] = 1;
+
+            $url = $this->getRelativeUrl('order');
+
+            $response = $this->sendRequest($url, 'POST', $data);
+
+            $razorpayOrderId = $response['id'];
+
+            Mage::getSingleton('core/session')->setRazorpayOrderID($razorpayOrderId);
+        }
 
         $responseArray = array(
             // order id has to be stored and fetched later from the db or session
-            'razorpay_order_id'  => $response['id']
+            'razorpay_order_id'  => $razorpayOrderId
         );
 
         $bA = $order->getBillingAddress();
