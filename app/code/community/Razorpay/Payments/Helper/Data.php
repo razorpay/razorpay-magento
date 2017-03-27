@@ -38,7 +38,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
         $razorpayOrder = $this->sendRequest($url, 'GET');
 
-        $orderData = $this->getRazorpayOrderData($order);
+        $orderData = $this->getExpectedRazorpayOrderData($order);
 
         $orderData['id'] = $razorpayOrderId;
 
@@ -57,7 +57,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
         return true;
     }
 
-    protected function getRazorpayOrderData($order)
+    protected function getExpectedRazorpayOrderData($order)
     {
         $amount  = (int) ($order->getBaseGrandTotal() * 100);
 
@@ -66,10 +66,21 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
         $currency = Razorpay_Payments_Model_Paymentmethod::CURRENCY;
 
         $data = array(
-            'receipt'         => $orderId,
-            'amount'          => $amount,
-            'currency'        => $currency,
+            'receipt'  => $orderId,
+            'amount'   => $amount,
+            'currency' => $currency,
         );
+
+        Mage::log(['expectedRazorpayOrderData' => $data]);
+
+        return $data;
+    }
+
+    protected function getRazorpayOrderData($order)
+    {
+        $data = $this->getExpectedRazorpayOrderData($order);
+
+        $data['payment_capture'] = 1;
 
         Mage::log(['razorpayOrderData' => $data]);
 
@@ -98,8 +109,6 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
             (($razorpayOrderId) and ($this->verifyOrderAmount($razorpayOrderId, $order) === false)))
         {
             $data = $this->getRazorpayOrderData($order);
-
-            $data['payment_capture'] = 1;
 
             $url = $this->getRelativeUrl('order');
 
