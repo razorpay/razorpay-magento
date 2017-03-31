@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
     <name>Razorpay</name>
-    <version>1.1.18</version>
+    <version>1.1.19</version>
     <stability>devel</stability>
     <license>MIT</license>
     <channel>community</channel>
@@ -26,8 +26,8 @@
             <email>nemo@razorpay.com</email>
         </author>
     </authors>
-    <date>2017-03-27</date>
-    <time>10:38:28</time>
+    <date>2017-03-31</date>
+    <time>13:29:39</time>
     <contents>
         <target name="magecommunity">
             <dir name="Razorpay">
@@ -55,7 +55,7 @@
         <target name="mage">
             <dir name="js">
                 <dir name="razorpay">
-                    <file hash="293bee3509cda467c7d50b52d988addf" name="razorpay-utils.js"/>
+                    <file hash="72f19a2d8ec4fa2bc48c0fa5fbb100ac" name="razorpay-utils.js"/>
                 </dir>
             </dir>
         </target>
