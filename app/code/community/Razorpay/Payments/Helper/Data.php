@@ -91,7 +91,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
     {
         $amount             = (int) ($order->getBaseGrandTotal() * 100);
         $base_currency      = $order->getBaseCurrencyCode();
-        $quote_currency     = $order->getCurrencyCode();
+        $quote_currency     = $order['order_currency_code'];
         $quote_amount       = round($order->getGrandTotal(), 2);
 
         $orderId = $order->getRealOrderId();
