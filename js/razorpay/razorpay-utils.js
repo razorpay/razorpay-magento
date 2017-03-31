@@ -1,14 +1,11 @@
-var RazorpayUtils = Class.create();
-RazorpayUtils.prototype = {
-    initialize: function(options) {
-        this.options = options;
-    },
+function RazorpayUtils(options) {
+    this.options = options;
 
-    getMerchantName: function() {
+    this.getMerchantName = function() {
         return this.options.merchant_name;
     },
 
-    placeOrder: function(onSuccess, onDismiss, formId, paymentIdField)
+    this.placeOrder = function(onSuccess, onDismiss, formId, paymentIdField)
     {
         if (!formId) {
             formId = "razorpay";
