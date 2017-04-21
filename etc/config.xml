@@ -7,8 +7,8 @@
                 <title>Razorpay</title>
                 <merchant_name_override>Magento</merchant_name_override>
                 <payment_action>authorize_capture</payment_action>
+                <final_order_status>processing</final_order_status>
                 <active>0</active>
-                <order_status>processing</order_status>
                 <key_id>Key ID</key_id>
                 <key_secret>Key Secret</key_secret>
             </razorpay>

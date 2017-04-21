@@ -12,6 +12,7 @@ class Config
     const KEY_PUBLIC_KEY = 'key_id';
     const KEY_PRIVATE_KEY = 'key_secret';
     const KEY_MERCHANT_NAME_OVERRIDE = 'merchant_name_override';
+    const KEY_FINAL_ORDER_STATUS = 'final_order_status';
 
     /**
      * @var string

@@ -215,8 +215,10 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             $request = $this->getPostData();
 
             $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
-            
+
             $success = $this->validateSignature($request);
+
+            $orderStatus = $this->config->getConfigData(Config::KEY_FINAL_ORDER_STATUS);
 
             // if success of validate signature is true
             if ($success === true) {
@@ -226,6 +228,9 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                     ->setTransactionId($payment_id)
                     ->setIsTransactionClosed(true)
                     ->setShouldCloseParentTransaction(true);
+
+                $order->setState($orderStatus)->setStatus($orderStatus);
+                $order->save();
             } else {
                 throw new LocalizedException($result['error']['description']);
             }
@@ -250,14 +255,14 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $keySecret = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
 
         $signature = hash_hmac('sha256', $stringToHash, $keySecret);
-        
+
         $success = false;
 
         if ($this->hash_equals($signature , $rzpSignature))
         {
             $success = true;
         }
-        
+
         return $success;
     }
 

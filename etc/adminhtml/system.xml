@@ -29,10 +29,10 @@
                     <comment>**Required (Enter test key secret for testing)**</comment>
                     <config_path>payment/razorpay/key_secret</config_path>
                 </field>
-                <field id="order_status" translate="label" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
-                    <label>New Order Status</label>
+                <field id="final_order_status" translate="label" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Final Order Status</label>
                     <source_model>Magento\Sales\Model\Config\Source\Order\Status\Processing</source_model>
-                    <config_path>payment/razorpay/order_status</config_path>
+                    <config_path>payment/razorpay/final_order_status</config_path>
                 </field>
                 <field id="allowspecific" translate="label" type="allowspecific" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Payment from Applicable Countries</label>
