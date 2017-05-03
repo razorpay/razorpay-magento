@@ -71,7 +71,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
             'currency' => $currency,
         );
 
-        Mage::log(['expectedRazorpayOrderData' => $data]);
+        Mage::log(array('expectedRazorpayOrderData' => $data));
 
         return $data;
     }
@@ -82,7 +82,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
         $data['payment_capture'] = 1;
 
-        Mage::log(['razorpayOrderData' => $data]);
+        Mage::log(array('razorpayOrderData' => $data));
 
         return $data;
     }
@@ -102,10 +102,10 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
         if ($razorpayOrderId === null)
         {
-            Mage::log([
+            Mage::log(array(
                 'order_id'        => $orderId,
                 'razorpayOrderId' => 'NULL'
-            ]);
+            ));
         }
 
         if (($razorpayOrderId === null) or 
