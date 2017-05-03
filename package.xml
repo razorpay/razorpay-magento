@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
     <name>Razorpay</name>
-    <version>1.1.19</version>
-    <stability>devel</stability>
+    <version>1.1.20</version>
+    <stability>stable</stability>
     <license>MIT</license>
     <channel>community</channel>
     <extends/>
@@ -26,8 +26,8 @@
             <email>nemo@razorpay.com</email>
         </author>
     </authors>
-    <date>2017-03-31</date>
-    <time>13:29:39</time>
+    <date>2017-05-03</date>
+    <time>14:36:24</time>
     <contents>
         <target name="magecommunity">
             <dir name="Razorpay">
@@ -36,17 +36,17 @@
                         <file hash="15049195e1e3d519298a3bd5095990fe" name="Checkout.php"/>
                     </dir>
                     <dir name="Helper">
-                        <file hash="e64c79f669eb28ed3bf60dfd2755dd29" name="Data.php"/>
+                        <file hash="3fd07eea56ef4ee5e33c0617b6bf45c0" name="Data.php"/>
                         <file hash="308c55e7a7d56a27fcfb3983169c3491" name="ca-bundle.crt"/>
                     </dir>
                     <dir name="Model">
-                        <file hash="fb35b7010e084e6d6c596ebd3b58c829" name="Paymentmethod.php"/>
+                        <file hash="486fb13099bc314b340b8199a97bd62f" name="Paymentmethod.php"/>
                     </dir>
                     <dir name="controllers">
                         <file hash="548f8a2241fd5989486883608a5495af" name="CheckoutController.php"/>
                     </dir>
                     <dir name="etc">
-                        <file hash="0fe27cfe1187e64138e12e6c74e18826" name="config.xml"/>
+                        <file hash="e40f8d34e18eb021d1f7eb981a4bd72f" name="config.xml"/>
                         <file hash="3045e0b5d2d2d0b52e47c23a64f99445" name="system.xml"/>
                     </dir>
                 </dir>
@@ -64,7 +64,7 @@
                 <dir name="base">
                     <dir name="default">
                         <dir name="layout">
-                            <file hash="03d5a88672c6e1b2b83795a081bfdad2" name="razorpay.xml"/>
+                            <file hash="e13858192949e141b26571361bee0c0a" name="razorpay.xml"/>
                         </dir>
                         <dir name="template">
                             <dir name="razorpay">
