@@ -141,19 +141,29 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
         $bA = $order->getBillingAddress();
 
-        $responseArray['customer_name']     = $bA->getFirstname() . " " . $bA->getLastname();
-        $responseArray['customer_phone']    = $bA->getTelephone() ?: '';
-        $responseArray['order_id']          = $orderId;
-        $responseArray['base_amount']       = $amount;
-        $responseArray['base_currency']     = $base_currency;
-        $responseArray['customer_email']    = $order->getData('customer_email') ?: '';
-        $responseArray['quote_currency']    = $quote_currency;
-        $responseArray['quote_amount']      = $quote_amount;
+        $responseArray = array(
+            // order id has to be stored and fetched later from the db or session
+            'customer_name'     => $bA->getFirstname() . " " . $bA->getLastname(),
+            'customer_phone'    => $bA->getTelephone() ?: '',
+            'order_id'          => $orderId,
+            'base_amount'       => $amount,
+            'base_currency'     => $base_currency,
+            'customer_email'    => $order->getData('customer_email') ?: '',
+            'quote_currency'    => $quote_currency,
+            'quote_amount'      => $quote_amount,
+            'razorpay_order_id' => $razorpayOrderId, 
+            'callback_url'      => $this->getCallbackUrl()
+        );
 
         $order->addStatusToHistory($order->getStatus(), 'Razorpay Order ID: ' . $responseArray['razorpay_order_id']);
         $order->save();
 
         return $responseArray;
+    }
+
+    public function getCallbackUrl()
+    {
+        return Mage::getUrl('razorpay/checkout/processing');
     }
 
     /**
