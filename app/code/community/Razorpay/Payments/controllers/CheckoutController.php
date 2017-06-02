@@ -25,6 +25,14 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
         $order = Mage::getModel('sales/order');
         $order->loadByIncrementId($session->getLastRealOrderId());
 
+        $state = $order->getState();
+
+        if (($state === 'processing') or
+            ($state === 'canceled'))
+        {
+            Mage::throwException("This order cannot be paid for. It is in $state state.");
+        }
+
         $order->setState('new', true);
 
         $this->loadLayout();
