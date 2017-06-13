@@ -91,6 +91,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         $order->loadByIncrementId($session->getLastRealOrderId());
 
         $amount = $order->getBaseGrandTotal();
+        $currencyAmount = $order->getGrantTotal();
 
         if ($this->hash_equals($signature , $response['razorpay_signature']))
         {
@@ -98,7 +99,8 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
             $order->sendNewOrderEmail();
             $order->setState(Mage_Sales_Model_Order::STATE_PROCESSING, true);
             $order->addStatusHistoryComment('Payment Successful. Razorpay Payment Id:'.$paymentId);
-            $order->setTotalPaid($amount);
+            $order->setBaseTotalPaid($amount);
+            $order->setTotalPaid($currencyAmount);
             $order->save();
         }
         else
