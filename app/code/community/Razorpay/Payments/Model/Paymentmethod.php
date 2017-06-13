@@ -90,12 +90,15 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         $order = Mage::getModel('sales/order');
         $order->loadByIncrementId($session->getLastRealOrderId());
 
+        $amount = $order->getBaseGrandTotal();
+
         if ($this->hash_equals($signature , $response['razorpay_signature']))
         {
             $success = true;
             $order->sendNewOrderEmail();
             $order->setState(Mage_Sales_Model_Order::STATE_PROCESSING, true);
             $order->addStatusHistoryComment('Payment Successful. Razorpay Payment Id:'.$paymentId);
+            $order->setTotalPaid($amount);
             $order->save();
         }
         else
