@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
     <name>Razorpay</name>
-    <version>1.1.21</version>
+    <version>1.1.22</version>
     <stability>devel</stability>
     <license>MIT</license>
     <channel>community</channel>
@@ -26,8 +26,8 @@
             <email>nemo@razorpay.com</email>
         </author>
     </authors>
-    <date>2017-06-02</date>
-    <time>12:08:51</time>
+    <date>2017-06-15</date>
+    <time>06:04:16</time>
     <contents>
         <target name="magecommunity">
             <dir name="Razorpay">
@@ -40,7 +40,7 @@
                         <file hash="308c55e7a7d56a27fcfb3983169c3491" name="ca-bundle.crt"/>
                     </dir>
                     <dir name="Model">
-                        <file hash="047e980e649899ad81a6b1d20897071a" name="Paymentmethod.php"/>
+                        <file hash="8dcafcf668ab327ea4169a96abececfa" name="Paymentmethod.php"/>
                     </dir>
                     <dir name="controllers">
                         <file hash="0b2d6c07ed86081eb8febcf0f42783f0" name="CheckoutController.php"/>
