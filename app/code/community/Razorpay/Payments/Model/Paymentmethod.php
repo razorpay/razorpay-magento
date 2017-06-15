@@ -46,16 +46,6 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
     }
 
     /**
-     * Can be edit order (renew order)
-     *
-     * @return bool
-     */
-    public function canEdit()
-    {
-        return false;
-    }
-
-    /**
      * Authorizes specified amount
      *
      * @param Varien_Object $payment
@@ -83,7 +73,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         $razorpay_order_id = Mage::getSingleton('core/session')->getRazorpayOrderID();
 
         $key_secret = $this->getConfigData('key_secret');
-        
+
         $signature = hash_hmac('sha256', $razorpay_order_id . "|" . $razorpay_payment_id, $key_secret);
 
         $session = Mage::getSingleton('checkout/session');
@@ -133,18 +123,18 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
             return hash_equals($str1, $str2);
         }
 
-        if (strlen($str1) !== strlen($str2)) 
+        if (strlen($str1) !== strlen($str2))
         {
             return false;
         }
 
         $result = 0;
-        
-        for ($i = 0; $i < strlen($str1); $i++) 
+
+        for ($i = 0; $i < strlen($str1); $i++)
         {
             $result |= ord($str1[$i]) ^ ord($str2[$i]);
         }
-        
+
         return ($result == 0);
     }
 
