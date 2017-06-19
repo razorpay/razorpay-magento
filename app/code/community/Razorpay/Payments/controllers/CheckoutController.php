@@ -78,7 +78,7 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
     */
     protected function _getQuote()
     {
-        if (empty($this->_quote) === true)
+        if (isset($this->_quote) === false)
         {
             $this->_quote = Mage::getSingleton('checkout/session')->getQuote();
         }
