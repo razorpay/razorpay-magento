@@ -61,6 +61,8 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
 
         if ($success === true)
         {
+            $this->_getQuote()->delete();
+
             $this->_redirect('checkout/onepage/success');
         }
         else
@@ -76,7 +78,7 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
     */
     protected function _getQuote()
     {
-        if (!$this->_quote)
+        if (isset($this->_quote) === false)
         {
             $this->_quote = Mage::getSingleton('checkout/session')->getQuote();
         }
