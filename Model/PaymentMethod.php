@@ -207,7 +207,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      */
     public function capture(InfoInterface $payment, $amount)
     {
-        try {
+        try 
+        {
             /** @var \Magento\Sales\Model\Order\Payment $payment */
             $order = $payment->getOrder();
             $orderId = $order->getIncrementId();
@@ -218,31 +219,26 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
             $success = true;
             
-            try
-            {
-                $this->validateSignature($request);
-            }
-            catch (Exception $e)
-            {
-                $success = false;
-                $error = 'Wordpress Error: ' . $e->getMessage();
-            }
+            $this->validateSignature($request);
 
             // if success of validate signature is true
-            if ($success === true) {
+            if ($success === true) 
+            {
                 $payment->setStatus(self::STATUS_APPROVED)
                     ->setAmountPaid($amount)
                     ->setLastTransId($payment_id)
                     ->setTransactionId($payment_id)
                     ->setIsTransactionClosed(true)
                     ->setShouldCloseParentTransaction(true);
-            } else {
-                throw new LocalizedException($error);
-            }
-        } catch (\Exception $e) {
+            } 
+        } 
+        catch (\Exception $e) 
+        {
             $this->_logger->critical($e);
             throw new LocalizedException(__('There was an error capturing the transaction: %1.', $e->getMessage()));
-        } catch(\Razorpay\Api\Errors\Error $e) {
+        } 
+        catch(\Razorpay\Api\Errors\Error $e) 
+        {
             $this->_logger->critical($e);
             throw new LocalizedException(__('There was an error capturing the transaction: %1.', $e->getMessage()));
         }
@@ -258,33 +254,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             'razorpay_signature'  => $request['paymentMethod']['additional_data']['rzp_signature'],
         );
         
-        $api->utility->verifyPaymentSignature($attributes);
-    }
-
-    /*
-     * Taken from https://stackoverflow.com/questions/10576827/secure-string-compare-function
-     * under the MIT license
-     */
-    protected function hash_equals($generatedString, $actualString)
-    {
-        if (function_exists('hash_equals'))
-        {
-            return hash_equals($generatedString, $actualString);
-        }
-
-        if (strlen($generatedString) !== strlen($actualString))
-        {
-            return false;
-        }
-
-        $result = 0;
-
-        for ($i=0; $i<strlen($generatedString); $i++)
-        {
-            $result |= ord($generatedString[$i]) ^ ord($actualString[$i]);
-        }
-
-        return ($result === 0);
+        $this->rzp->utility->verifyPaymentSignature($attributes);
     }
 
     protected function getPostData()
