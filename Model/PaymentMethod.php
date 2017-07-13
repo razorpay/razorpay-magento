@@ -215,8 +215,18 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             $request = $this->getPostData();
 
             $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
+
+            $success = true;
             
-            $success = $this->validateSignature($request);
+            try
+            {
+                $this->validateSignature($request);
+            }
+            catch (Exception $e)
+            {
+                $success = false;
+                $error = 'Wordpress Error: ' . $e->getMessage();
+            }
 
             // if success of validate signature is true
             if ($success === true) {
@@ -227,7 +237,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                     ->setIsTransactionClosed(true)
                     ->setShouldCloseParentTransaction(true);
             } else {
-                throw new LocalizedException($result['error']['description']);
+                throw new LocalizedException($error);
             }
         } catch (\Exception $e) {
             $this->_logger->critical($e);
@@ -242,23 +252,13 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
     protected function validateSignature($request)
     {
-        $paymentId = $request['paymentMethod']['additional_data']['rzp_payment_id'];
-        $rzpSignature = $request['paymentMethod']['additional_data']['rzp_signature'];
-
-        $stringToHash = $this->order->getOrderID() . "|" . $paymentId;
-
-        $keySecret = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
-
-        $signature = hash_hmac('sha256', $stringToHash, $keySecret);
+        $attributes = array(
+            'razorpay_payment_id' => $request['paymentMethod']['additional_data']['rzp_payment_id'],
+            'razorpay_order_id'   => $request['paymentMethod']['additional_data']['rzp_order_id'],
+            'razorpay_signature'  => $request['paymentMethod']['additional_data']['rzp_signature'],
+        );
         
-        $success = false;
-
-        if ($this->hash_equals($signature , $rzpSignature))
-        {
-            $success = true;
-        }
-        
-        return $success;
+        $api->utility->verifyPaymentSignature($attributes);
     }
 
     /*
