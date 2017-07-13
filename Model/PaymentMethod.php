@@ -216,21 +216,15 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             $request = $this->getPostData();
 
             $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
-
-            $success = true;
             
             $this->validateSignature($request);
 
-            // if success of validate signature is true
-            if ($success === true) 
-            {
-                $payment->setStatus(self::STATUS_APPROVED)
-                    ->setAmountPaid($amount)
-                    ->setLastTransId($payment_id)
-                    ->setTransactionId($payment_id)
-                    ->setIsTransactionClosed(true)
-                    ->setShouldCloseParentTransaction(true);
-            } 
+            $payment->setStatus(self::STATUS_APPROVED)
+                ->setAmountPaid($amount)
+                ->setLastTransId($payment_id)
+                ->setTransactionId($payment_id)
+                ->setIsTransactionClosed(true)
+                ->setShouldCloseParentTransaction(true);
         } 
         catch (\Exception $e) 
         {
