@@ -229,12 +229,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         catch (\Exception $e) 
         {
             $this->_logger->critical($e);
-            throw new LocalizedException(__('There was an error capturing the transaction: %1.', $e->getMessage()));
-        } 
-        catch(\Razorpay\Api\Errors\Error $e) 
-        {
-            $this->_logger->critical($e);
-            throw new LocalizedException(__('There was an error capturing the transaction: %1.', $e->getMessage()));
+            throw new LocalizedException(__('Razorpay Error: %1.', $e->getMessage()));
         }
 
         return $this;
