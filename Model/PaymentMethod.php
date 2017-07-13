@@ -226,9 +226,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                     ->setTransactionId($payment_id)
                     ->setIsTransactionClosed(true)
                     ->setShouldCloseParentTransaction(true);
-            } else {
-                throw new LocalizedException($result['error']['description']);
-            }
+            } 
         } catch (\Exception $e) {
             $this->_logger->critical($e);
             throw new LocalizedException(__('There was an error capturing the transaction: %1.', $e->getMessage()));
