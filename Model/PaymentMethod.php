@@ -239,7 +239,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     {
         $attributes = array(
             'razorpay_payment_id' => $request['paymentMethod']['additional_data']['rzp_payment_id'],
-            'razorpay_order_id'   => $request['paymentMethod']['additional_data']['rzp_order_id'],
+            'razorpay_order_id'   => $this->order->getOrderId(),
             'razorpay_signature'  => $request['paymentMethod']['additional_data']['rzp_signature'],
         );
         
