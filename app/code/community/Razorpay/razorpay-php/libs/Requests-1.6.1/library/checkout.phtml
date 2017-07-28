@@ -1,0 +1,33 @@
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script type="text/javascript" src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script type="text/javascript" src="../../../../../../../js/razorpay/razorpay-utils.js"></script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        var razorpayOptions = <?php echo json_encode($this->fields());?>;
+        var razorpayUtils = new RazorpayUtils(razorpayOptions);
+
+        var onSuccess = function(data) {
+            $('razorpay_payment_id').value = data.razorpay_payment_id;
+            $('razorpay_order_id').value = data.razorpay_order_id;
+            $('razorpay_signature').value = data.razorpay_signature;
+
+            $('razorpay').submit();
+        };
+
+        var onDismiss = function() {
+            $('razorpay').submit();
+        };
+
+        razorpayUtils.placeOrder(onSuccess, onDismiss);
+    });
+</script>
+
+<form name="razorpay" id="razorpay" method="post" action="<?php echo $this->getSuccessUrl(); ?>">
+    <input id="razorpay_payment_id" name="razorpay_payment_id" type="hidden" value=""/>
+    <input id="razorpay_order_id"   name="razorpay_order_id"   type="hidden" value=""/>
+    <input id="razorpay_signature"  name="razorpay_signature"  type="hidden" value=""/>
+    <input id="magento_order_id"    name="magento_order_id"    type="hidden" value="<?php echo $this->getMagentoOrderId(); ?>"/>
+</form>
+
+<h1>Please wait...</h1>
+<p>Do not refresh the page or press back button</p>
