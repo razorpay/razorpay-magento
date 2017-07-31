@@ -16,12 +16,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
     const KEY_ID                        = 'key_id';
     const KEY_SECRET                    = 'key_secret';
 
-    const REQUEST_TIMEOUT               = 60;
-
-    protected $successHttpCodes         = array(200, 201, 202, 203, 204, 205, 206, 207, 208, 226);
-
     protected $api;
-    protected $controller;
 
     public function __construct()
     {
@@ -31,8 +26,6 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
         $keySecret = $paymentModel->getConfigData(self::KEY_SECRET);
 
         $this->api = new Api($keyId, $keySecret);
-
-        $this->userAgent = Mage::getModel(self::PAYMENT_MODEL)->_getChannel();
     }
 
     public function isRazorpayEnabled()
