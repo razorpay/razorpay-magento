@@ -134,7 +134,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
             Mage::getSingleton('core/session')->addError($message);
 
-            $responseArray = array('error' => true);
+            return array('error' => true);
         }
 
         //
