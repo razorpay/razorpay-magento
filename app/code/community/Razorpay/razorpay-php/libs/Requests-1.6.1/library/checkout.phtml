@@ -1,28 +1,25 @@
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
 <script type="text/javascript" src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script type="text/javascript" src="../../../../../../../js/razorpay/razorpay-utils.js"></script>
 <script type="text/javascript">
-    var razorpayOptions = <?php echo json_encode($this->fields());?>;
-    var razorpayUtils = new RazorpayUtils(razorpayOptions);
+    $(document).ready(function () {
+        var razorpayOptions = <?php echo json_encode($this->fields());?>;
+        var razorpayUtils = new RazorpayUtils(razorpayOptions);
 
-    var onSuccess = function(data) {
-        $('razorpay_payment_id').value = data.razorpay_payment_id;
-        $('razorpay_order_id').value = data.razorpay_order_id;
-        $('razorpay_signature').value = data.razorpay_signature;
+        var onSuccess = function(data) {
+            $('razorpay_payment_id').value = data.razorpay_payment_id;
+            $('razorpay_order_id').value = data.razorpay_order_id;
+            $('razorpay_signature').value = data.razorpay_signature;
 
-        $('razorpay').submit();
-    };
+            $('razorpay').submit();
+        };
 
-    var onDismiss = function() {
-        $('razorpay').submit();
-    };
+        var onDismiss = function() {
+            $('razorpay').submit();
+        };
 
-    if (razorpayOptions.hasOwnProperty('error') === false && razorpayOptions.error !== false)
-    {
         razorpayUtils.placeOrder(onSuccess, onDismiss);
-    }
-    else
-    {
-        window.location = "<?php echo $this->getFailureUrl(); ?>";
-    }
+    });
 </script>
 
 <form name="razorpay" id="razorpay" method="post" action="<?php echo $this->getSuccessUrl(); ?>">
