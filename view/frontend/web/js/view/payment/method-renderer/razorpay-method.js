@@ -89,11 +89,14 @@ define(
                 this.user = {
                     name: billing_address.firstname + ' ' + billing_address.lastname,
                     contact: billing_address.telephone,
-                    email: billing_address.email
                 };
 
                 if (!customer.isLoggedIn()) {
                     this.user.email = quote.guestEmail;
+                }
+                else 
+                {
+                    this.user.email = customer.customerData.email;
                 }
 
                 this.isPaymentProcessing = $.Deferred();
