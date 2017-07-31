@@ -1,11 +1,18 @@
 <?php
 
+require_once __DIR__.'/../../razorpay-php/Razorpay.php';
+
+use Razorpay\Api\Api;
+use Razorpay\Api\Errors;
+
 class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Abstract
 {
     const CHANNEL_NAME                  = 'Razorpay/Magento%s_%s/%s';
     const METHOD_CODE                   = 'razorpay';
     const CURRENCY                      = 'INR';
     const VERSION                       = '1.1.21';
+    const KEY_ID                        = 'key_id';
+    const KEY_SECRET                    = 'key_secret';
 
     protected $_code                    = self::METHOD_CODE;
     protected $_canOrder                = false;
@@ -21,12 +28,19 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
     protected $_canRefundInvoicePartial = false;
     protected $_canUseForMultishipping  = false;
 
+    protected $api;
+
     /**
      * Constructor
      */
     public function __construct()
     {
         parent::__construct();
+
+        $keyId     = $this->getConfigData(self::KEY_ID);
+        $keySecret = $this->getConfigData(self::KEY_SECRET);
+
+        $this->api = new Api($keyId, $keySecret);
     }
 
     /**
@@ -67,22 +81,35 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
     {
         $requestFields = Mage::app()->getRequest()->getPost();
 
-        $paymentId = $requestFields['razorpay_payment_id'];
-
-        $razorpay_payment_id = $response['razorpay_payment_id'];
-        $razorpay_order_id = Mage::getSingleton('core/session')->getRazorpayOrderID();
-
-        $key_secret = $this->getConfigData('key_secret');
-
-        $signature = hash_hmac('sha256', $razorpay_order_id . "|" . $razorpay_payment_id, $key_secret);
+        $paymentId = $requestFields['razorpay_payment_id'];        
 
         $session = Mage::getSingleton('checkout/session');
         $order = Mage::getModel('sales/order');
         $order->loadByIncrementId($session->getLastRealOrderId());
 
-        if ($this->hash_equals($signature , $response['razorpay_signature']))
+        $attributes = array(
+            'razorpay_payment_id' => $requestFields['razorpay_payment_id'],
+            'razorpay_order_id'   => Mage::getSingleton('core/session')->getRazorpayOrderID(),
+            'razorpay_signature'  => $requestFields['razorpay_signature']
+        );
+
+        $success = true;
+
+        $errorMessage = 'Payment failed. Most probably user closed the popup.';
+
+        try
         {
-            $success = true;
+            $this->api->utility->verifyPaymentSignature($attributes);
+        }
+        catch (Errors\SignatureVerificationError $e)
+        {
+            $success = false;
+
+            $errorMessage = 'Payment to Razorpay Failed. ' .  $e->getMessage();
+        }
+
+        if ($success === true)
+        {
             $order->sendNewOrderEmail();
             $order->setState(Mage_Sales_Model_Order::STATE_PROCESSING, true);
             $order->addStatusHistoryComment('Payment Successful. Razorpay Payment Id:'.$paymentId);
@@ -90,9 +117,8 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         }
         else
         {
-            $success = false;
             $order->setState(Mage_Sales_Model_Order::STATE_CANCELED, true);
-            $order->addStatusHistoryComment('Payment failed. Most probably user closed the popup.');
+            $order->addStatusHistoryComment($errorMessage);
             $order->save();
             $this->updateInventory($order);
         }
@@ -110,32 +136,6 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         {
             $item->cancel();
         }
-    }
-
-    /*
-     * Taken from https://stackoverflow.com/questions/10576827/secure-string-compare-function
-     * under the MIT license
-     */
-    protected function hash_equals($str1, $str2)
-    {
-        if (function_exists('hash_equals'))
-        {
-            return hash_equals($str1, $str2);
-        }
-
-        if (strlen($str1) !== strlen($str2))
-        {
-            return false;
-        }
-
-        $result = 0;
-
-        for ($i = 0; $i < strlen($str1); $i++)
-        {
-            $result |= ord($str1[$i]) ^ ord($str2[$i]);
-        }
-
-        return ($result == 0);
     }
 
     public function getFields($order)

@@ -15,7 +15,14 @@
         $('razorpay').submit();
     };
 
-    razorpayUtils.placeOrder(onSuccess, onDismiss);
+    if (razorpayOptions.hasOwnProperty('error') === false && razorpayOptions.error !== false)
+    {
+        razorpayUtils.placeOrder(onSuccess, onDismiss);
+    }
+    else
+    {
+        window.location = "<?php echo $this->getFailureUrl(); ?>";
+    }
 </script>
 
 <form name="razorpay" id="razorpay" method="post" action="<?php echo $this->getSuccessUrl(); ?>">
