@@ -117,7 +117,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
         try
         {
             if (($razorpayOrderId === null) or 
-            (($razorpayOrderId) and ($this->verifyOrderAmount($razorpayOrderId, $order) === false)))
+                (($razorpayOrderId) and ($this->verifyOrderAmount($razorpayOrderId, $order) === false)))
             {
                 $data = $this->getRazorpayOrderData($order);
 
