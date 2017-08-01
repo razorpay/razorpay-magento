@@ -26,6 +26,10 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
         $keySecret = $paymentModel->getConfigData(self::KEY_SECRET);
 
         $this->api = new Api($keyId, $keySecret);
+
+        $version = Mage::getVersion() . '-' . $paymentModel::VERSION;
+
+        $this->api->setAppDetails('Magento', $version);
     }
 
     public function isRazorpayEnabled()
