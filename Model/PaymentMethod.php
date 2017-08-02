@@ -25,6 +25,9 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     const CONFIG_MASKED_FIELDS          = 'masked_fields';
     const CURRENCY                      = 'INR';
 
+    const CAPTURE_ON_INVOICE            = 'invoice';
+    const CAPTURE_ON_SHIPMENT           = 'shipment';
+
     /**
      * @var string
      */
