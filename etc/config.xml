@@ -9,6 +9,7 @@
                 <payment_action>authorize_capture</payment_action>
                 <active>0</active>
                 <order_status>processing</order_status>
+                <capture_action>invoice</capture_action>
                 <key_id>Key ID</key_id>
                 <key_secret>Key Secret</key_secret>
             </razorpay>
