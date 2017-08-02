@@ -132,7 +132,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
         \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
         array $data = []
-    ) {
+    ) 
+    {
         parent::__construct(
             $context,
             $registry,
@@ -171,13 +172,17 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     public function validate()
     {
         $info = $this->getInfoInstance();
-        if ($info instanceof \Magento\Sales\Model\Order\Payment) {
+        if ($info instanceof \Magento\Sales\Model\Order\Payment) 
+        {
             $billingCountry = $info->getOrder()->getBillingAddress()->getCountryId();
-        } else {
+        } 
+        else 
+        {
             $billingCountry = $info->getQuote()->getBillingAddress()->getCountryId();
         }
 
-        if (!$this->config->canUseForCountry($billingCountry)) {
+        if (!$this->config->canUseForCountry($billingCountry)) 
+        {
             throw new LocalizedException(__('Selected payment type is not allowed for billing country.'));
         }
 
@@ -275,7 +280,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      */
     public function getConfigData($field, $storeId = null)
     {
-        if ('order_place_redirect_url' === $field) {
+        if ('order_place_redirect_url' === $field) 
+        {
             return $this->getOrderPlaceRedirectUrl();
         }
         return $this->config->getConfigData($field, $storeId);

@@ -49,7 +49,8 @@ class ConfigProvider implements ConfigProviderInterface
         \Razorpay\Magento\Model\Config $config,
         \Magento\Checkout\Model\Session $checkoutSession,
         \Magento\Customer\Model\Session $customerSession
-    ) {
+    ) 
+    {
         $this->assetRepo = $assetRepo;
         $this->request = $request;
         $this->urlBuilder = $urlBuilder;
@@ -66,7 +67,8 @@ class ConfigProvider implements ConfigProviderInterface
      */
     public function getConfig()
     {
-        if (!$this->config->isActive()) {
+        if (!$this->config->isActive()) 
+        {
             return [];
         }
 
