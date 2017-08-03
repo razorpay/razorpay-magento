@@ -207,7 +207,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      */
     public function capture(InfoInterface $payment, $amount)
     {
-        try 
+        try
         {
             /** @var \Magento\Sales\Model\Order\Payment $payment */
             $order = $payment->getOrder();
@@ -216,17 +216,21 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             $request = $this->getPostData();
 
             $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
-            
+
             $this->validateSignature($request);
 
-            $payment->setStatus(self::STATUS_APPROVED)
-                ->setAmountPaid($amount)
-                ->setLastTransId($payment_id)
-                ->setTransactionId($payment_id)
-                ->setIsTransactionClosed(true)
-                ->setShouldCloseParentTransaction(true);
-        } 
-        catch (\Exception $e) 
+            $payment->setTransactionId($payment_id);
+            $payment->setTransactionAdditionalInfo('razorpay_payment_id', $payment_id);
+            $payment->setAdditionalInformation('razorpay_order_status', 'captured');
+            $payment->addTransaction(TransactionInterface::TYPE_PAYMENT);
+            $payment->setIsTransactionClosed(0);
+            $payment->setStatus(self::STATUS_APPROVED);
+            $payment->place();
+
+            $order->setStatus('processing');
+            $order->save();
+        }
+        catch (\Exception $e)
         {
             $this->_logger->critical($e);
             throw new LocalizedException(__('Razorpay Error: %1.', $e->getMessage()));
@@ -242,7 +246,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             'razorpay_order_id'   => $this->order->getOrderId(),
             'razorpay_signature'  => $request['paymentMethod']['additional_data']['rzp_signature'],
         );
-        
+
         $this->rzp->utility->verifyPaymentSignature($attributes);
     }
 
