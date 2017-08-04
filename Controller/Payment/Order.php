@@ -26,7 +26,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
         \Razorpay\Magento\Model\Config $config,
         \Magento\Catalog\Model\Session $catalogSession
-    ) {
+    ) 
+    {
         parent::__construct(
             $context,
             $customerSession,
