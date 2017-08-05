@@ -213,18 +213,23 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             $order = $payment->getOrder();
             $orderId = $order->getIncrementId();
 
+            //
+            // Remote IP is set only for orders that are placed through the frontend
+            //
+            if (empty($order->getRemoteIp()) === true)
+            {
+                $this->handleApprovedPayment($amount, $payment);
+
+                return;
+            }
+
             $request = $this->getPostData();
 
             $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
             
             $this->validateSignature($request);
 
-            $payment->setStatus(self::STATUS_APPROVED)
-                ->setAmountPaid($amount)
-                ->setLastTransId($payment_id)
-                ->setTransactionId($payment_id)
-                ->setIsTransactionClosed(true)
-                ->setShouldCloseParentTransaction(true);
+            $this->handleApprovedPayment($amount, $payment, $payment_id);
         } 
         catch (\Exception $e) 
         {
@@ -233,6 +238,16 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         }
 
         return $this;
+    }
+
+    protected function handleApprovedPayment($amount, InfoInterface $payment, $paymentId = null)
+    {
+        $payment->setStatus(self::STATUS_APPROVED)
+                ->setAmountPaid($amount)
+                ->setLastTransId($paymentId)
+                ->setTransactionId($paymentId)
+                ->setIsTransactionClosed(true)
+                ->setShouldCloseParentTransaction(true);
     }
 
     protected function validateSignature($request)
