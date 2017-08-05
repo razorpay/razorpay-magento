@@ -42,17 +42,17 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     {
         $amount = (int) (round($this->getQuote()->getBaseGrandTotal(), 2) * 100);
 
-        $receipt_id = $this->getQuote()->getId();
+        $receiptId = $this->getQuote()->getId();
 
         $code = 400;
 
         try
         {
             $order = $this->rzp->order->create([
-                'amount' => $amount,
-                'receipt' => $receipt_id,
-                'currency' => $this->_currency,
-                'payment_capture' => 1                 // auto-capture
+                'amount'          => $amount,
+                'receipt'         => $receiptId,
+                'currency'        => $this->_currency,
+                'payment_capture' => 1
             ]);
 
             $responseContent = [
@@ -65,7 +65,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 $responseContent = [
                     'success'        => true,
                     'rzp_order'      => $order->id,
-                    'order_id'       => $receipt_id,
+                    'order_id'       => $receiptId,
                     'amount'         => $order->amount,
                     'quote_currency' => $this->getQuote()->getQuoteCurrencyCode(),
                     'quote_amount'   => round($this->getQuote()->getGrandTotal(), 2)
