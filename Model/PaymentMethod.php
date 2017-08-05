@@ -213,6 +213,9 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             $order = $payment->getOrder();
             $orderId = $order->getIncrementId();
 
+            //
+            // Remote IP is set only for orders that are placed through the frontend
+            //
             if (empty($order->getRemoteIp()) === true)
             {
                 $this->handleApprovedPayment($amount, $payment);
