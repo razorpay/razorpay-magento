@@ -15,6 +15,11 @@
                     <label>Payment Action</label>
                     <source_model>Razorpay\Magento\Model\PaymentAction</source_model>
                     <config_path>payment/razorpay/payment_action</config_path>
+                <field id="enable_webhook" translate="label" type="select" sortOrder="2" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Webhook Enabled</label>
+                    <comment>** {baseUrl}/razorpay/payment/webhook **</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <config_path>payment/razorpay/enable_webhook</config_path>
                 </field>
                 <field id="title" translate="label" type="text" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Title</label>
