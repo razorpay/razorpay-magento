@@ -21,6 +21,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
     const STATUS_APPROVED = 'APPROVED';
 
+    const ORDER_PROCESSING = 'processing';
+
     /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
@@ -93,9 +95,19 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
         $quote = $this->quoteRepository->get($quoteId);
 
+        //
+        // We reserve a new order id if one is not reserved already
+        //
+        $quote->reserveOrderId();
+
         $orderId = $quote->getReservedOrderId();
 
         $order = $this->order->loadByIncrementId($orderId);
+
+        if ($order->getStatus() === self::ORDER_PROCESSING)
+        {
+            return;
+        }
 
         $payment = $order->getPayment();
 
@@ -106,7 +118,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 ->setIsTransactionClosed(true)
                 ->setShouldCloseParentTransaction(true);
 
-        $order->setStatus('processing');
+        $order->setStatus(self::ORDER_PROCESSING);
         $order->save();
     }
 
