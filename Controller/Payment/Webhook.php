@@ -79,7 +79,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             return;
         }
 
-        if ($this->config->isWebhookEnabled() && empty($post['event']) === false)
+        if (($this->config->isWebhookEnabled() === true) && 
+            (empty($post['event']) === false))
         {
             if (isset($_SERVER['HTTP_X_RAZORPAY_SIGNATURE']) === true)
             {
@@ -96,7 +97,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
                 try
                 {
-                    $this->api->utility->verifyWebhookSignature($post, 
+                    $this->api->utility->verifyWebhookSignature(json_encode($post), 
                                                                 $_SERVER['HTTP_X_RAZORPAY_SIGNATURE'], 
                                                                 $webhookSecret);
                 }
