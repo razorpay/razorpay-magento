@@ -24,6 +24,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     const METHOD_CODE                   = 'razorpay';
     const CONFIG_MASKED_FIELDS          = 'masked_fields';
     const CURRENCY                      = 'INR';
+    const ORDER_PROCESSING              = 'processing';
 
     /**
      * @var string
@@ -203,6 +204,12 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         {
             /** @var \Magento\Sales\Model\Order\Payment $payment */
             $order = $payment->getOrder();
+
+            if ($order->getStatus() === self::ORDER_PROCESSING)
+            {
+                return;
+            }
+
             $orderId = $order->getIncrementId();
 
             $request = $this->getPostData();
@@ -217,6 +224,9 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                     ->setTransactionId($payment_id)
                     ->setIsTransactionClosed(true)
                     ->setShouldCloseParentTransaction(true);
+
+            $order->setStatus(self::ORDER_PROCESSING);
+            $order->save();
         } 
         catch (\Exception $e) 
         {
