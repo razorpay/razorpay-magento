@@ -98,9 +98,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         //
         // We reserve a new order id if one is not reserved already
         //
-        $quote->reserveOrderId();
-
-        $orderId = $quote->getReservedOrderId();
+        $orderId = $quote->reserveOrderId()->getReservedOrderId();
 
         $order = $this->order->loadByIncrementId($orderId);
 
