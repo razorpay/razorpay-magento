@@ -21,6 +21,11 @@
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <config_path>payment/razorpay/enable_webhook</config_path>
                 </field>
+                <field id="webhook_secret" translate="label" type="text" sortOrder="3" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Webhook Secret</label>
+                    <comment>** If Enable Webhook is set to true, this field needs to match the field set <a href="dashboard.razorpay.com">here</a>. **</comment>
+                    <config_path>payment/razorpay/webhook_secret</config_path>
+                </field>
                 <field id="title" translate="label" type="text" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Title</label>
                     <config_path>payment/razorpay/title</config_path>

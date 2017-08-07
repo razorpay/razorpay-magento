@@ -2,6 +2,10 @@
 
 namespace Razorpay\Magento\Controller\Payment;
 
+use Razorpay\Api\Api;
+use Razorpay\Api\Errors;
+use Razorpay\Magento\Model\Config;
+
 class Webhook extends \Razorpay\Magento\Controller\BaseController
 {
     /**
@@ -18,6 +22,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
      * @var \Magento\Sales\Api\Data\OrderInterface
      */
     protected $order;
+
+    protected $api;
 
     const STATUS_APPROVED = 'APPROVED';
 
@@ -51,6 +57,10 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             $config
         );
 
+        $keyId                 = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
+        $keySecret             = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
+        $this->api             = new Api($keyId, $keySecret);
+
         $this->order           = $order;
         $this->checkoutFactory = $checkoutFactory;
         $this->catalogSession  = $catalogSession;
@@ -69,16 +79,44 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             return;
         }
 
-        //
-        // Need to add signature verification
-        //
-        switch ($post['event'])
+        if ($this->config->isWebhookEnabled() && empty($post['event']) === false)
         {
-            case 'payment.authorized':
-                return $this->paymentAuthorized($post);
+            if (isset($_SERVER['HTTP_X_RAZORPAY_SIGNATURE']) === true)
+            {
+                $webhookSecret = $this->config->getWebhookSecret();
 
-            default:
-                return;
+                //
+                // To accept webhooks, the merchant must configure 
+                // it on the magento backend by setting the secret
+                // 
+                if (empty($webhookSecret) === true)
+                {
+                    return;
+                }
+
+                try
+                {
+                    $this->api->utility->verifyWebhookSignature($post, 
+                                                                $_SERVER['HTTP_X_RAZORPAY_SIGNATURE'], 
+                                                                $webhookSecret);
+                }
+                catch (Errors\SignatureVerificationError $e)
+                {
+                    //
+                    // Need to log the error
+                    // 
+                    return;
+                }
+
+                switch ($post['event'])
+                {
+                    case 'payment.authorized':
+                        return $this->paymentAuthorized($post);
+
+                    default:
+                        return;
+                }
+            }
         }
     }
 

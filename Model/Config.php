@@ -6,12 +6,14 @@ use \Magento\Framework\App\Config\ScopeConfigInterface;
 
 class Config
 {
-    const KEY_ALLOW_SPECIFIC = 'allowspecific';
-    const KEY_SPECIFIC_COUNTRY = 'specificcountry';
-    const KEY_ACTIVE = 'active';
-    const KEY_PUBLIC_KEY = 'key_id';
-    const KEY_PRIVATE_KEY = 'key_secret';
+    const KEY_ALLOW_SPECIFIC         = 'allowspecific';
+    const KEY_SPECIFIC_COUNTRY       = 'specificcountry';
+    const KEY_ACTIVE                 = 'active';
+    const KEY_PUBLIC_KEY             = 'key_id';
+    const KEY_PRIVATE_KEY            = 'key_secret';
     const KEY_MERCHANT_NAME_OVERRIDE = 'merchant_name_override';
+    const ENABLE_WEBHOOK             = 'enable_webhook';
+    const WEBHOOK_SECRET             = 'webhook_secret';
 
     /**
      * @var string
@@ -47,6 +49,16 @@ class Config
     public function getKeyId()
     {
         return $this->getConfigData(self::KEY_PUBLIC_KEY);
+    }
+
+    public function isWebhookEnabled()
+    {
+        return ($this->getConfigData(self::ENABLE_WEBHOOK) === 1);
+    }
+
+    public function getWebhookSecret()
+    {
+        return $this->getConfigData(self::WEBHOOK_SECRET);
     }
 
     /**
