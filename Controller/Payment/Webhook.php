@@ -25,6 +25,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
     protected $api;
 
+    protected $logger;
+
     const STATUS_APPROVED = 'APPROVED';
 
     const ORDER_PROCESSING = 'processing';
@@ -47,7 +49,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         \Razorpay\Magento\Model\Config $config,
         \Magento\Catalog\Model\Session $catalogSession,
         \Magento\Quote\Model\QuoteRepository $quoteRepository,
-        \Magento\Sales\Api\Data\OrderInterface $order
+        \Magento\Sales\Api\Data\OrderInterface $order,
+        \Psr\Log\LoggerInterface $logger
     ) 
     {
         parent::__construct(
@@ -59,9 +62,11 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
         $keyId                 = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
         $keySecret             = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
-        $this->api             = new Api($keyId, $keySecret);
 
+        $this->api             = new Api($keyId, $keySecret);
         $this->order           = $order;
+        $this->logger          = $logger;
+
         $this->checkoutFactory = $checkoutFactory;
         $this->catalogSession  = $catalogSession;
         $this->quoteRepository = $quoteRepository;
@@ -103,9 +108,13 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 }
                 catch (Errors\SignatureVerificationError $e)
                 {
-                    //
-                    // Need to log the error
-                    // 
+                    $this->logger->warning(
+                        $e->getMessage(), 
+                        [
+                            'data'  => $post,
+                            'event' => 'razorpay.wc.signature.verify_failed'
+                        ]);
+
                     return;
                 }
 
