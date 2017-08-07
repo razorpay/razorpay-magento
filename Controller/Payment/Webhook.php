@@ -5,6 +5,7 @@ namespace Razorpay\Magento\Controller\Payment;
 use Razorpay\Api\Api;
 use Razorpay\Api\Errors;
 use Razorpay\Magento\Model\Config;
+use Razorpay\Magento\Model\PaymentMethod;
 
 class Webhook extends \Razorpay\Magento\Controller\BaseController
 {
@@ -27,9 +28,15 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
     protected $logger;
 
-    const STATUS_APPROVED = 'APPROVED';
+    protected $quoteManagement;
 
-    const ORDER_PROCESSING = 'processing';
+    protected $objectManagement;
+
+    protected $storeManager;
+
+    protected $customerRepository;
+
+    const STATUS_APPROVED = 'APPROVED';
 
     /**
      * @param \Magento\Framework\App\Action\Context $context
@@ -50,6 +57,9 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         \Magento\Catalog\Model\Session $catalogSession,
         \Magento\Quote\Model\QuoteRepository $quoteRepository,
         \Magento\Sales\Api\Data\OrderInterface $order,
+        \Magento\Quote\Model\QuoteManagement $quoteManagement,
+        \Magento\Store\Model\StoreManagerInterface $storeManagement,
+        \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository,
         \Psr\Log\LoggerInterface $logger
     ) 
     {
@@ -67,9 +77,13 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         $this->order           = $order;
         $this->logger          = $logger;
 
-        $this->checkoutFactory = $checkoutFactory;
-        $this->catalogSession  = $catalogSession;
-        $this->quoteRepository = $quoteRepository;
+        $this->objectManagement   = \Magento\Framework\App\ObjectManager::getInstance();
+        $this->quoteManagement    = $quoteManagement;
+        $this->checkoutFactory    = $checkoutFactory;
+        $this->catalogSession     = $catalogSession;
+        $this->quoteRepository    = $quoteRepository;
+        $this->storeManagement    = $storeManagement;
+        $this->customerRepository = $customerRepository;
     }
 
     /**
@@ -138,34 +152,69 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     protected function paymentAuthorized(array $post)
     {
         $quoteId   = $post['payload']['payment']['entity']['notes']['merchant_order_id'];
-        $amount    = $post['payload']['payment']['entity']['amount'];
+        $amount    = $post['payload']['payment']['entity']['amount'] / 100;
         $paymentId = $post['payload']['payment']['entity']['id'];
 
-        $quote = $this->quoteRepository->get($quoteId);
+        $quote = $this->getQuoteObject($post, $quoteId);
 
-        //
-        // We reserve a new order id if one is not reserved already
-        //
-        $orderId = $quote->reserveOrderId()->getReservedOrderId();
+        $order = $this->quoteManagement->submit($quote);
 
-        $order = $this->order->loadByIncrementId($orderId);
+        $payment = $order->getPayment();
 
-        if ($order->getStatus() === self::ORDER_PROCESSING)
+        if (empty($payment->getLastTransId()) === false)
         {
             return;
         }
 
-        $payment = $order->getPayment();
-
-        $payment->setStatus(self::STATUS_APPROVED)
-                ->setAmountPaid($amount)
+        $payment->setAmountPaid($amount)
                 ->setLastTransId($paymentId)
                 ->setTransactionId($paymentId)
                 ->setIsTransactionClosed(true)
                 ->setShouldCloseParentTransaction(true);
 
-        $order->setStatus(self::ORDER_PROCESSING);
-        $order->save();
+        $payment->save();
+    }
+
+    protected function getQuoteObject($post, $quoteId)
+    {
+        $email = $post['payload']['payment']['entity']['email'];
+
+        $quote = $this->quoteRepository->get($quoteId);
+
+        $firstName = $quote->getBillingAddress()['customer_firstname'] ?? 'null';
+        $lastName = $quote->getBillingAddress()['customer_lastname'] ?? 'null';
+
+        $quote->getPayment()->setMethod(PaymentMethod::METHOD_CODE);
+
+        $store = $this->storeManagement->getStore();
+
+        $websiteId = $store->getWebsiteId();
+
+        $customer = $this->objectManagement->create('Magento\Customer\Model\Customer');
+        $customer->setWebsiteId($websiteId);
+
+        $customer = $customer->loadByEmail($email);
+
+        if (empty($customer->getEntityId()) === true)
+        {
+            $customer->setWebsiteId($websiteId)
+                     ->setStore($store)
+                     ->setFirstname($firstName)
+                     ->setLastname($lastName)
+                     ->setEmail($email);
+
+            $customer->save();
+        }
+
+        $customer = $this->customerRepository->getById($customer->getEntityId());
+
+        $quote->assignCustomer($customer);
+
+        $quote->setStore($store);
+
+        $quote->save();
+
+        return $quote;
     }
 
     /**

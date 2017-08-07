@@ -24,7 +24,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     const METHOD_CODE                   = 'razorpay';
     const CONFIG_MASKED_FIELDS          = 'masked_fields';
     const CURRENCY                      = 'INR';
-    const ORDER_PROCESSING              = 'processing';
 
     /**
      * @var string
@@ -205,7 +204,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             /** @var \Magento\Sales\Model\Order\Payment $payment */
             $order = $payment->getOrder();
 
-            if ($order->getStatus() === self::ORDER_PROCESSING)
+            if (empty($payment->getLastTransId()) === false)
             {
                 return;
             }
@@ -214,19 +213,22 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
             $request = $this->getPostData();
 
+            if (empty($request['paymentMethod']) === true)
+            {
+                return;
+            }
+
             $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
             
             $this->validateSignature($request);
 
-            $payment->setStatus(self::STATUS_APPROVED)
-                    ->setAmountPaid($amount)
-                    ->setLastTransId($payment_id)
-                    ->setTransactionId($payment_id)
+            $payment->setAmountPaid($amount)
+                    ->setLastTransId($paymentId)
+                    ->setTransactionId($paymentId)
                     ->setIsTransactionClosed(true)
                     ->setShouldCloseParentTransaction(true);
 
-            $order->setStatus(self::ORDER_PROCESSING);
-            $order->save();
+            $payment->save();
         } 
         catch (\Exception $e) 
         {
