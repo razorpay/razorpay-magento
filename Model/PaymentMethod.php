@@ -218,7 +218,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                 return;
             }
 
-            $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
+            $paymentId = $request['paymentMethod']['additional_data']['rzp_payment_id'];
             
             $this->validateSignature($request);
 
