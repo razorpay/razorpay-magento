@@ -227,8 +227,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                     ->setTransactionId($paymentId)
                     ->setIsTransactionClosed(true)
                     ->setShouldCloseParentTransaction(true);
-
-            $payment->save();
         } 
         catch (\Exception $e) 
         {
