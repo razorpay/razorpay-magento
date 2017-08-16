@@ -38,7 +38,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     /**
      * @var bool
      */
-    protected $_canCapture              = true; // sessions , set this to false
+    protected $_canCapture              = false;
 
     /**
      * @var bool
@@ -188,24 +188,11 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      * Authorizes specified amount
      *
      * @param InfoInterface $payment
-     * @param float $amount
-     * @return $this
-     * @throws LocalizedException
-     */
-    public function authorize(InfoInterface $payment, $amount)
-    {
-        return $this;
-    }
-
-    /**
-     * Captures specified amount
-     *
-     * @param InfoInterface $payment
      * @param string $amount
      * @return $this
      * @throws LocalizedException
      */
-    public function capture(InfoInterface $payment, $amount)
+    public function authorize(InfoInterface $payment, $amount)
     {
         try 
         {
