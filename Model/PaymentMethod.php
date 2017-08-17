@@ -38,7 +38,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     /**
      * @var bool
      */
-    protected $_canCapture              = true; // sessions , set this to false
+    protected $_canCapture              = true;
 
     /**
      * @var bool
@@ -96,8 +96,14 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     protected $orderRepository;
 
     /**
+     * @var \Magento\Quote\Model\QuoteFactory
+     */
+    protected $quoteFactory;
+
+    /**
      * @param \Magento\Framework\Model\Context $context
      * @param \Magento\Framework\Registry $registry
+     * @param \Magento\Quote\Model\QuoteFactory $quoteFactory
      * @param \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory
      * @param \Magento\Framework\Api\AttributeValueFactory $customAttributeFactory
      * @param \Magento\Payment\Helper\Data $paymentData
@@ -108,8 +114,9 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      * @param TransactionCollectionFactory $salesTransactionCollectionFactory
      * @param \Magento\Framework\App\ProductMetadataInterface $productMetaData
      * @param \Magento\Directory\Model\RegionFactory $regionFactory
-     * @param \Magento\Framework\Model\ResourceModel\AbstractResource $resource
      * @param \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
+     * @param \Razorpay\Magento\Controller\Payment\Order $order
+     * @param \Magento\Framework\Model\ResourceModel\AbstractResource $resource
      * @param \Magento\Framework\Data\Collection\AbstractDb $resourceCollection
      * @param array $data
      * @SuppressWarnings(PHPMD.ExcessiveParameterList)
@@ -117,6 +124,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     public function __construct(
         \Magento\Framework\Model\Context $context,
         \Magento\Framework\Registry $registry,
+        \Magento\Quote\Model\QuoteFactory $quoteFactory,
         \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory,
         \Magento\Framework\Api\AttributeValueFactory $customAttributeFactory,
         \Magento\Payment\Helper\Data $paymentData,
@@ -151,6 +159,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $this->productMetaData = $productMetaData;
         $this->regionFactory = $regionFactory;
         $this->orderRepository = $orderRepository;
+        $this->quoteFactory = $quoteFactory;
 
         $this->key_id = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
         $this->key_secret = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
@@ -212,6 +221,18 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             /** @var \Magento\Sales\Model\Order\Payment $payment */
             $order = $payment->getOrder();
             $orderId = $order->getIncrementId();
+
+            $quoteId = $order->getQuoteId();
+
+            $quote = $this->quoteFactory->create()->load($quoteId);
+
+            //
+            // If the order has multiple shipping addresses, continue
+            //
+            if ($quote->isMultipleShippingAddresses() === true)
+            {
+                return;
+            }
 
             $request = $this->getPostData();
 
