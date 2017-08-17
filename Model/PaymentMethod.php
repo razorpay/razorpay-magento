@@ -38,7 +38,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     /**
      * @var bool
      */
-    protected $_canCapture              = false;
+    protected $_canCapture              = true;
 
     /**
      * @var bool
@@ -207,11 +207,11 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             $this->validateSignature($request);
 
             $payment->setStatus(self::STATUS_APPROVED)
-                ->setAmountPaid($amount)
-                ->setLastTransId($payment_id)
-                ->setTransactionId($payment_id)
-                ->setIsTransactionClosed(true)
-                ->setShouldCloseParentTransaction(true);
+                    ->setAmountPaid($amount)
+                    ->setLastTransId($payment_id)
+                    ->setTransactionId($payment_id)
+                    ->setIsTransactionClosed(true)
+                    ->setShouldCloseParentTransaction(true);
         } 
         catch (\Exception $e) 
         {
