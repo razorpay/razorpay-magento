@@ -163,7 +163,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
     public function getCallbackUrl()
     {
-        return Mage::getUrl('razorpay/checkout/processing');
+        return Mage::getUrl('razorpay/checkout/success');
     }
 
     /**
