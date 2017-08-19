@@ -85,45 +85,84 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
 
         $session = Mage::getSingleton('checkout/session');
         $order = Mage::getModel('sales/order');
-        $order->loadByIncrementId($session->getLastRealOrderId());
+        $orderId = $session->getLastRealOrderId();
+        $order->loadByIncrementId($orderId);
 
-        $attributes = array(
-            'razorpay_payment_id' => $requestFields['razorpay_payment_id'],
-            'razorpay_order_id'   => Mage::getSingleton('core/session')->getRazorpayOrderID(),
-            'razorpay_signature'  => $requestFields['razorpay_signature']
-        );
-
-        $success = true;
-
-        $errorMessage = 'Payment failed. Most probably user closed the popup.';
-
-        try
+        if ((empty($orderId) === false) and 
+            (isset($requestFields['razorpay_payment_id']) === true))
         {
-            $this->api->utility->verifyPaymentSignature($attributes);
-        }
-        catch (Errors\SignatureVerificationError $e)
-        {
-            $success = false;
+            $attributes = array(
+                'razorpay_payment_id' => $requestFields['razorpay_payment_id'],
+                'razorpay_order_id'   => Mage::getSingleton('core/session')->getRazorpayOrderID(),
+                'razorpay_signature'  => $requestFields['razorpay_signature']
+            );
 
-            $errorMessage = 'Payment to Razorpay Failed. ' .  $e->getMessage();
-        }
+            $success = true;
 
-        if ($success === true)
-        {
-            $order->sendNewOrderEmail();
-            $order->setState(Mage_Sales_Model_Order::STATE_PROCESSING, true);
-            $order->addStatusHistoryComment('Payment Successful. Razorpay Payment Id:'.$paymentId);
-            $order->save();
+            $errorMessage = 'Payment failed. Most probably user closed the popup.';
+
+            try
+            {
+                $this->api->utility->verifyPaymentSignature($attributes);
+            }
+            catch (Errors\SignatureVerificationError $e)
+            {
+                $success = false;
+
+                $errorMessage = 'Payment to Razorpay Failed. ' .  $e->getMessage();
+            }
+
+            if ($success === true)
+            {
+                $order->sendNewOrderEmail();
+                $order->setState(Mage_Sales_Model_Order::STATE_PROCESSING, true);
+                $order->addStatusHistoryComment('Payment Successful. Razorpay Payment Id:'.$paymentId);
+                $order->save();
+            }
+            else
+            {
+                $this->updateOrderFailed($order, $errorMessage);
+            }
         }
         else
         {
-            $order->setState(Mage_Sales_Model_Order::STATE_CANCELED, true);
-            $order->addStatusHistoryComment($errorMessage);
-            $order->save();
-            $this->updateInventory($order);
+            $success = false;
+
+            $this->handleErrorCase($order, $orderId, $requestFields);
         }
 
         return $success;
+    }
+
+    protected function handleErrorCase($order, $orderId, $requestFields)
+    {
+        if (empty($orderId) === true)
+        {
+            $errorMessage = 'An error occurred while processing the order';
+        }
+        else if (isset($requestFields['error']) === true)
+        {
+            $error = $requestFields['error'];
+
+            $errorMessage = 'An error occurred. Description : ' 
+            . $error['description'] 
+            . '. Code : ' . $error['code'];
+
+            if (isset($error['field']) === true)
+            {
+                $errorMessage .= '. Field : ' . $error['field'];
+            }
+        }
+
+        $this->updateOrderFailed($order, $errorMessage);
+    }
+
+    protected function updateOrderFailed($order, $errorMessage)
+    {
+        $order->setState(Mage_Sales_Model_Order::STATE_CANCELED, true);
+        $order->addStatusHistoryComment($errorMessage);
+        $order->save();
+        $this->updateInventory($order);   
     }
 
     protected function updateInventory($order)
