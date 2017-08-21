@@ -143,7 +143,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
         $responseArray = array(
             // order id has to be stored and fetched later from the db or session
-            'customer_name'     => $bA->getFirstname() . " " . $bA->getLastname(),
+            'customer_name'     => $bA->getFirstname() . ' ' . $bA->getLastname(),
             'customer_phone'    => $bA->getTelephone() ?: '',
             'order_id'          => $orderId,
             'base_amount'       => $amount,
