@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
     <name>Razorpay</name>
-    <version>1.1.24</version>
+    <version>1.1.25</version>
     <stability>devel</stability>
     <license>MIT</license>
     <channel>community</channel>
@@ -26,28 +26,139 @@
             <email>nemo@razorpay.com</email>
         </author>
     </authors>
-    <date>2017-06-15</date>
-    <time>06:04:16</time>
+    <date>2017-08-24</date>
+    <time>07:57:08</time>
     <contents>
         <target name="magecommunity">
             <dir name="Razorpay">
                 <dir name="Payments">
                     <dir name="Block">
-                        <file hash="15049195e1e3d519298a3bd5095990fe" name="Checkout.php"/>
+                        <file hash="196f71d44ecb52f70e032c1cee434c45" name="Checkout.php"/>
                     </dir>
                     <dir name="Helper">
-                        <file hash="3fd07eea56ef4ee5e33c0617b6bf45c0" name="Data.php"/>
+                        <file hash="684731e5c45689e783f12bae8d909559" name="Data.php"/>
                         <file hash="308c55e7a7d56a27fcfb3983169c3491" name="ca-bundle.crt"/>
                     </dir>
                     <dir name="Model">
-                        <file hash="8dcafcf668ab327ea4169a96abececfa" name="Paymentmethod.php"/>
+                        <file hash="adf368b03d4ffac358aaf48582818642" name="Paymentmethod.php"/>
                     </dir>
                     <dir name="controllers">
-                        <file hash="0b2d6c07ed86081eb8febcf0f42783f0" name="CheckoutController.php"/>
+                        <file hash="0405b702b0d39383097bcf46248be1d9" name="CheckoutController.php"/>
                     </dir>
                     <dir name="etc">
-                        <file hash="c57d918e0cbdc579dbda48882bec4577" name="config.xml"/>
+                        <file hash="95a563f81cbadd5e0be60fb428e50cb9" name="config.xml"/>
                         <file hash="3045e0b5d2d2d0b52e47c23a64f99445" name="system.xml"/>
+                    </dir>
+                </dir>
+                <dir name="razorpay-php">
+                    <file hash="671b8dc85e64b440f692e3b56fbf601e" name="Razorpay.php"/>
+                    <dir name="libs">
+                        <dir name="Requests-1.6.1">
+                            <file hash="57e7ef58f41a0b6e5a7f8689222c51c6" name="LICENSE"/>
+                            <dir name="library">
+                                <file hash="d41d8cd98f00b204e9800998ecf8427e" name="Basic.php"/>
+                                <dir name="Requests">
+                                    <dir name="Auth">
+                                        <file hash="91a2af156a41767cc66e0964833840d6" name="Basic.php"/>
+                                    </dir>
+                                    <file hash="3197d2529dd957b2acc3944f5bfcd64a" name="Auth.php"/>
+                                    <dir name="Cookie">
+                                        <file hash="53c0699006fcb04d464ecfc081686ad3" name="Jar.php"/>
+                                    </dir>
+                                    <file hash="192c129dff57b54b1bdba2fae5292f04" name="Cookie.php"/>
+                                    <dir name="Exception">
+                                        <dir name="HTTP">
+                                            <file hash="51e56e878cbb564ab852c978fb35fcd0" name="400.php"/>
+                                            <file hash="3b2ab80eb9cbfd87baa23fc1648e9940" name="401.php"/>
+                                            <file hash="60f859d55150da0b0a7a959ac9f347d6" name="402.php"/>
+                                            <file hash="bcd160e8f70dc76ffbbf6b33b7fe31df" name="403.php"/>
+                                            <file hash="1ed416cc6311835900857973f8923c4d" name="404.php"/>
+                                            <file hash="dd38d182de6d21b2d2ac18b381adf97f" name="405.php"/>
+                                            <file hash="4bc8cb6cef688c729edc3990220006ac" name="406.php"/>
+                                            <file hash="c2c817e9f5d8768bbde4d66a26e6c6b5" name="407.php"/>
+                                            <file hash="403e3164844958c5144f98ecc8b77689" name="408.php"/>
+                                            <file hash="995a1dc469e67e2a3d0b8f9bebfea9b6" name="409.php"/>
+                                            <file hash="71be4f3437dfbadda52f38582184e19b" name="410.php"/>
+                                            <file hash="27a552a1e4160c4df61b2eca5a604796" name="411.php"/>
+                                            <file hash="25b88449dcb7a1a83dd906378aa556c7" name="412.php"/>
+                                            <file hash="e9963cc15dc99059b7d9ff584c17bfd8" name="413.php"/>
+                                            <file hash="bca65d55e2409ef6a5291ed8e6a12368" name="414.php"/>
+                                            <file hash="0258cc0fb05462ea8f11ccaea34a55c3" name="415.php"/>
+                                            <file hash="f931824e39e39617c9aac661804478f8" name="416.php"/>
+                                            <file hash="4270026a1b8e684f5ec0635c47201c23" name="417.php"/>
+                                            <file hash="e7b4b07ef78246b212455a560832d15e" name="418.php"/>
+                                            <file hash="a71dd0c64a8b151d1ad0c6685077fd0e" name="428.php"/>
+                                            <file hash="86df59d7a025971a8f3bba08d4181b0e" name="429.php"/>
+                                            <file hash="44abf0dd0173e7a183ff2abc67edce67" name="431.php"/>
+                                            <file hash="c0afa9c66b6d830a094815f2124dffda" name="500.php"/>
+                                            <file hash="650cdab83034f22d3fe803f5d791a835" name="501.php"/>
+                                            <file hash="7cc83a6c80cf7af9d5217b17fb47ff69" name="502.php"/>
+                                            <file hash="3906f7520861c39f43f46000d45554b4" name="503.php"/>
+                                            <file hash="02d76d8cccaa446293201112908a2aa5" name="504.php"/>
+                                            <file hash="8e5d4109053303e65b2f4364c1ac12de" name="505.php"/>
+                                            <file hash="24b4edc87dc5ccb0d23a7c38c8dd90df" name="511.php"/>
+                                            <file hash="53e024c7f581e34a82bf20aa274a9e6a" name="Unknown.php"/>
+                                        </dir>
+                                        <file hash="71ef84695414e74ede0ce34558969e31" name="HTTP.php"/>
+                                    </dir>
+                                    <file hash="879bac9efa180085ab33e90e1acc5249" name="Exception.php"/>
+                                    <file hash="0f08c5401425a9615bd19e2f34a5e107" name="Hooker.php"/>
+                                    <file hash="9ad6c5808f435f6f4d0a39a97b03fd24" name="Hooks.php"/>
+                                    <file hash="ae174ccea66cdebfde35526055e4f009" name="IDNAEncoder.php"/>
+                                    <file hash="915b0ea88e4a435124ae0098fc7663fe" name="IPv6.php"/>
+                                    <file hash="87db793de10599ee1affeb34dc83dc37" name="IRI.php"/>
+                                    <dir name="Proxy">
+                                        <file hash="2a2e736cb397d02f281ce5b1e372a172" name="HTTP.php"/>
+                                    </dir>
+                                    <file hash="b5406b1037b500d7d374b85c2a879947" name="Proxy.php"/>
+                                    <dir name="Response">
+                                        <file hash="1162354a1a484b38d8f5db6dd597a7e3" name="Headers.php"/>
+                                    </dir>
+                                    <file hash="7d4f1037e72ca22a386b19e34ac453c0" name="Response.php"/>
+                                    <file hash="57f77978f76b8e15b0e6303e62fea7f2" name="SSL.php"/>
+                                    <file hash="26fd2d391e7350358b3076db6bf1a61c" name="Session.php"/>
+                                    <dir name="Transport">
+                                        <file hash="8bdc6e96511436436445ef47ad4f64a3" name="cURL.php"/>
+                                        <file hash="0c1320baf406dec81a943c69d7e964fa" name="cacert.pem"/>
+                                        <file hash="98b7c4bd793f144b4668decd0d3897b1" name="fsockopen.php"/>
+                                    </dir>
+                                    <file hash="019c993bce6bed178baf4b5c566cc617" name="Transport.php"/>
+                                    <dir name="Utility">
+                                        <file hash="1ca8f9f7c953d9835cf415227e22a893" name="CaseInsensitiveDictionary.php"/>
+                                        <file hash="9fe46c45e5d6bfc2001040e1708735e3" name="FilteredIterator.php"/>
+                                    </dir>
+                                </dir>
+                                <file hash="15dd90323dd3616539cbf1afb8727da6" name="Requests.php"/>
+                                <file hash="aaeccf42b2728f0539c182d6ce95567a" name="checkout.phtml"/>
+                                <file hash="770b2da9a019e06ef950b0fc75f1ab23" name="razorpay.xml"/>
+                            </dir>
+                        </dir>
+                    </dir>
+                    <dir name="src">
+                        <file hash="cad3cb14b697020aff07575b9be2a5c8" name="Api.php"/>
+                        <file hash="40c0512c625c826643e25830ef770712" name="ArrayableInterface.php"/>
+                        <file hash="538cb78e05b216f1f40d1c9cfaebec01" name="Card.php"/>
+                        <file hash="97ff5992f7cae489b45e51be570692db" name="Collection.php"/>
+                        <file hash="cd7f471ccaae30e69bee4e99e29b5ab7" name="Customer.php"/>
+                        <file hash="bb8d78ca9fcf4295b8fb1ae2cab63c6a" name="Entity.php"/>
+                        <dir name="Errors">
+                            <file hash="3700df3707758de99a779172f37c1ed8" name="BadRequestError.php"/>
+                            <file hash="936cacc1966f95d78b91e05fec6b72fa" name="Error.php"/>
+                            <file hash="6e4ad457373fc16a64bb31d38be9bd16" name="ErrorCode.php"/>
+                            <file hash="d4f456eb8e6a1e464896b8af8c350f88" name="GatewayError.php"/>
+                            <file hash="90ab9e02b68dafac99406b95cfd777ee" name="ServerError.php"/>
+                            <file hash="de8cf4929688fa3928432d73384f0e5f" name="SignatureVerificationError.php"/>
+                        </dir>
+                        <file hash="27139a6fc395885e35025ae65e75164d" name="Invoice.php"/>
+                        <file hash="af83ab4a3c5073f59b6e54fb6e316ecd" name="Order.php"/>
+                        <file hash="42befb28f8cc3fe1b1984ea29ba96dab" name="Payment.php"/>
+                        <file hash="b59a99bf45a67ddf792a4a8bddc4f97b" name="Plan.php"/>
+                        <file hash="8513181008de79f7684040c827dacbd0" name="Refund.php"/>
+                        <file hash="2d72d4f420418a5d43610514394519a2" name="Request.php"/>
+                        <file hash="8a0b066cb638eea43f9cb587fa43bb54" name="Resource.php"/>
+                        <file hash="543f9a583116a750ddcbc0e25859e597" name="Subscription.php"/>
+                        <file hash="d0dc3604e130abec1eef0edeb95ac9cc" name="Token.php"/>
+                        <file hash="32e36252d09765bd16ab25063df6f754" name="Utility.php"/>
                     </dir>
                 </dir>
             </dir>
@@ -55,7 +166,7 @@
         <target name="mage">
             <dir name="js">
                 <dir name="razorpay">
-                    <file hash="72f19a2d8ec4fa2bc48c0fa5fbb100ac" name="razorpay-utils.js"/>
+                    <file hash="1bc586bb3d5b50b0a61c951aefd0468d" name="razorpay-utils.js"/>
                 </dir>
             </dir>
         </target>
@@ -64,11 +175,11 @@
                 <dir name="base">
                     <dir name="default">
                         <dir name="layout">
-                            <file hash="961142f9df434dfbb4322dcf0db33733" name="razorpay.xml"/>
+                            <file hash="770b2da9a019e06ef950b0fc75f1ab23" name="razorpay.xml"/>
                         </dir>
                         <dir name="template">
                             <dir name="razorpay">
-                                <file hash="557c96239438d1864595f6d9e75253b5" name="checkout.phtml"/>
+                                <file hash="3d9455b2c4613c0260081eff3b9da4ff" name="checkout.phtml"/>
                             </dir>
                         </dir>
                     </dir>
