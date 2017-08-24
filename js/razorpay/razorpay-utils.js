@@ -33,7 +33,8 @@ function RazorpayUtils(options) {
                 name: this.options.customer_name,
                 contact: this.options.customer_phone,
                 email: this.options.customer_email
-            }
+            },
+            callback_url: this.options.callback_url,
         };
 
         if (this.options.quote_currency !== null &&
