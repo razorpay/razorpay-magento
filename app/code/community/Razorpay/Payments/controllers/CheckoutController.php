@@ -4,6 +4,15 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
 {
     protected $order;
 
+    public function __construct(Zend_Controller_Request_Abstract $request, Zend_Controller_Response_Abstract $response, array $invokeArgs = array())
+    {
+        parent::__construct($request, $response, $invokeArgs);
+
+        $model = Mage::getModel('razorpay_payments/paymentmethod');
+
+        $model->requireAllRazorpayFiles();
+    }
+
     protected function _expireAjax()
     {
         if (!Mage::getSingleton('checkout/session')->getQuote()->hasItems())
