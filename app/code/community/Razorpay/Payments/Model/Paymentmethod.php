@@ -1,10 +1,5 @@
 <?php
 
-require_once __DIR__.'/../../razorpay-php/Razorpay.php';
-
-use Razorpay\Api\Api;
-use Razorpay\Api\Errors;
-
 class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Abstract
 {
     const CHANNEL_NAME                  = 'Razorpay/Magento%s_%s/%s';
@@ -37,10 +32,12 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
     {
         parent::__construct();
 
+        $this->requireAllRazorpayFiles();
+
         $keyId     = $this->getConfigData(self::KEY_ID);
         $keySecret = $this->getConfigData(self::KEY_SECRET);
 
-        $this->api = new Api($keyId, $keySecret);
+        $this->api = new Razorpay\Api\Api($keyId, $keySecret);
     }
 
     /**
@@ -105,7 +102,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
             {
                 $this->api->utility->verifyPaymentSignature($attributes);
             }
-            catch (Errors\SignatureVerificationError $e)
+            catch (Razorpay\Api\Errors\SignatureVerificationError $e)
             {
                 $success = false;
 
@@ -229,5 +226,82 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         $path = 'payment/'.$this->getCode().'/'.$field;
 
         return Mage::getStoreConfig($path, $storeId);
+    }
+
+    /**
+     * We need to use this method to load all the razorpay-php files
+     */
+    public function requireAllRazorpayFiles()
+    {
+        $baseDir = Mage::getBaseDir('lib') . DS . 'razorpay-php';
+
+        $apiClassesBase = $baseDir . DS . 'src';
+        $errorClassesBase = $baseDir . DS . 'src/Errors';
+        $requestClassesBase = $baseDir . DS . 'libs/Requests-1.6.1/library/Requests';
+
+        // Require requests class
+        require_once $requestClassesBase . '.php';
+
+        // Require all requests files first
+        $this->recursiveReadDirectory($requestClassesBase);
+
+        // Require Entity, Resource and ArrayableInterface first
+        require_once $apiClassesBase . DS . 'Resource.php';
+        require_once $apiClassesBase . DS . 'ArrayableInterface.php';
+        require_once $apiClassesBase . DS . 'Entity.php';
+
+        // Requiring base error class first
+        require_once $errorClassesBase . DS . 'Error.php';
+
+        // Require all src files first
+        foreach (scandir($apiClassesBase) as $file)
+        {
+            if (strpos((string) $file, 'php') !== false)
+            {
+                require_once $apiClassesBase . DS . $file;
+            }
+        }
+
+        // Requiring all Error files
+        foreach (scandir($errorClassesBase) as $file)
+        {
+            if (strpos($file, 'php') !== false)
+            {
+                require_once $errorClassesBase . DS . $file;
+            }
+        }
+    }
+
+    protected function recursiveReadDirectory($path)
+    {
+        if ($handle = opendir($path))
+        {
+            $directories = array();
+
+            while (false !== ($entry = readdir($handle)))
+            {
+                // Requiring all the root files
+                if (strpos($entry, 'php') !== false)
+                {
+                    require_once $path . DS . $entry;
+                }
+                else if ((is_dir($path . DS . $entry)) and
+                    (in_array($entry, ['.', '..']) === false))
+                {
+                    // Requiring directories after all the files
+                    $newPath = $path . DS . $entry;
+                    array_push($directories, $newPath);
+                }
+            }
+
+            $directories = array_reverse($directories);
+
+            foreach ($directories as $directory)
+            {
+                $this->recursiveReadDirectory($directory);
+            }
+
+            closedir($handle);
+        }
     }
 }

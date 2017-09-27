@@ -7,6 +7,15 @@ class Razorpay_Payments_Block_Checkout extends Mage_Core_Block_Template
 
     protected $_template = 'razorpay/checkout.phtml';
 
+    public function __construct(array $args = array())
+    {
+        parent::__construct($args);
+
+        $model = Mage::getModel('razorpay_payments/paymentmethod');
+
+        $model->requireAllRazorpayFiles();
+    }
+
     /**
      * Returns key_id from store config
      *

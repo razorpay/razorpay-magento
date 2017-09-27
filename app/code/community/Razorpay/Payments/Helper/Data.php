@@ -1,9 +1,8 @@
 <?php
 
-require_once __DIR__.'/../../razorpay-php/Razorpay.php';
+// require_once (Mage::getBaseDir() . '/lib/razorpay-php/Razorpay.php');
 
-use Razorpay\Api\Api;
-use Exception;
+//use Razorpay\Api\Api;
 
 class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 {
@@ -22,10 +21,12 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
     {
         $paymentModel = Mage::getModel(self::PAYMENT_MODEL);
 
+        $paymentModel->requireAllRazorpayFiles();
+
         $keyId     = $paymentModel->getConfigData(self::KEY_ID);
         $keySecret = $paymentModel->getConfigData(self::KEY_SECRET);
 
-        $this->api = new Api($keyId, $keySecret);
+        $this->api = new Razorpay\Api\Api($keyId, $keySecret);
 
         $version = Mage::getVersion() . '-' . $paymentModel::VERSION;
 
