@@ -2,9 +2,6 @@
 
 require_once __DIR__.'/../../razorpay-php/Razorpay.php';
 
-use Razorpay\Api\Api;
-use Razorpay\Api\Errors;
-
 class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Abstract
 {
     const CHANNEL_NAME                  = 'Razorpay/Magento%s_%s/%s';
@@ -40,7 +37,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         $keyId     = $this->getConfigData(self::KEY_ID);
         $keySecret = $this->getConfigData(self::KEY_SECRET);
 
-        $this->api = new Api($keyId, $keySecret);
+        $this->api = new \Razorpay\Api\Api($keyId, $keySecret);
     }
 
     /**
@@ -81,14 +78,14 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
     {
         $requestFields = Mage::app()->getRequest()->getPost();
 
-        $paymentId = $requestFields['razorpay_payment_id'];        
+        $paymentId = $requestFields['razorpay_payment_id'];
 
         $session = Mage::getSingleton('checkout/session');
         $order = Mage::getModel('sales/order');
         $orderId = $session->getLastRealOrderId();
         $order->loadByIncrementId($orderId);
 
-        if ((empty($orderId) === false) and 
+        if ((empty($orderId) === false) and
             (isset($requestFields['razorpay_payment_id']) === true))
         {
             $attributes = array(
@@ -105,7 +102,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
             {
                 $this->api->utility->verifyPaymentSignature($attributes);
             }
-            catch (Errors\SignatureVerificationError $e)
+            catch (\Razorpay\Api\Errors\SignatureVerificationError $e)
             {
                 $success = false;
 
@@ -144,8 +141,8 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         {
             $error = $requestFields['error'];
 
-            $errorMessage = 'An error occurred. Description : ' 
-            . $error['description'] 
+            $errorMessage = 'An error occurred. Description : '
+            . $error['description']
             . '. Code : ' . $error['code'];
 
             if (isset($error['field']) === true)
@@ -162,7 +159,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         $order->setState(Mage_Sales_Model_Order::STATE_CANCELED, true);
         $order->addStatusHistoryComment($errorMessage);
         $order->save();
-        $this->updateInventory($order);   
+        $this->updateInventory($order);
     }
 
     protected function updateInventory($order)
