@@ -2,7 +2,6 @@
 
 require_once __DIR__.'/../../razorpay-php/Razorpay.php';
 
-use Razorpay\Api\Api;
 use Exception;
 
 class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
@@ -25,7 +24,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
         $keyId     = $paymentModel->getConfigData(self::KEY_ID);
         $keySecret = $paymentModel->getConfigData(self::KEY_SECRET);
 
-        $this->api = new Api($keyId, $keySecret);
+        $this->api = new \Razorpay\Api\Api($keyId, $keySecret);
 
         $version = Mage::getVersion() . '-' . $paymentModel::VERSION;
 
@@ -113,7 +112,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
         try
         {
-            if (($razorpayOrderId === null) or 
+            if (($razorpayOrderId === null) or
                 (($razorpayOrderId) and ($this->verifyOrderAmount($razorpayOrderId, $order) === false)))
             {
                 $data = $this->getRazorpayOrderData($order);
@@ -151,7 +150,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
             'customer_email'    => $order->getData('customer_email') ?: '',
             'quote_currency'    => $quote_currency,
             'quote_amount'      => $quote_amount,
-            'razorpay_order_id' => $razorpayOrderId, 
+            'razorpay_order_id' => $razorpayOrderId,
             'callback_url'      => $this->getCallbackUrl()
         );
 
