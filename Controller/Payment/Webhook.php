@@ -161,10 +161,14 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
         $payment = $order->getPayment();
 
+        $this->logger->warning('Debug Log --------------------- 1');
+
         if (empty($payment->getLastTransId()) === false)
         {
             return;
         }
+
+        $this->logger->warning('Debug Log --------------------- 2');
 
         $payment->setAmountPaid($amount)
                 ->setLastTransId($paymentId)
@@ -173,6 +177,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 ->setShouldCloseParentTransaction(true);
 
         $payment->save();
+
+        $this->logger->warning('Debug Log --------------------- 3');
     }
 
     protected function getQuoteObject($post, $quoteId)
