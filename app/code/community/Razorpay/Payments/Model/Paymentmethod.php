@@ -3,12 +3,30 @@
 class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Abstract
 {
     const CHANNEL_NAME                  = 'Razorpay/Magento%s_%s/%s';
+
+    /**
+     * The name of the method on magento
+     */
     const METHOD_CODE                   = 'razorpay';
+
     const CURRENCY                      = 'INR';
+
+    /**
+     * The version of this razorpay plugin
+     */
     const VERSION                       = '1.1.25';
+
     const KEY_ID                        = 'key_id';
     const KEY_SECRET                    = 'key_secret';
+
+    /**
+     * The algorithm we use to encrypt our razorpay_signature
+     */
     const SHA256                        = 'sha256';
+
+    const RAZORPAY_PAYMENT_ID           = 'razorpay_payment_id';
+    const RAZORPAY_ORDER_ID             = 'razorpay_order_id';
+    const RAZORPAY_SIGNATURE            = 'razorpay_signature';
 
     protected $_code                    = self::METHOD_CODE;
     protected $_canOrder                = false;
@@ -63,7 +81,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
     {
         $requestFields = Mage::app()->getRequest()->getPost();
 
-        $paymentId = $requestFields['razorpay_payment_id'];        
+        $paymentId = $requestFields[self::RAZORPAY_PAYMENT_ID];
 
         $session = Mage::getSingleton('checkout/session');
         $order = Mage::getModel('sales/order');
@@ -71,7 +89,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         $order->loadByIncrementId($orderId);
 
         if ((empty($orderId) === false) and 
-            (isset($requestFields['razorpay_payment_id']) === true))
+            (isset($requestFields[self::RAZORPAY_PAYMENT_ID]) === true))
         {
             $success = true;
 
@@ -110,11 +128,17 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         return $success;
     }
 
+    /**
+     * This method is to verify the razorpay payment signature sent across in the post body
+     *
+     * @param $requestFields
+     * @throws Exception
+     */
     protected function verifyPaymentSignature($requestFields)
     {
-        $razorpayPaymentId = $requestFields['razorpay_payment_id'];
+        $razorpayPaymentId = $requestFields[self::RAZORPAY_PAYMENT_ID];
         $razorpayOrderId   = Mage::getSingleton('core/session')->getRazorpayOrderID();
-        $actualSignature   = $requestFields['razorpay_signature'];
+        $actualSignature   = $requestFields[self::RAZORPAY_SIGNATURE];
 
         $payload = $razorpayOrderId . '|' . $razorpayPaymentId;
 
@@ -188,6 +212,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         $order->setState(Mage_Sales_Model_Order::STATE_CANCELED, true);
         $order->addStatusHistoryComment($errorMessage);
         $order->save();
+
         $this->updateInventory($order);   
     }
 

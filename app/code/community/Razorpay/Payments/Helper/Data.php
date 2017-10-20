@@ -4,6 +4,9 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 {
     const CONFIG_PATH_RAZORPAY_ENABLED  = 'payment/razorpay/active';
 
+    /**
+     * Razorpay API's base url
+     */
     const BASE_URL                      = 'https://api.razorpay.com/v1/';
 
     const PAYMENT_MODEL                 = 'razorpay_payments/paymentmethod';
