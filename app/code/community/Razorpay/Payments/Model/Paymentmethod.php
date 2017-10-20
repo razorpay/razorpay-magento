@@ -58,18 +58,6 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         return false;
     }
 
-    /**
-     * Authorizes specified amount
-     *
-     * @param Varien_Object $payment
-     * @param $amount
-     * @return $this
-     */
-    public function authorize(Varien_Object $payment, $amount)
-    {
-        return $this;
-    }
-
     public function getOrderPlaceRedirectUrl()
     {
         $url = Mage::getUrl('razorpay/checkout/index');

@@ -40,11 +40,11 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
 
         $this->loadLayout();
 
-        $razorpay_block = $this->getLayout()
-                    ->createBlock('razorpay_payments/checkout')
-                    ->setOrder($order);
+        $razorpayBlock = $this->getLayout()
+                              ->createBlock('razorpay_payments/checkout')
+                              ->setOrder($order);
 
-        $this->getLayout()->getBlock('content')->append($razorpay_block);
+        $this->getLayout()->getBlock('content')->append($razorpayBlock);
 
         Mage::app()->getLayout()->getBlock('head')->addJs('razorpay/razorpay-utils.js');
 
@@ -88,10 +88,10 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
     }
 
     /**
-    * Returns checkout model instance, native onepage checkout is used
-    *
-    * @return Mage_Checkout_Model_Type_Onepage
-    */
+     * Returns checkout model instance, native onepage checkout is used
+     *
+     * @return Mage_Core_Model_Abstract
+     */
     protected function _getCheckout()
     {
         return Mage::getSingleton('checkout/type_onepage');

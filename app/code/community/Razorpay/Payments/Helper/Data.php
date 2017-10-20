@@ -11,6 +11,8 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
     const PAYMENT_MODEL                 = 'razorpay_payments/paymentmethod';
 
+    const REQUEST_TIMEOUT               = 60;
+
     const KEY_ID                        = 'key_id';
     const KEY_SECRET                    = 'key_secret';
 
@@ -124,7 +126,9 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
             {
                 $data = $this->getRazorpayOrderData($order);
 
-                $response = $this->api->order->create($data);
+                $orderUrl = $this->getRelativeUrl('order');
+
+                $response = $this->sendRequest($orderUrl, 'POST', $data);
 
                 $razorpayOrderId = $response['id'];
 
