@@ -2,7 +2,10 @@
 
 class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Action
 {
-    protected $order;
+    /**
+     * @var Mage_Sales_Model_Quote
+     */
+    protected $_quote;
 
     protected function _expireAjax()
     {
@@ -50,11 +53,9 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
 
     public function successAction()
     {
-        $response = $this->getRequest()->getPost();
-
         $model = Mage::getModel('razorpay_payments/paymentmethod');
 
-        $success = $model->validateSignature($response); 
+        $success = $model->validateSignature();
 
         // Unsetting the session variable upon completion of signature verification
         Mage::getSingleton('core/session')->unsRazorpayOrderID();

@@ -5,6 +5,9 @@ class Razorpay_Payments_Block_Checkout extends Mage_Core_Block_Template
     const KEY_ID        = 'payment/razorpay/key_id';
     const MERCHANT_NAME = 'payment/razorpay/merchant_name_override';
 
+    /**
+     * @var string Contains the template used by razorpay during magento checkout
+     */
     protected $_template = 'razorpay/checkout.phtml';
 
     /**

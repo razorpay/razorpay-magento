@@ -1,10 +1,5 @@
 <?php
 
-require_once __DIR__.'/../../razorpay-php/Razorpay.php';
-
-use Razorpay\Api\Api;
-use Razorpay\Api\Errors;
-
 class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Abstract
 {
     const CHANNEL_NAME                  = 'Razorpay/Magento%s_%s/%s';
@@ -28,21 +23,6 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
     protected $_canRefundInvoicePartial = false;
     protected $_canUseForMultishipping  = false;
 
-    protected $api;
-
-    /**
-     * Constructor
-     */
-    public function __construct()
-    {
-        parent::__construct();
-
-        $keyId     = $this->getConfigData(self::KEY_ID);
-        $keySecret = $this->getConfigData(self::KEY_SECRET);
-
-        $this->api = new Api($keyId, $keySecret);
-    }
-
     /**
      * Check method for processing with base currency
      *
@@ -63,7 +43,8 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
      * Authorizes specified amount
      *
      * @param Varien_Object $payment
-     * @param decimal $amount
+     * @param $amount
+     * @return $this
      */
     public function authorize(Varien_Object $payment, $amount)
     {
@@ -77,7 +58,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         return $url;
     }
 
-    public function validateSignature($response)
+    public function validateSignature()
     {
         $requestFields = Mage::app()->getRequest()->getPost();
 
@@ -91,21 +72,15 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         if ((empty($orderId) === false) and 
             (isset($requestFields['razorpay_payment_id']) === true))
         {
-            $attributes = array(
-                'razorpay_payment_id' => $requestFields['razorpay_payment_id'],
-                'razorpay_order_id'   => Mage::getSingleton('core/session')->getRazorpayOrderID(),
-                'razorpay_signature'  => $requestFields['razorpay_signature']
-            );
-
             $success = true;
 
             $errorMessage = 'Payment failed. Most probably user closed the popup.';
 
             try
             {
-                $this->api->utility->verifyPaymentSignature($attributes);
+                $this->verifyPaymentSignature($requestFields);
             }
-            catch (Errors\SignatureVerificationError $e)
+            catch (Exception $e)
             {
                 $success = false;
 
@@ -132,6 +107,56 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         }
 
         return $success;
+    }
+
+    protected function verifyPaymentSignature($requestFields)
+    {
+        $razorpayPaymentId = $requestFields['razorpay_payment_id'];
+        $razorpayOrderId   = Mage::getSingleton('core/session')->getRazorpayOrderID();
+        $actualSignature   = $requestFields['razorpay_signature'];
+
+        $payload = $razorpayOrderId . '|' . $razorpayPaymentId;
+
+        $secret = $this->getConfigData(self::KEY_SECRET);
+
+        $expectedSignature = hash_hmac(self::SHA256, $payload, $secret);
+
+        $verified = $this->hash_equals($actualSignature, $expectedSignature);
+
+        if ($verified === false)
+        {
+            throw new Exception('Signature verification failed');
+        }
+    }
+
+    /**
+     * Taken from https://stackoverflow.com/questions/10576827/secure-string-compare-function
+     * under the MIT license
+     *
+     * @param $actualSignature
+     * @param $expectedSignature
+     * @return bool
+     */
+    protected function hash_equals($actualSignature, $expectedSignature)
+    {
+        if (function_exists('hash_equals'))
+        {
+            return hash_equals($actualSignature, $expectedSignature);
+        }
+
+        if (strlen($actualSignature) !== strlen($expectedSignature))
+        {
+            return false;
+        }
+
+        $result = 0;
+
+        for ($i = 0; $i < strlen($actualSignature); $i++)
+        {
+            $result |= ord($actualSignature[$i]) ^ ord($expectedSignature[$i]);
+        }
+
+        return ($result == 0);
     }
 
     protected function handleErrorCase($order, $orderId, $requestFields)
@@ -167,8 +192,6 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
 
     protected function updateInventory($order)
     {
-        $stockItem = Mage::getModel('cataloginventory/stock_item');
-
         $items = $order->getAllItems();
 
         foreach ($items as $item)
