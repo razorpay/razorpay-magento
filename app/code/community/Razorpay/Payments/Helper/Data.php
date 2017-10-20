@@ -14,7 +14,11 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
     /**
      * @var array Contains all the urls for Razorpay API calls
      */
-    protected $urls;
+    protected $urls                     = array(
+        'order'   => self::BASE_URL . 'orders',
+        'payment' => self::BASE_URL . 'payments',
+        'refund'  => self::BASE_URL . 'payments/:id/refund'
+    );
 
     /**
      * @var array Contains all the success Http codes
@@ -30,15 +34,6 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
      * @var Mage_Sales_Model_Quote
      */
     protected $_quote;
-
-    public function __construct()
-    {
-        $this->urls = array(
-            'order'   => self::BASE_URL . 'orders',
-            'payment' => self::BASE_URL . 'payments',
-            'refund'  => self::BASE_URL . 'payments/:id/refund'
-        );
-    }
 
     public function isRazorpayEnabled()
     {
