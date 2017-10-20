@@ -8,6 +8,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
     const VERSION                       = '1.1.25';
     const KEY_ID                        = 'key_id';
     const KEY_SECRET                    = 'key_secret';
+    const SHA256                        = 'sha256';
 
     protected $_code                    = self::METHOD_CODE;
     protected $_canOrder                = false;
