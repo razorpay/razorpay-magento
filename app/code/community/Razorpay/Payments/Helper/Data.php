@@ -252,7 +252,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
         {
             $data = $content;
         }
-        
+
         switch ($method)
         {
             case 'POST':
