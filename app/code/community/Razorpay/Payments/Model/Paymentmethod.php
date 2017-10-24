@@ -69,15 +69,13 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
     {
         $requestFields = Mage::app()->getRequest()->getPost();
 
-        $paymentId = $requestFields[self::RAZORPAY_PAYMENT_ID];
-
         $session = Mage::getSingleton('checkout/session');
         $order = Mage::getModel('sales/order');
         $orderId = $session->getLastRealOrderId();
         $order->loadByIncrementId($orderId);
 
         if ((empty($orderId) === false) and 
-            (isset($requestFields[self::RAZORPAY_PAYMENT_ID]) === true))
+            (empty($requestFields[self::RAZORPAY_PAYMENT_ID]) === false))
         {
             $success = true;
 
@@ -96,6 +94,8 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
 
             if ($success === true)
             {
+                $paymentId = $requestFields[self::RAZORPAY_PAYMENT_ID];
+
                 $order->sendNewOrderEmail();
                 $order->setState(Mage_Sales_Model_Order::STATE_PROCESSING, true);
                 $order->addStatusHistoryComment('Payment Successful. Razorpay Payment Id:'.$paymentId);
