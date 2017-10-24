@@ -178,7 +178,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
     public function getRelativeUrl($name, $data = null)
     {
-        if ($data)
+        if (empty($data) === false)
         {
             return strtr($this->urls[$name], $data);
         }
@@ -207,19 +207,20 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
         {
             $responseArray = json_decode($response, true);
 
-            if (in_array($httpStatus, $this->successHttpCodes) and isset($responseArray['error']) === false)
+            if ((in_array($httpStatus, $this->successHttpCodes, true)) and
+                (isset($responseArray['error']) === false))
             {
                 return $responseArray;
             }
             else
             {
-                if (!empty($responseArray['error']['code']))
+                if (empty($responseArray['error']['code']) === false)
                 {
-                    $error = $responseArray['error']['code'].": ".$responseArray['error']['description'];
+                    $error = $responseArray['error']['code'] . ': ' . $responseArray['error']['description'];
                 }
                 else
                 {
-                    $error = "RAZORPAY_ERROR: Invalid Response <br/>".$response;
+                    $error = 'RAZORPAY_ERROR: Invalid Response <br/>' . $response;
                 }
 
                 Mage::throwException($error);
@@ -243,14 +244,15 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
         curl_setopt($ch, CURLOPT_USERPWD, $keyId . ":" . $keySecret);
         curl_setopt($ch, CURLOPT_TIMEOUT, self::REQUEST_TIMEOUT);
 
-        if (is_array($content))
+        if (is_array($content) === true)
         {
             $data = http_build_query($content);
         }
-        else if (is_string($content))
+        else if (is_string($content) === true)
         {
             $data = $content;
         }
+        
         switch ($method)
         {
             case 'POST':
