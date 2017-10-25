@@ -1,36 +1,44 @@
 <?php
 
-require_once __DIR__.'/../../razorpay-php/Razorpay.php';
-
-use Razorpay\Api\Api;
-use Exception;
-
 class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 {
     const CONFIG_PATH_RAZORPAY_ENABLED  = 'payment/razorpay/active';
 
+    /**
+     * Razorpay API's base url
+     */
     const BASE_URL                      = 'https://api.razorpay.com/v1/';
 
     const PAYMENT_MODEL                 = 'razorpay_payments/paymentmethod';
 
+    const REQUEST_TIMEOUT               = 60;
+
     const KEY_ID                        = 'key_id';
     const KEY_SECRET                    = 'key_secret';
 
-    protected $api;
+    /**
+     * @var array Contains all the urls for Razorpay API calls
+     */
+    protected $urls                     = array(
+        'order'   => self::BASE_URL . 'orders',
+        'payment' => self::BASE_URL . 'payments',
+        'refund'  => self::BASE_URL . 'payments/:id/refund'
+    );
 
-    public function __construct()
-    {
-        $paymentModel = Mage::getModel(self::PAYMENT_MODEL);
+    /**
+     * @var array Contains all the success Http codes
+     */
+    protected $successHttpCodes         = array(200, 201, 202, 203, 204, 205, 206, 207, 208, 226);
 
-        $keyId     = $paymentModel->getConfigData(self::KEY_ID);
-        $keySecret = $paymentModel->getConfigData(self::KEY_SECRET);
+    /**
+     * @var Mage_Sales_Model_Order
+     */
+    protected $_order;
 
-        $this->api = new Api($keyId, $keySecret);
-
-        $version = Mage::getVersion() . '-' . $paymentModel::VERSION;
-
-        $this->api->setAppDetails('Magento', $version);
-    }
+    /**
+     * @var Mage_Sales_Model_Quote
+     */
+    protected $_quote;
 
     public function isRazorpayEnabled()
     {
@@ -39,7 +47,9 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
     protected function verifyOrderAmount($razorpayOrderId, $order)
     {
-        $razorpayOrder = $this->api->order->fetch($razorpayOrderId);
+        $url = $this->getRelativeUrl('order') . '/' . $razorpayOrderId;
+
+        $razorpayOrder = $this->sendRequest($url, 'GET');
 
         $orderData = $this->getExpectedRazorpayOrderData($order);
 
@@ -99,8 +109,6 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
         $orderId = $order->getRealOrderId();
 
-        $currency = Razorpay_Payments_Model_Paymentmethod::CURRENCY;
-
         $razorpayOrderId = Mage::getSingleton('core/session')->getRazorpayOrderID();
 
         if ($razorpayOrderId === null)
@@ -118,7 +126,9 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
             {
                 $data = $this->getRazorpayOrderData($order);
 
-                $response = $this->api->order->create($data);
+                $orderUrl = $this->getRelativeUrl('order');
+
+                $response = $this->sendRequest($orderUrl, 'POST', $data);
 
                 $razorpayOrderId = $response['id'];
 
@@ -166,6 +176,104 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
         return Mage::getUrl('razorpay/checkout/success');
     }
 
+    public function getRelativeUrl($name, $data = null)
+    {
+        if (empty($data) === false)
+        {
+            return strtr($this->urls[$name], $data);
+        }
+
+        return $this->urls[$name];
+    }
+
+    public function sendRequest($url, $method = 'POST', $content = array())
+    {
+        $ch = $this->getCurlHandle($url, $method, $content);
+
+        $response = curl_exec($ch);
+
+        $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        $curlError = curl_error($ch);
+
+        curl_close($ch);
+
+        if ($response === false)
+        {
+            $error = 'CURL_ERROR: ' . $curlError;
+            Mage::throwException($error);
+        }
+        else
+        {
+            $responseArray = json_decode($response, true);
+
+            if ((in_array($httpStatus, $this->successHttpCodes, true)) and
+                (isset($responseArray['error']) === false))
+            {
+                return $responseArray;
+            }
+            else
+            {
+                if (empty($responseArray['error']['code']) === false)
+                {
+                    $error = $responseArray['error']['code'] . ': ' . $responseArray['error']['description'];
+                }
+                else
+                {
+                    $error = 'RAZORPAY_ERROR: Invalid Response <br/>' . $response;
+                }
+
+                Mage::throwException($error);
+            }
+        }
+    }
+
+    private function getCurlHandle($url, $method = 'POST', $content = array())
+    {
+        $paymentModel = Mage::getModel(self::PAYMENT_MODEL);
+
+        $keyId = $paymentModel->getConfigData(self::KEY_ID);
+
+        $keySecret = $paymentModel->getConfigData(self::KEY_SECRET);
+
+        $method = strtoupper($method);
+
+        //cURL Request
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_USERPWD, $keyId . ":" . $keySecret);
+        curl_setopt($ch, CURLOPT_TIMEOUT, self::REQUEST_TIMEOUT);
+
+        if (is_array($content) === true)
+        {
+            $data = http_build_query($content);
+        }
+        else if (is_string($content) === true)
+        {
+            $data = $content;
+        }
+
+        switch ($method)
+        {
+            case 'POST':
+                curl_setopt($ch, CURLOPT_POST, true);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+                break;
+
+            case 'PATCH':
+            case 'PUT':
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+                break;
+        }
+
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_CAINFO, dirname(__FILE__) . '/ca-bundle.crt');
+
+        return $ch;
+    }
+
     /**
      * Get order model
      *
@@ -182,6 +290,11 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
         return $this->_order;
     }
 
+    /**
+     * Get quote model
+     *
+     * @return Mage_Sales_Model_Quote
+     */
     protected function _getQuote()
     {
         if (!$this->_quote)
