@@ -15,6 +15,10 @@ panel (System -> Cache Management).
 
 Download this repo. Merge the app folder in this repo with the app folder in your magento installation directory. Once installed, it can be configured under Configuration->Payment Gateways.
 
+### Pre-requisites
+- PHP >= 5.4.45 and <= 5.6.26
+- Magento 1.x
+
 ### Support
 
 Visit [https://razorpay.com](https://razorpay.com) for support requests or email contact@razorpay.com.
