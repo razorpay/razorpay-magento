@@ -18,6 +18,7 @@ Download this repo. Merge the app folder in this repo with the app folder in you
 ### Pre-requisites
 - PHP >= 5.4.45 and <= 5.6.26
 - Magento 1.x
+- php-curl
 
 ### Support
 
