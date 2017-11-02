@@ -72,16 +72,18 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
     protected function getExpectedRazorpayOrderData($order)
     {
-        $amount  = (int) ($order->getBaseGrandTotal() * 100);
+        $orderCurrency = $order->getBaseCurrencyCode();
 
-        $orderId = $order->getRealOrderId();
+        $orderAmount = (int) ($order->getBaseGrandTotal() * 100);
 
-        $currency = Razorpay_Payments_Model_Paymentmethod::CURRENCY;
+        if ($orderCurrency !== Razorpay_Payments_Model_Paymentmethod::CURRENCY) {
+            $orderAmount = $this->getOrderAmountInInr($orderAmount, $orderCurrency);
+        }
 
         $data = array(
-            'receipt'  => $orderId,
-            'amount'   => $amount,
-            'currency' => $currency,
+            'receipt'  => $order->getRealOrderId(),
+            'amount'   => $orderAmount,
+            'currency' => 'INR',
         );
 
         Mage::log(array('expectedRazorpayOrderData' => $data));
@@ -98,6 +100,15 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
         Mage::log(array('razorpayOrderData' => $data));
 
         return $data;
+    }
+
+    protected function getOrderAmountInInr($orderAmount, $orderCurrency)
+    {
+        $url = "http://api.fixer.io/latest?base=$orderCurrency";
+
+        $rates = json_decode(file_get_contents($url), true);
+
+        return $orderAmount * $rates['rates']['INR'];
     }
 
     public function createOrder($order)
