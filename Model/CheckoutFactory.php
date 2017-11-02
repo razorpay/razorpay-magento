@@ -24,7 +24,7 @@ class CheckoutFactory
     /**
      * Create class instance with specified parameters
      *
-     * @param string $className
+     * @param mixed $className
      * @param array $data
      * @return \Razorpay\Magento\Model\PaymentMethod
      */

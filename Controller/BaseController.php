@@ -37,6 +37,29 @@ abstract class BaseController extends \Magento\Framework\App\Action\Action
     protected $checkout;
 
     /**
+     * @var Config
+     */
+    protected $config;
+
+    /**
+     * Razorpay API key ID
+     * @var mixed
+     */
+    protected $key_id;
+
+    /**
+     * Razorpay API key secret
+     * @var mixed
+     */
+    protected $key_secret;
+
+    /**
+     * Razorpay API instance
+     * @var Api
+     */
+    protected $rzp;
+
+    /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession
@@ -47,8 +70,10 @@ abstract class BaseController extends \Magento\Framework\App\Action\Action
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Checkout\Model\Session $checkoutSession,
         \Razorpay\Magento\Model\Config $config
-    ) {
+    )
+    {
         parent::__construct($context);
+
         $this->customerSession = $customerSession;
         $this->checkoutSession = $checkoutSession;
         $this->config = $config;
@@ -68,7 +93,9 @@ abstract class BaseController extends \Magento\Framework\App\Action\Action
     protected function initCheckout()
     {
         $quote = $this->getQuote();
-        if (!$quote->hasItems() || $quote->getHasError()) {
+
+        if (!$quote->hasItems() || $quote->getHasError())
+        {
             $this->getResponse()->setStatusHeader(403, '1.1', 'Forbidden');
             throw new \Magento\Framework\Exception\LocalizedException(__('We can\'t initialize checkout.'));
         }
@@ -81,9 +108,11 @@ abstract class BaseController extends \Magento\Framework\App\Action\Action
      */
     protected function getQuote()
     {
-        if (!$this->quote) {
+        if (!$this->quote)
+        {
             $this->quote = $this->checkoutSession->getQuote();
         }
+
         return $this->quote;
     }
 
@@ -92,15 +121,16 @@ abstract class BaseController extends \Magento\Framework\App\Action\Action
      */
     protected function getCheckout()
     {
-        if (!$this->checkout) {
+        if (!$this->checkout)
+        {
             $this->checkout = $this->checkoutFactory->create(
                 [
                     'params' => [
                         'quote' => $this->checkoutSession->getQuote(),
                     ],
-                ]
-            );
+                ]);
         }
+
         return $this->checkout;
     }
 }

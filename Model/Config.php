@@ -31,9 +31,8 @@ class Config
     /**
      * @param ScopeConfigInterface $scopeConfig
      */
-    public function __construct(
-        ScopeConfigInterface $scopeConfig
-    ) {
+    public function __construct(ScopeConfigInterface $scopeConfig)
+    {
         $this->scopeConfig = $scopeConfig;
     }
 
@@ -70,7 +69,8 @@ class Config
      */
     public function getConfigData($field, $storeId = null)
     {
-        if ($storeId == null) {
+        if ($storeId == null)
+        {
             $storeId = $this->storeId;
         }
 
@@ -99,9 +99,12 @@ class Config
         /*
         for specific country, the flag will set up as 1
         */
-        if ($this->getConfigData(self::KEY_ALLOW_SPECIFIC) == 1) {
+        if ($this->getConfigData(self::KEY_ALLOW_SPECIFIC) == 1)
+        {
             $availableCountries = explode(',', $this->getConfigData(self::KEY_SPECIFIC_COUNTRY));
-            if (!in_array($country, $availableCountries)) {
+
+            if (!in_array($country, $availableCountries))
+            {
                 return false;
             }
         }
