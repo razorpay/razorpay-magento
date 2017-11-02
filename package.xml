@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
     <name>Razorpay</name>
-    <version>1.1.21</version>
+    <version>1.1.27</version>
     <stability>devel</stability>
     <license>MIT</license>
     <channel>community</channel>
@@ -26,27 +26,27 @@
             <email>nemo@razorpay.com</email>
         </author>
     </authors>
-    <date>2017-06-02</date>
-    <time>12:08:51</time>
+    <date>2017-11-01</date>
+    <time>16:40:36</time>
     <contents>
         <target name="magecommunity">
             <dir name="Razorpay">
                 <dir name="Payments">
                     <dir name="Block">
-                        <file hash="15049195e1e3d519298a3bd5095990fe" name="Checkout.php"/>
+                        <file hash="f4a294aae80936bb06e4d535e5361e24" name="Checkout.php"/>
                     </dir>
                     <dir name="Helper">
-                        <file hash="3fd07eea56ef4ee5e33c0617b6bf45c0" name="Data.php"/>
+                        <file hash="8787597e2f94c9a0282d4cba0d7665dc" name="Data.php"/>
                         <file hash="308c55e7a7d56a27fcfb3983169c3491" name="ca-bundle.crt"/>
                     </dir>
                     <dir name="Model">
-                        <file hash="047e980e649899ad81a6b1d20897071a" name="Paymentmethod.php"/>
+                        <file hash="d3a619c66b3059707e8f5d3b90fd43cf" name="Paymentmethod.php"/>
                     </dir>
                     <dir name="controllers">
-                        <file hash="0b2d6c07ed86081eb8febcf0f42783f0" name="CheckoutController.php"/>
+                        <file hash="a2fc1c814a9f814a7880a018e66f362b" name="CheckoutController.php"/>
                     </dir>
                     <dir name="etc">
-                        <file hash="c57d918e0cbdc579dbda48882bec4577" name="config.xml"/>
+                        <file hash="019a82094166b5e39056b70a4ae4a6c0" name="config.xml"/>
                         <file hash="3045e0b5d2d2d0b52e47c23a64f99445" name="system.xml"/>
                     </dir>
                 </dir>
@@ -55,7 +55,7 @@
         <target name="mage">
             <dir name="js">
                 <dir name="razorpay">
-                    <file hash="72f19a2d8ec4fa2bc48c0fa5fbb100ac" name="razorpay-utils.js"/>
+                    <file hash="1bc586bb3d5b50b0a61c951aefd0468d" name="razorpay-utils.js"/>
                 </dir>
             </dir>
         </target>
@@ -64,12 +64,8 @@
                 <dir name="base">
                     <dir name="default">
                         <dir name="layout">
-                            <file hash="961142f9df434dfbb4322dcf0db33733" name="razorpay.xml"/>
-                        </dir>
-                        <dir name="template">
-                            <dir name="razorpay">
-                                <file hash="557c96239438d1864595f6d9e75253b5" name="checkout.phtml"/>
-                            </dir>
+                            <file hash="770b2da9a019e06ef950b0fc75f1ab23" name="razorpay.xml"/>
+                            <file hash="" name="checkout.phtml"/>
                         </dir>
                     </dir>
                 </dir>
