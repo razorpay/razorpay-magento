@@ -5,47 +5,69 @@ function RazorpayUtils(options) {
         return this.options.merchant_name;
     },
 
-    this.placeOrder = function(onSuccess, onDismiss, formId, paymentIdField)
-    {
-        if (!formId) {
-            formId = "razorpay";
+        this.placeOrder = function(onSuccess, onDismiss, formId, paymentIdField) {
+            if (!formId) {
+                formId = "razorpay";
+            }
+
+            if (!paymentIdField) {
+                paymentIdField = "razorpay_payment_id";
+            }
+
+            var checkout;
+
+            var options = {
+                key: this.options.key_id,
+                name: this.options.merchant_name,
+                amount: this.options.base_amount,
+                currency: 'INR',
+                handler: onSuccess,
+                order_id: this.options.razorpay_order_id,
+                modal: {
+                    ondismiss: onDismiss
+                },
+                notes: {
+                    merchant_order_id: this.options.order_id
+                },
+                prefill: {
+                    name: this.options.customer_name,
+                    contact: this.options.customer_phone,
+                    email: this.options.customer_email
+                },
+                callback_url: this.options.callback_url,
+            };
+
+            if (this.options.base_currency !== null &&
+                this.options.base_currency !== 'INR')
+            {
+                options['display_currency'] = this.options.base_currency;
+                options['display_amount'] = this.options.base_amount / 100;
+
+                var url = 'http://api.fixer.io/latest?base=' + this.options.base_currency;
+
+                // Setting amount based on current currency rate
+                var response = this.httpGetAsync(url);
+
+                options['amount'] = JSON.parse(response).rates.INR * options['amount'];
+            }
+            else if (this.options.quote_currency !== null &&
+                this.options.quote_currency !== 'INR')
+            {
+                options['display_currency'] = this.options.quote_currency;
+                options['display_amount'] = this.options.quote_amount;
+            }
+
+            checkout = new Razorpay(options);
+
+            checkout.open();
+        },
+
+        this.httpGetAsync = function(url) {
+            var xmlHttp = new XMLHttpRequest();
+
+            xmlHttp.open('GET', url, false); // sync call
+            xmlHttp.send(null);
+
+            return xmlHttp.responseText;
         }
-        if (!paymentIdField) {
-            paymentIdField = "razorpay_payment_id";
-        }
-
-        var checkout;
-
-        var options = {
-            key: this.options.key_id,
-            name: this.options.merchant_name,
-            amount: this.options.base_amount,
-            currency: this.options.currency,
-            handler: onSuccess,
-            order_id: this.options.razorpay_order_id,
-            modal: {
-                ondismiss: onDismiss
-            },
-            notes: {
-                merchant_order_id: this.options.order_id
-            },
-            prefill: {
-                name: this.options.customer_name,
-                contact: this.options.customer_phone,
-                email: this.options.customer_email
-            },
-            callback_url: this.options.callback_url,
-        };
-
-        if (this.options.quote_currency !== null &&
-            this.options.quote_currency !== this.options.base_currency)
-        {
-            options['display_currency'] = this.options.quote_currency;
-            options['display_amount'] = this.options.quote_amount;
-        }
-
-        checkout = new Razorpay(options);
-
-        checkout.open();
-    }
 };
