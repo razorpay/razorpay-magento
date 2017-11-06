@@ -28,18 +28,34 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
     const RAZORPAY_ORDER_ID             = 'razorpay_order_id';
     const RAZORPAY_SIGNATURE            = 'razorpay_signature';
 
+    /**
+     * Method code of the plugin
+     * @var string
+     */
     protected $_code                    = self::METHOD_CODE;
-    protected $_canOrder                = false;
-    protected $_isInitializeNeeded      = false;
+
+    /**
+     * Tells us that this plugin is a payment gateway
+     * @var bool
+     */
     protected $_isGateway               = true;
+
+    /**
+     * Tells us that this plugin cna perform the authorize action
+     * @var bool
+     */
     protected $_canAuthorize            = true;
-    protected $_canCapture              = false;
-    protected $_canCapturePartial       = false;
-    protected $_canRefund               = false;
-    protected $_canVoid                 = false;
+
+    /**
+     * Tells us that this plugin can be used for admin orders
+     * @var bool
+     */
     protected $_canUseInternal          = true;
-    protected $_canUseCheckout          = true;
-    protected $_canRefundInvoicePartial = false;
+
+    /**
+     * Tells us that this plugin can not be used for multishipping
+     * @var bool
+     */
     protected $_canUseForMultishipping  = false;
 
     /**
@@ -72,14 +88,15 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         $session = Mage::getSingleton('checkout/session');
         $order = Mage::getModel('sales/order');
         $orderId = $session->getLastRealOrderId();
-        $order->loadByIncrementId($orderId);
 
-        $amount = $order->getBaseGrandTotal();
-        $currencyAmount = $order->getGrantTotal();
+        $order->loadByIncrementId($orderId);
 
         if ((empty($orderId) === false) and 
             (empty($requestFields[self::RAZORPAY_PAYMENT_ID]) === false))
         {
+            $amount = $order->getBaseGrandTotal();
+            $currencyAmount = $order->getGrandTotal();
+
             $success = true;
 
             $errorMessage = 'Payment failed. Most probably user closed the popup.';
@@ -196,6 +213,8 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
                 $errorMessage .= '. Field : ' . $error['field'];
             }
         }
+
+        // TODO: If orderId is empty, how will the order be loaded?
 
         $this->updateOrderFailed($order, $errorMessage);
     }
