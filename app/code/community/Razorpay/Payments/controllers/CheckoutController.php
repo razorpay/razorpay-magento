@@ -3,6 +3,21 @@
 class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Action
 {
     /**
+     * The config that will tell us if webhook has been enabled
+     */
+    const WEBHOOK_ENABLED  = 'webhook_enabled';
+
+    /**
+     * The config that will tell us the user's webhook secret
+     */
+    const WEBHOOK_SECRET   = 'webhook_secret';
+
+    /**
+     * The razorpay payments model class
+     */
+    const PAYMENT_MODEL    = 'razorpay_payments/paymentmethod';
+
+    /**
      * @var Mage_Sales_Model_Quote
      */
     protected $_quote;
@@ -70,6 +85,21 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
         {
             $this->_redirect('checkout/onepage/failure');
         }
+    }
+
+    /**
+     * This method is used to process the data sent as part of the razorpay webhook.
+     * The webhook relative url is /razorpay/checkout/webhook
+     */
+    public function webhookAction()
+    {
+        $paymentModel = Mage::getModel(self::PAYMENT_MODEL);
+
+        $webhookEnabled = $paymentModel->getConfigData(self::WEBHOOK_ENABLED);
+
+        $webhookSecret = $paymentModel->getConfigData(self::WEBHOOK_SECRET);
+
+        var_dump($webhookEnabled, $webhookSecret); die;
     }
 
     /**

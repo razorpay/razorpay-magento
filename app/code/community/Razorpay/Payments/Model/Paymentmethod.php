@@ -89,6 +89,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         $order = Mage::getModel('sales/order');
         $orderId = $session->getLastRealOrderId();
 
+        // TODO: If orderId is empty, order won't be loaded. This is a bug in the system
         $order->loadByIncrementId($orderId);
 
         if ((empty($orderId) === false) and 
