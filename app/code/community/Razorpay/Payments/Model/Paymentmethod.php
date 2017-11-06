@@ -95,9 +95,6 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         if ((empty($orderId) === false) and 
             (empty($requestFields[self::RAZORPAY_PAYMENT_ID]) === false))
         {
-            $amount = $order->getBaseGrandTotal();
-            $currencyAmount = $order->getGrandTotal();
-
             $success = true;
 
             $errorMessage = 'Payment failed. Most probably user closed the popup.';
@@ -117,12 +114,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
             {
                 $paymentId = $requestFields[self::RAZORPAY_PAYMENT_ID];
 
-                $order->sendNewOrderEmail();
-                $order->setState(Mage_Sales_Model_Order::STATE_PROCESSING, true);
-                $order->addStatusHistoryComment('Payment Successful. Razorpay Payment Id:'.$paymentId);
-                $order->setBaseTotalPaid($amount);
-                $order->setTotalPaid($currencyAmount);
-                $order->save();
+                $this->markOrderPaid($order, $paymentId);
             }
             else
             {
@@ -137,6 +129,38 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         }
 
         return $success;
+    }
+
+    public function markOrderPaid($order, $paymentId)
+    {
+        $amount = $order->getBaseGrandTotal();
+        $currencyAmount = $order->getGrandTotal();
+
+        $order->sendNewOrderEmail();
+        $order->setState(Mage_Sales_Model_Order::STATE_PROCESSING, true);
+        $order->addStatusHistoryComment('Payment Successful. Razorpay Payment Id:'.$paymentId);
+        $order->setBaseTotalPaid($amount);
+        $order->setTotalPaid($currencyAmount);
+        $order->save();
+    }
+
+    public function verifyWebhookSignature($payload, $actualSignature, $webhookSecret)
+    {
+        $expectedSignature = hash_hmac(self::SHA256, $payload, $webhookSecret);
+
+        if (function_exists('hash_equals') === true)
+        {
+            $verified = hash_equals($expectedSignature, $actualSignature);
+        }
+        else
+        {
+            $verified = $this->hash_equals($expectedSignature, $actualSignature);
+        }
+
+        if ($verified === false)
+        {
+            throw new Exception('Webhook signature failed');
+        }
     }
 
     /**

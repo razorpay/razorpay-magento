@@ -5,17 +5,27 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
     /**
      * The config that will tell us if webhook has been enabled
      */
-    const WEBHOOK_ENABLED  = 'webhook_enabled';
+    const WEBHOOK_ENABLED    = 'webhook_enabled';
 
     /**
      * The config that will tell us the user's webhook secret
      */
-    const WEBHOOK_SECRET   = 'webhook_secret';
+    const WEBHOOK_SECRET     = 'webhook_secret';
 
     /**
      * The razorpay payments model class
      */
-    const PAYMENT_MODEL    = 'razorpay_payments/paymentmethod';
+    const PAYMENT_MODEL      = 'razorpay_payments/paymentmethod';
+
+    /**
+     * The algorithm we use to calculate webhook secret
+     */
+    const SHA256             = 'sha256';
+
+    /**
+     * Payment authorized webhook event
+     */
+    const PAYMENT_AUTHORIZED = 'payment.Authorized';
 
     /**
      * @var Mage_Sales_Model_Quote
@@ -95,11 +105,75 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
     {
         $paymentModel = Mage::getModel(self::PAYMENT_MODEL);
 
-        $webhookEnabled = $paymentModel->getConfigData(self::WEBHOOK_ENABLED);
+        $webhookEnabled = (bool) $paymentModel->getConfigData(self::WEBHOOK_ENABLED);
 
         $webhookSecret = $paymentModel->getConfigData(self::WEBHOOK_SECRET);
 
-        var_dump($webhookEnabled, $webhookSecret); die;
+        //
+        // Webhook has to enabled and webhook secret has to be set in the admin panel of the plugin
+        //
+        if (($webhookEnabled === true) and
+            (empty($webhookSecret) === false))
+        {
+            $payload = $this->getPostData();
+
+            $webhookSignature = Mage::app()->getRequest()->getHeader('HTTP_X_RAZORPAY_SIGNATURE');
+
+            try
+            {
+                $paymentModel->verifyWebhookSignature(json_encode($payload), $webhookSignature, $webhookSecret);
+            }
+            catch (Exception $e)
+            {
+                Mage::log(json_encode(['message' => $e->getMessage()]));
+
+                return;
+            }
+
+            switch ($payload['event'])
+            {
+                case 'payment.authorized':
+                    return $this->paymentAuthorized($payload);
+
+                default:
+                    return;
+            }
+        }
+    }
+
+    protected function paymentAuthorized($payload)
+    {
+        $order = Mage::getModel('sales/order');
+
+        $orderId = $payload['payload']['payment']['entity']['notes']['merchant_order_id'];
+
+        $order->loadByIncrementId($orderId);
+
+        // TODO: What if the orderId doesn't load the order entity?
+
+        //
+        // We don't want to process this webhook if the order is already marked to processing
+        //
+        if ($order->getState() === Mage_Sales_Model_Order::STATE_PROCESSING)
+        {
+            return;
+        }
+
+        $paymentId = $payload['payload']['payment']['entity']['id'];
+
+        $paymentModel = Mage::getModel(self::PAYMENT_MODEL);
+
+        $paymentModel->markOrderPaid($order, $paymentId);
+    }
+
+    /**
+     * @return Webhook post data as an array
+     */
+    protected function getPostData()
+    {
+        $request = file_get_contents('php://input');
+
+        return json_decode($request, true);
     }
 
     /**
