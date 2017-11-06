@@ -125,14 +125,14 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
             }
             catch (Exception $e)
             {
-                Mage::log(json_encode(['message' => $e->getMessage()]));
+                Mage::log(json_encode(array('message' => $e->getMessage())));
 
                 return;
             }
 
             switch ($payload['event'])
             {
-                case 'payment.authorized':
+                case self::PAYMENT_AUTHORIZED:
                     return $this->paymentAuthorized($payload);
 
                 default:
@@ -143,13 +143,11 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
 
     protected function paymentAuthorized($payload)
     {
-        $order = Mage::getModel('sales/order');
+        $paymentModel = Mage::getModel(self::PAYMENT_MODEL);
 
         $orderId = $payload['payload']['payment']['entity']['notes']['merchant_order_id'];
 
-        $order->loadByIncrementId($orderId);
-
-        // TODO: What if the orderId doesn't load the order entity?
+        $order = $paymentModel->loadMagentoOrder($orderId);
 
         //
         // We don't want to process this webhook if the order is already marked to processing
@@ -160,8 +158,6 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
         }
 
         $paymentId = $payload['payload']['payment']['entity']['id'];
-
-        $paymentModel = Mage::getModel(self::PAYMENT_MODEL);
 
         $paymentModel->markOrderPaid($order, $paymentId);
     }

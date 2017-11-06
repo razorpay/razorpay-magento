@@ -86,13 +86,12 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         $requestFields = Mage::app()->getRequest()->getPost();
 
         $session = Mage::getSingleton('checkout/session');
-        $order = Mage::getModel('sales/order');
         $orderId = $session->getLastRealOrderId();
 
-        // TODO: If orderId is empty, order won't be loaded. This is a bug in the system
-        $order->loadByIncrementId($orderId);
+        // If $orderId isn't valid, $order is returned to be null
+        $order = $this->loadMagentoOrder($orderId);
 
-        if ((empty($orderId) === false) and 
+        if ((empty($order) === false) and
             (empty($requestFields[self::RAZORPAY_PAYMENT_ID]) === false))
         {
             $success = true;
@@ -125,10 +124,32 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         {
             $success = false;
 
-            $this->handleErrorCase($order, $orderId, $requestFields);
+            $this->handleErrorCase($order, $requestFields);
         }
 
         return $success;
+    }
+
+    /**
+     * @param $orderId
+     * @return false|Mage_Core_Model_Abstract|null
+     */
+    public function loadMagentoOrder($orderId)
+    {
+        $order = Mage::getModel('sales/order');
+
+        try
+        {
+            $order->loadByIncrementId($orderId);
+        }
+        catch (TypeError $e)
+        {
+            Mage::log(json_encode(['message' => $e->getMessage()]));
+
+            return null;
+        }
+
+        return $order;
     }
 
     public function markOrderPaid($order, $paymentId)
@@ -219,14 +240,23 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         return ($result == 0);
     }
 
-    protected function handleErrorCase($order, $orderId, $requestFields)
+    protected function handleErrorCase($order, $requestFields)
     {
-        if (empty($orderId) === true)
+        $errorMessage = "Error processing order";
+
+        if (empty($order) === true)
         {
-            $errorMessage = 'An error occurred while processing the order';
+            //
+            // If we weren't able to load the order, we simply return
+            //
+            return;
         }
         else if (isset($requestFields['error']) === true)
         {
+            //
+            // If error is set in the request fields, we set the errorMessage accordingly
+            //
+
             $error = $requestFields['error'];
 
             $errorMessage = 'An error occurred. Description : ' 
@@ -238,8 +268,6 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
                 $errorMessage .= '. Field : ' . $error['field'];
             }
         }
-
-        // TODO: If orderId is empty, how will the order be loaded?
 
         $this->updateOrderFailed($order, $errorMessage);
     }

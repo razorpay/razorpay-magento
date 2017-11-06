@@ -113,10 +113,12 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
         if ($razorpayOrderId === null)
         {
-            Mage::log(array(
+            $log = array(
                 'order_id'        => $orderId,
                 'razorpayOrderId' => 'NULL'
-            ));
+            );
+
+            Mage::log(json_encode($log));
         }
 
         try
