@@ -5,27 +5,29 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
     /**
      * The config that will tell us if webhook has been enabled
      */
-    const WEBHOOK_ENABLED    = 'webhook_enabled';
+    const WEBHOOK_ENABLED           = 'webhook_enabled';
 
     /**
      * The config that will tell us the user's webhook secret
      */
-    const WEBHOOK_SECRET     = 'webhook_secret';
+    const WEBHOOK_SECRET            = 'webhook_secret';
 
     /**
      * The razorpay payments model class
      */
-    const PAYMENT_MODEL      = 'razorpay_payments/paymentmethod';
+    const PAYMENT_MODEL             = 'razorpay_payments/paymentmethod';
 
     /**
      * The algorithm we use to calculate webhook secret
      */
-    const SHA256             = 'sha256';
+    const SHA256                    = 'sha256';
 
     /**
      * Payment authorized webhook event
      */
-    const PAYMENT_AUTHORIZED = 'payment.Authorized';
+    const PAYMENT_AUTHORIZED        = 'payment.authorized';
+
+    const HEADER_RAZORPAY_SIGNATURE = 'X-Razorpay-Signature';
 
     /**
      * @var Mage_Sales_Model_Quote
@@ -117,7 +119,7 @@ class Razorpay_Payments_CheckoutController extends Mage_Core_Controller_Front_Ac
         {
             $payload = $this->getPostData();
 
-            $webhookSignature = Mage::app()->getRequest()->getHeader('HTTP_X_RAZORPAY_SIGNATURE');
+            $webhookSignature = Mage::app()->getRequest()->getHeader(self::HEADER_RAZORPAY_SIGNATURE);
 
             try
             {
