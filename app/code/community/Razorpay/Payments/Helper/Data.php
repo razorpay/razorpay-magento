@@ -103,22 +103,22 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
         return $data;
     }
 
+    /**
+     * @param $orderAmount
+     * @param $orderCurrency
+     * @return int
+     */
     protected function getOrderAmountInInr($orderAmount, $orderCurrency)
     {
         $url = "http://api.fixer.io/latest?base=$orderCurrency";
 
         $rates = json_decode(file_get_contents($url), true);
 
-        return (int) round($orderAmount * $rates['rates']['INR'], 2);
+        return (int) ($orderAmount * $rates['rates']['INR']);
     }
 
     public function createOrder($order)
     {
-        $amount             = (int) ($order->getBaseGrandTotal() * 100);
-        $base_currency      = $order->getBaseCurrencyCode();
-        $quote_currency     = $order->getOrderCurrencyCode();
-        $quote_amount       = round($order->getGrandTotal(), 2);
-
         $orderId = $order->getRealOrderId();
 
         $razorpayOrderId = Mage::getSingleton('core/session')->getRazorpayOrderID();
@@ -163,16 +163,28 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
         $bA = $order->getBillingAddress();
 
+        $amount            = (int) ($order->getBaseGrandTotal() * 100);
+        $baseCurrency      = $order->getBaseCurrencyCode();
+
+        $quoteCurrency     = $order->getOrderCurrencyCode();
+        $quoteAmount       = round($order->getGrandTotal(), 2);
+
+        // For eg. If base currency is USD
+        if ($baseCurrency !== 'INR')
+        {
+            $amount = $this->getOrderAmountInInr($amount, $baseCurrency);
+        }
+
         $responseArray = array(
             // order id has to be stored and fetched later from the db or session
             'customer_name'     => $bA->getFirstname() . ' ' . $bA->getLastname(),
             'customer_phone'    => $bA->getTelephone() ?: '',
             'order_id'          => $orderId,
             'base_amount'       => $amount,
-            'base_currency'     => $base_currency,
+            'base_currency'     => 'INR',
             'customer_email'    => $order->getData('customer_email') ?: '',
-            'quote_currency'    => $quote_currency,
-            'quote_amount'      => $quote_amount,
+            'quote_currency'    => $quoteCurrency,
+            'quote_amount'      => $quoteAmount,
             'razorpay_order_id' => $razorpayOrderId, 
             'callback_url'      => $this->getCallbackUrl()
         );

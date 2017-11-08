@@ -20,7 +20,7 @@ function RazorpayUtils(options) {
                 key: this.options.key_id,
                 name: this.options.merchant_name,
                 amount: this.options.base_amount,
-                currency: 'INR',
+                currency: this.options.base_currency,
                 handler: onSuccess,
                 order_id: this.options.razorpay_order_id,
                 modal: {
@@ -37,20 +37,7 @@ function RazorpayUtils(options) {
                 callback_url: this.options.callback_url,
             };
 
-            if (this.options.base_currency !== null &&
-                this.options.base_currency !== 'INR')
-            {
-                options['display_currency'] = this.options.base_currency;
-                options['display_amount'] = this.options.base_amount / 100;
-
-                var url = 'http://api.fixer.io/latest?base=' + this.options.base_currency;
-
-                // Setting amount based on current currency rate
-                var response = this.httpGetAsync(url);
-
-                options['amount'] = JSON.parse(response).rates.INR * options['amount'];
-            }
-            else if (this.options.quote_currency !== null &&
+            if (this.options.quote_currency !== null &&
                 this.options.quote_currency !== 'INR')
             {
                 options['display_currency'] = this.options.quote_currency;
@@ -60,14 +47,5 @@ function RazorpayUtils(options) {
             checkout = new Razorpay(options);
 
             checkout.open();
-        },
-
-        this.httpGetAsync = function(url) {
-            var xmlHttp = new XMLHttpRequest();
-
-            xmlHttp.open('GET', url, false); // sync call
-            xmlHttp.send(null);
-
-            return xmlHttp.responseText;
         }
 };
