@@ -36,6 +36,26 @@ class ConfigProvider implements ConfigProviderInterface
     protected $urlBuilder;
 
     /**
+     * @var \Magento\Framework\View\Asset\Repository
+     */
+    protected $assetRepo;
+
+    /**
+     * @var \Magento\Framework\App\RequestInterface
+     */
+    protected $request;
+
+    /**
+     * @var \Psr\Log\LoggerInterface
+     */
+    protected $logger;
+
+    /**
+     * @var string
+     */
+    protected $method;
+
+    /**
      * @param \Magento\Checkout\Model\Session $checkoutSession
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Framework\Url $urlBuilder

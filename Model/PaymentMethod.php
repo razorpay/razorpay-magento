@@ -3,13 +3,9 @@
 namespace Razorpay\Magento\Model;
 
 use Razorpay\Api\Api;
-use Magento\Framework\Exception\LocalizedException;
-use Magento\Sales\Model\Order\Payment\Transaction;
-use Magento\Sales\Model\ResourceModel\Order\Payment\Transaction\CollectionFactory as TransactionCollectionFactory;
-use Magento\Sales\Model\Order\Payment\Transaction as PaymentTransaction;
 use Magento\Payment\Model\InfoInterface;
-use Razorpay\Magento\Model\Config;
-use Magento\Catalog\Model\Session;
+use Magento\Framework\Exception\LocalizedException;
+use Magento\Sales\Model\ResourceModel\Order\Payment\Transaction\CollectionFactory as TransactionCollectionFactory;
 
 /**
  * Class PaymentMethod
@@ -96,6 +92,22 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     protected $orderRepository;
 
     /**
+     * @var Api
+     */
+    protected $rzp;
+
+    /**
+     * @var \Razorpay\Magento\Controller\Payment\Order
+     */
+    protected $order;
+
+    /**
+     * @var \Magento\Framework\Url
+     */
+    protected $urlBuilder;
+
+    /**
+     * PaymentMethod constructor.
      * @param \Magento\Framework\Model\Context $context
      * @param \Magento\Framework\Registry $registry
      * @param \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory
@@ -103,14 +115,16 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      * @param \Magento\Payment\Helper\Data $paymentData
      * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
      * @param \Magento\Payment\Model\Method\Logger $logger
-     * @param \Razorpay\Magento\Model\Config $config
+     * @param Config $config
      * @param \Magento\Framework\App\RequestInterface $request
      * @param TransactionCollectionFactory $salesTransactionCollectionFactory
      * @param \Magento\Framework\App\ProductMetadataInterface $productMetaData
      * @param \Magento\Directory\Model\RegionFactory $regionFactory
-     * @param \Magento\Framework\Model\ResourceModel\AbstractResource $resource
      * @param \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
-     * @param \Magento\Framework\Data\Collection\AbstractDb $resourceCollection
+     * @param \Razorpay\Magento\Controller\Payment\Order $order
+     * @param \Magento\Framework\Url $urlBuilder
+     * @param \Magento\Framework\Model\ResourceModel\AbstractResource|null $resource
+     * @param \Magento\Framework\Data\Collection\AbstractDb|null $resourceCollection
      * @param array $data
      * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
@@ -129,10 +143,12 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         \Magento\Directory\Model\RegionFactory $regionFactory,
         \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
         \Razorpay\Magento\Controller\Payment\Order $order,
+        \Magento\Framework\Url $urlBuilder,
         \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
         \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
         array $data = []
-    ) {
+    )
+    {
         parent::__construct(
             $context,
             $registry,
@@ -145,21 +161,23 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             $resourceCollection,
             $data
         );
+
         $this->config = $config;
         $this->request = $request;
         $this->salesTransactionCollectionFactory = $salesTransactionCollectionFactory;
         $this->productMetaData = $productMetaData;
         $this->regionFactory = $regionFactory;
         $this->orderRepository = $orderRepository;
+        $this->urlBuilder = $urlBuilder;
 
-        $this->key_id = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
-        $this->key_secret = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
+        $keyId = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
+        $keySecret = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
 
-        $this->rzp = new Api($this->key_id, $this->key_secret);
-
-        $this->order = $order;
+        $this->rzp = new Api($keyId, $keySecret);
 
         $this->rzp->setHeader('User-Agent', 'Razorpay/'. $this->getChannel());
+
+        $this->order = $order;
     }
 
     /**
@@ -171,13 +189,18 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     public function validate()
     {
         $info = $this->getInfoInstance();
-        if ($info instanceof \Magento\Sales\Model\Order\Payment) {
+
+        if ($info instanceof \Magento\Sales\Model\Order\Payment)
+        {
             $billingCountry = $info->getOrder()->getBillingAddress()->getCountryId();
-        } else {
+        }
+        else
+        {
             $billingCountry = $info->getQuote()->getBillingAddress()->getCountryId();
         }
 
-        if (!$this->config->canUseForCountry($billingCountry)) {
+        if ($this->config->canUseForCountry($billingCountry) === false)
+        {
             throw new LocalizedException(__('Selected payment type is not allowed for billing country.'));
         }
 
@@ -196,26 +219,23 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     {
         try 
         {
-            /** @var \Magento\Sales\Model\Order\Payment $payment */
-            $order = $payment->getOrder();
-            $orderId = $order->getIncrementId();
-
             $request = $this->getPostData();
 
-            $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
+            $paymentId = $request['paymentMethod']['additional_data']['rzp_payment_id'];
             
             $this->validateSignature($request);
 
             $payment->setStatus(self::STATUS_APPROVED)
                     ->setAmountPaid($amount)
-                    ->setLastTransId($payment_id)
-                    ->setTransactionId($payment_id)
+                    ->setLastTransId($paymentId)
+                    ->setTransactionId($paymentId)
                     ->setIsTransactionClosed(true)
                     ->setShouldCloseParentTransaction(true);
         } 
         catch (\Exception $e) 
         {
-            $this->_logger->critical($e);
+            $this->_logger->critical($e->getMessage());
+
             throw new LocalizedException(__('Razorpay Error: %1.', $e->getMessage()));
         }
 
@@ -275,9 +295,16 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      */
     public function getConfigData($field, $storeId = null)
     {
-        if ('order_place_redirect_url' === $field) {
+        if ('order_place_redirect_url' === $field)
+        {
             return $this->getOrderPlaceRedirectUrl();
         }
+
         return $this->config->getConfigData($field, $storeId);
+    }
+
+    public function getOrderPlaceRedirectUrl()
+    {
+        return $this->urlBuilder->getUrl('razorpay/payment/checkout');
     }
 }
