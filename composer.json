@@ -1,0 +1,46 @@
+{
+    "name": "razorpay/magento",
+    "description": "Razorpay Magento 2.0 plugin for accepting payments.",
+    "require": {
+        "php": "~5.5.0|~5.6.0|~7.0.0",
+        "magento/framework": "100.*",
+        "razorpay/razorpay": "2.*"
+    },
+    "keywords": [
+      "razorpay", "magento", "payments", "india",
+      "payment gateway", "wallets", "netbanking"
+    ],
+    "authors": [
+        {
+            "name": "Vivek",
+            "email": "vivek@razorpay.com",
+            "role": "Developer"
+        },
+        {
+            "name": "Mayank Amencherla",
+            "email": "mayank.amencherla@razorpay.com",
+            "role": "Developer"
+        }
+    ],
+    "support": {
+      "email": "support@razorpay.com",
+      "issues": "https://github.com/razorpay/razorpay-magento/issues",
+      "docs": "https://docs.razorpay.com/v1/page/integrating-your-magento-store-with-razorpay"
+    },
+    "homepage": "https://razorpay.com",
+    "suggest": {
+        "magento/module-checkout-agreements": "100.0.*"
+    },
+    "type": "magento2-module",
+    "license": [
+        "MIT"
+    ],
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "Razorpay\\Magento\\": ""
+        }
+    }
+}

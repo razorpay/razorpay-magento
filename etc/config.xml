@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <payment>
+            <razorpay>
+                <model>Razorpay\Magento\Model\Razorpay</model>
+                <title>Razorpay</title>
+                <merchant_name_override>Magento</merchant_name_override>
+                <payment_action>authorize_capture</payment_action>
+                <active>0</active>
+                <order_status>pending</order_status>
+                <key_id>Key ID</key_id>
+                <key_secret backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
+                <allowspecific>0</allowspecific>
+            </razorpay>
+        </payment>
+    </default>
+</config>
