@@ -110,11 +110,20 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
      */
     protected function getOrderAmountInInr($orderAmount, $orderCurrency)
     {
-        $url = "http://api.fixer.io/latest?base=$orderCurrency";
+        $amount = Mage::getSingleton('core/session')->getOrderAmount();
 
-        $rates = json_decode(file_get_contents($url), true);
+        if ($amount === null)
+        {
+            $url = "http://api.fixer.io/latest?base=$orderCurrency";
 
-        return (int) ($orderAmount * $rates['rates']['INR']);
+            $rates = json_decode(file_get_contents($url), true);
+
+            $amount = ceil($orderAmount * $rates['rates'][Razorpay_Payments_Model_Paymentmethod::CURRENCY]);
+
+            Mage::getSingleton('core/session')->setOrderAmount($amount);
+        }
+
+        return $amount;
     }
 
     public function createOrder($order)
@@ -170,7 +179,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
         $quoteAmount       = round($order->getGrandTotal(), 2);
 
         // For eg. If base currency is USD
-        if ($baseCurrency !== 'INR')
+        if ($baseCurrency !== Razorpay_Payments_Model_Paymentmethod::CURRENCY)
         {
             $amount = $this->getOrderAmountInInr($amount, $baseCurrency);
         }
@@ -181,7 +190,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
             'customer_phone'    => $bA->getTelephone() ?: '',
             'order_id'          => $orderId,
             'base_amount'       => $amount,
-            'base_currency'     => 'INR',
+            'base_currency'     => Razorpay_Payments_Model_Paymentmethod::CURRENCY,
             'customer_email'    => $order->getData('customer_email') ?: '',
             'quote_currency'    => $quoteCurrency,
             'quote_amount'      => $quoteAmount,
