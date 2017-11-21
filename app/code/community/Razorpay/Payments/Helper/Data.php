@@ -78,7 +78,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
         if ($orderCurrency !== Razorpay_Payments_Model_Paymentmethod::CURRENCY)
         {
-            $orderAmount = $this->getOrderAmountInInr($orderAmount, $orderCurrency);
+            $orderAmount = $this->getOrderAmountInInr($orderAmount, $orderCurrency, false);
         }
 
         $data = array(
@@ -106,13 +106,18 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
     /**
      * @param $orderAmount
      * @param $orderCurrency
-     * @return int
+     * @param bool $create
+     * @return float
      */
-    protected function getOrderAmountInInr($orderAmount, $orderCurrency)
+    protected function getOrderAmountInInr($orderAmount, $orderCurrency, $create = true)
     {
         $amount = Mage::getSingleton('core/session')->getOrderAmount();
 
-        if ($amount === null)
+        //
+        // For create step, we always re-calculate the INR amount
+        // For validation step, we only calculate if the amount is not stored in the session
+        //
+        if (($amount === null) or ($create === true))
         {
             $url = "http://api.fixer.io/latest?base=$orderCurrency";
 
