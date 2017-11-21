@@ -117,7 +117,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
         // For create step, we always re-calculate the INR amount
         // For validation step, we only calculate if the amount is not stored in the session
         //
-        if (($amount === null) or ($create === true))
+        if ($create === true)
         {
             $url = "http://api.fixer.io/latest?base=$orderCurrency";
 
@@ -188,6 +188,8 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
         {
             $amount = $this->getOrderAmountInInr($amount, $baseCurrency);
         }
+
+        Mage::getSingleton('core/session')->unsetOrderAmount();
 
         $responseArray = array(
             // order id has to be stored and fetched later from the db or session
