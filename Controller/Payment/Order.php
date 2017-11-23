@@ -12,12 +12,15 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 	protected $checkoutSession;
 
 	protected $_currency = PaymentMethod::CURRENCY;
-	/**
+
+    /**
+     * Order constructor.
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession
-     * @param \Magento\Razorpay\Model\CheckoutFactory $checkoutFactory
-     * @param \Magento\Razorpay\Model\Config\Payment $razorpayConfig
+     * @param \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory
+     * @param \Razorpay\Magento\Model\Config $config
+     * @param \Magento\Catalog\Model\Session $catalogSession
      */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
@@ -40,9 +43,12 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
     public function execute()
     {
-        $amount = (int) (round($this->getQuote()->getBaseGrandTotal(), 2) * 100);
+        $magentoOrder = $this->checkoutSession->getLastRealOrder();
 
-        $receipt_id = $this->getQuote()->getId();
+        // Order amount has to be in INR, and base currenct should be in INR
+        $amount = (int) (round($magentoOrder->getBaseGrandTotal() * 100, 2));
+
+        $orderId = $magentoOrder->getIncrementId();
 
         $code = 400;
 
@@ -50,7 +56,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         {
             $order = $this->rzp->order->create([
                 'amount' => $amount,
-                'receipt' => $receipt_id,
+                'receipt' => $orderId,
                 'currency' => $this->_currency,
                 'payment_capture' => 1                 // auto-capture
             ]);
@@ -65,10 +71,10 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 $responseContent = [
                     'success'        => true,
                     'rzp_order'      => $order->id,
-                    'order_id'       => $receipt_id,
+                    'order_id'       => $orderId,
                     'amount'         => $order->amount,
-                    'quote_currency' => $this->getQuote()->getQuoteCurrencyCode(),
-                    'quote_amount'   => round($this->getQuote()->getGrandTotal(), 2)
+                    'quote_currency' => $magentoOrder->getOrderCurrencyCode(),
+                    'quote_amount'   => round($magentoOrder->getGrandTotal(), 2)
                 ];
 
                 $code = 200;
