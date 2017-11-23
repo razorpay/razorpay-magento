@@ -73,11 +73,7 @@ define(
                 return this;
             },
 
-            /**
-             * @override
-             */
-             /** Process Payment */
-            afterPlaceOrder: function () {
+            afterPlaceOrder: function() {
                 var self = this,
                     billing_address,
                     rzp_order_id;
@@ -96,18 +92,14 @@ define(
                 if (!customer.isLoggedIn()) {
                     this.user.email = quote.guestEmail;
                 }
-                else 
+                else
                 {
                     this.user.email = customer.customerData.email;
                 }
 
                 this.isPaymentProcessing = $.Deferred();
 
-                $.when(this.isPaymentProcessing).done(
-                    function () {
-                        redirectOnSuccessAction.execute();
-                    }
-                ).fail(
+                $.when(this.isPaymentProcessing).fail(
                     function (result) {
                         self.handleError(result);
                     }
@@ -123,7 +115,7 @@ define(
 
                 $.ajax({
                     type: 'POST',
-                    url: url.build('razorpay/payment/order'), 
+                    url: url.build('razorpay/payment/order'),
 
                     /**
                      * Success callback
@@ -160,12 +152,28 @@ define(
                     amount: data.amount,
                     handler: function (data) {
                         self.rzp_response = data;
-                        redirectOnSuccessAction.execute();
+                        $.ajax({
+                            type: 'POST',
+                            url: url.build('razorpay/payment/authorize'),
+                            data: data,
+
+                            success: function() {
+                                // On successful signature verification,
+                                // we redirect to success page
+                                redirectOnSuccessAction.execute();
+                            },
+
+                            error: function() {
+                                // On signature verification failure,
+                                // we redirect to failure page
+                                $.mage.redirect('onepage/failure');
+                            }
+                        });
                     },
                     order_id: data.rzp_order,
                     modal: {
                         ondismiss: function() {
-                            // TODO: Should redirect to failure url
+                            // TODO: Is this case handled?
                             self.isPaymentProcessing.reject("Payment Closed");
                         }
                     },
@@ -186,6 +194,8 @@ define(
                 }
 
                 this.rzp = new Razorpay(options);
+
+                // TODO: Payment screen opens and then redirection happens
 
                 this.rzp.open();
             },
