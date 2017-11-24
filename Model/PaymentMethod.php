@@ -4,12 +4,8 @@ namespace Razorpay\Magento\Model;
 
 use Razorpay\Api\Api;
 use Magento\Framework\Exception\LocalizedException;
-use Magento\Sales\Model\Order\Payment\Transaction;
 use Magento\Sales\Model\ResourceModel\Order\Payment\Transaction\CollectionFactory as TransactionCollectionFactory;
-use Magento\Sales\Model\Order\Payment\Transaction as PaymentTransaction;
 use Magento\Payment\Model\InfoInterface;
-use Razorpay\Magento\Model\Config;
-use Magento\Catalog\Model\Session;
 
 /**
  * Class PaymentMethod
@@ -182,62 +178,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         }
 
         return $this;
-    }
-
-    /**
-     * Authorizes specified amount
-     *
-     * @param InfoInterface $payment
-     * @param string $amount
-     * @return $this
-     * @throws LocalizedException
-     */
-    public function authorize(InfoInterface $payment, $amount)
-    {
-        try 
-        {
-            /** @var \Magento\Sales\Model\Order\Payment $payment */
-            $order = $payment->getOrder();
-            $orderId = $order->getIncrementId();
-
-            $request = $this->getPostData();
-
-            $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
-            
-            $this->validateSignature($request);
-
-            $payment->setStatus(self::STATUS_APPROVED)
-                    ->setAmountPaid($amount)
-                    ->setLastTransId($payment_id)
-                    ->setTransactionId($payment_id)
-                    ->setIsTransactionClosed(true)
-                    ->setShouldCloseParentTransaction(true);
-        } 
-        catch (\Exception $e) 
-        {
-            $this->_logger->critical($e);
-            throw new LocalizedException(__('Razorpay Error: %1.', $e->getMessage()));
-        }
-
-        return $this;
-    }
-
-    protected function validateSignature($request)
-    {
-        $attributes = array(
-            'razorpay_payment_id' => $request['paymentMethod']['additional_data']['rzp_payment_id'],
-            'razorpay_order_id'   => $this->order->getOrderId(),
-            'razorpay_signature'  => $request['paymentMethod']['additional_data']['rzp_signature'],
-        );
-        
-        $this->rzp->utility->verifyPaymentSignature($attributes);
-    }
-
-    protected function getPostData()
-    {
-        $request = file_get_contents('php://input');
-
-        return json_decode($request, true);
     }
 
     /**

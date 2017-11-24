@@ -26,7 +26,7 @@
                 <button class="action primary checkout"
                     type="submit"
                     data-bind="
-                    click: preparePayment,
+                    click: placeOrder,
                     attr: {title: $t('Pay with Razorpay')},
                     css: {disabled: !isPlaceOrderActionAllowed()},
                     enable: (getCode() == isChecked())

@@ -10,12 +10,14 @@ define(
         'Magento_Customer/js/model/customer',
         'Magento_Checkout/js/action/place-order',
         'Magento_Checkout/js/model/full-screen-loader',
-        'Magento_Ui/js/model/messageList'
+        'Magento_Ui/js/model/messageList',
+        'Magento_Checkout/js/action/redirect-on-success'
     ],
-    function (Component, quote, $, ko, additionalValidators, setPaymentInformationAction, url, customer, placeOrderAction, fullScreenLoader, messageList) {
+    function (Component, quote, $, ko, additionalValidators, setPaymentInformationAction, url, customer, placeOrderAction, fullScreenLoader, messageList, redirectOnSuccessAction) {
         'use strict';
 
         return Component.extend({
+            redirectAfterPlaceOrder: false,
             defaults: {
                 template: 'Razorpay_Magento/payment/razorpay-form',
                 razorpayDataFrameLoaded: false,
@@ -71,11 +73,7 @@ define(
                 return this;
             },
 
-            /**
-             * @override
-             */
-             /** Process Payment */
-            preparePayment: function (context, event) {
+            afterPlaceOrder: function() {
                 var self = this,
                     billing_address,
                     rzp_order_id;
@@ -94,7 +92,7 @@ define(
                 if (!customer.isLoggedIn()) {
                     this.user.email = quote.guestEmail;
                 }
-                else 
+                else
                 {
                     this.user.email = customer.customerData.email;
                 }
@@ -103,7 +101,7 @@ define(
 
                 $.when(this.isPaymentProcessing).done(
                     function () {
-                        self.placeOrder();
+                        // self.placeOrder();
                     }
                 ).fail(
                     function (result) {
@@ -121,7 +119,7 @@ define(
 
                 $.ajax({
                     type: 'POST',
-                    url: url.build('razorpay/payment/order'), 
+                    url: url.build('razorpay/payment/order'),
 
                     /**
                      * Success callback
@@ -158,11 +156,28 @@ define(
                     amount: data.amount,
                     handler: function (data) {
                         self.rzp_response = data;
-                        self.placeOrder(data);
+                        $.ajax({
+                            type: 'POST',
+                            url: url.build('razorpay/payment/authorize'),
+                            data: data,
+
+                            success: function() {
+                                // On successful signature verification,
+                                // we redirect to success page
+                                redirectOnSuccessAction.execute();
+                            },
+
+                            error: function() {
+                                // On signature verification failure,
+                                // we redirect to failure page
+                                $.mage.redirect('onepage/failure');
+                            }
+                        });
                     },
                     order_id: data.rzp_order,
                     modal: {
                         ondismiss: function() {
+                            // TODO: Is this case handled?
                             self.isPaymentProcessing.reject("Payment Closed");
                         }
                     },
@@ -183,6 +198,8 @@ define(
                 }
 
                 this.rzp = new Razorpay(options);
+
+                // TODO: Payment screen opens and then redirection happens
 
                 this.rzp.open();
             },
