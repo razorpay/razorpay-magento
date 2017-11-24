@@ -123,7 +123,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
             $rates = json_decode(file_get_contents($url), true);
 
-            $amount = ceil($orderAmount * $rates['rates'][Razorpay_Payments_Model_Paymentmethod::CURRENCY]);
+            $amount = (int) ceil($orderAmount * $rates['rates'][Razorpay_Payments_Model_Paymentmethod::CURRENCY]);
 
             Mage::getSingleton('core/session')->setOrderAmount($amount);
         }

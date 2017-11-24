@@ -5,7 +5,8 @@ function RazorpayUtils(options) {
         return this.options.merchant_name;
     },
 
-        this.placeOrder = function(onSuccess, onDismiss, formId, paymentIdField) {
+        this.placeOrder = function(onSuccess, onDismiss, formId, paymentIdField)
+        {
             if (!formId) {
                 formId = "razorpay";
             }
