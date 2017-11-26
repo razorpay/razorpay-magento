@@ -78,8 +78,6 @@ class Authorize extends \Razorpay\Magento\Controller\BaseController
 
             $paymentId = $attributes['razorpay_payment_id'];
 
-            // TODO: Need to ensure that order is getting marked correctly with the correct status
-
             $payment->setStatus(PaymentMethod::STATUS_APPROVED)
                     ->setAmountPaid($amount)
                     ->setLastTransId($paymentId)
@@ -89,6 +87,10 @@ class Authorize extends \Razorpay\Magento\Controller\BaseController
         }
         catch (\Exception $e)
         {
+            $magentoOrder->setState('pending')
+                         ->setStatus('pending')
+                         ->save();
+
             $this->logger->critical($e);
             throw new LocalizedException(__('Razorpay Error: %1.', $e->getMessage()));
         }
