@@ -99,11 +99,7 @@ define(
 
                 this.isPaymentProcessing = $.Deferred();
 
-                $.when(this.isPaymentProcessing).done(
-                    function () {
-                        // self.placeOrder();
-                    }
-                ).fail(
+                $.when(this.isPaymentProcessing).fail(
                     function (result) {
                         self.handleError(result);
                     }
@@ -177,8 +173,13 @@ define(
                     order_id: data.rzp_order,
                     modal: {
                         ondismiss: function() {
-                            // TODO: Is this case handled?
+                            $.ajax({
+                                type: 'POST',
+                                url: url.build('razorpay/payment/authorize'),
+                            });
+
                             self.isPaymentProcessing.reject("Payment Closed");
+                            $.mage.redirect('onepage/failure');
                         }
                     },
                     notes: {
