@@ -88,6 +88,7 @@ class Authorize extends \Razorpay\Magento\Controller\BaseController
                     ->setTransactionId($paymentId)
                     ->setIsTransactionClosed(true)
                     ->setShouldCloseParentTransaction(true)
+                    ->setAdditionalData('razorpay_payment_id', $paymentId)
                     ->place();
         }
         catch (\Exception $e)

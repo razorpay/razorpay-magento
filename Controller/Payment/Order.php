@@ -43,7 +43,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
         $this->logger = $logger;
         $this->checkoutFactory = $checkoutFactory;
-        $this->catalogSession = $catalogSession;
     }
 
     public function execute()
@@ -84,7 +83,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
                 $code = 200;
 
-                $this->catalogSession->setRazorpayOrderID($order->id);
+                $this->checkoutSession->setRazorpayOrderID($order->id);
             }
         }
         catch(\Razorpay\Api\Errors\Error $e)
