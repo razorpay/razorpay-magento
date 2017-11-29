@@ -78,12 +78,17 @@ class Authorize extends \Razorpay\Magento\Controller\BaseController
 
             $paymentId = $attributes['razorpay_payment_id'];
 
+            $magentoOrder->setState('processing')
+                         ->setStatus('processing')
+                         ->save();
+
             $payment->setStatus(PaymentMethod::STATUS_APPROVED)
                     ->setAmountPaid($amount)
                     ->setLastTransId($paymentId)
                     ->setTransactionId($paymentId)
                     ->setIsTransactionClosed(true)
-                    ->setShouldCloseParentTransaction(true);
+                    ->setShouldCloseParentTransaction(true)
+                    ->place();
         }
         catch (\Exception $e)
         {
@@ -100,7 +105,7 @@ class Authorize extends \Razorpay\Magento\Controller\BaseController
     {
         return [
             'razorpay_payment_id' => $_POST['razorpay_payment_id'],
-            'razorpay_order_id'   => $_POST['razorpay_order_id'],
+            'razorpay_order_id'   => $this->checkoutSession->getRazorpayOrderID(),
             'razorpay_signature'  => $_POST['razorpay_signature'],
         ];
     }
