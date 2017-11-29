@@ -8,7 +8,7 @@
                 <merchant_name_override>Magento</merchant_name_override>
                 <payment_action>authorize</payment_action>
                 <active>0</active>
-                <order_status>pending</order_status>
+                <order_status>new</order_status>
                 <key_id>Key ID</key_id>
                 <key_secret>Key Secret</key_secret>
             </razorpay>
