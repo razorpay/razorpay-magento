@@ -4,12 +4,12 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
 {
     const CHANNEL_NAME                  = 'Razorpay/Magento%s_%s/%s';
 
+    const CURRENCY                      = 'INR';
+
     /**
      * The name of the method on magento
      */
     const METHOD_CODE                   = 'razorpay';
-
-    const CURRENCY                      = 'INR';
 
     /**
      * The version of this razorpay plugin
@@ -43,6 +43,12 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
     protected $_canUseForMultishipping  = false;
 
     /**
+     * List of base currencies supported by the plugin
+     * @var array
+     */
+    protected $supportedCurrencyCodes   = array('INR', 'USD');
+
+    /**
      * Check method for processing with base currency
      *
      * @param string $currencyCode
@@ -50,7 +56,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
      */
     public function canUseForCurrency($currencyCode)
     {
-        if ($currencyCode === 'INR')
+        if (in_array($currencyCode, $this->supportedCurrencyCodes, true))
         {
             return true;
         }
@@ -74,12 +80,12 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
         $orderId = $session->getLastRealOrderId();
         $order->loadByIncrementId($orderId);
 
-        $amount = $order->getBaseGrandTotal();
-        $currencyAmount = $order->getGrantTotal();
-
         if ((empty($orderId) === false) and 
             (empty($requestFields[self::RAZORPAY_PAYMENT_ID]) === false))
         {
+            $amount = $order->getBaseGrandTotal();
+            $currencyAmount = $order->getGrandTotal();
+
             $success = true;
 
             $errorMessage = 'Payment failed. Most probably user closed the popup.';

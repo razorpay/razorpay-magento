@@ -72,16 +72,19 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
     protected function getExpectedRazorpayOrderData($order)
     {
-        $amount  = (int) ($order->getBaseGrandTotal() * 100);
+        $orderCurrency = $order->getBaseCurrencyCode();
 
-        $orderId = $order->getRealOrderId();
+        $orderAmount = (int) ($order->getBaseGrandTotal() * 100);
 
-        $currency = Razorpay_Payments_Model_Paymentmethod::CURRENCY;
+        if ($orderCurrency !== Razorpay_Payments_Model_Paymentmethod::CURRENCY)
+        {
+            $orderAmount = $this->getOrderAmountInInr($orderAmount, $orderCurrency, false);
+        }
 
         $data = array(
-            'receipt'  => $orderId,
-            'amount'   => $amount,
-            'currency' => $currency,
+            'receipt'  => $order->getRealOrderId(),
+            'amount'   => $orderAmount,
+            'currency' => Razorpay_Payments_Model_Paymentmethod::CURRENCY,
         );
 
         Mage::log(array('expectedRazorpayOrderData' => $data));
@@ -100,13 +103,36 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
         return $data;
     }
 
+    /**
+     * @param $orderAmount
+     * @param $orderCurrency
+     * @param bool $create
+     * @return float
+     */
+    protected function getOrderAmountInInr($orderAmount, $orderCurrency, $create = true)
+    {
+        $amount = Mage::getSingleton('core/session')->getOrderAmount();
+
+        //
+        // For create step, we always re-calculate the INR amount
+        // For validation step, we only calculate if the amount is not stored in the session
+        //
+        if (($amount === null) or ($create === true))
+        {
+            $url = "http://api.fixer.io/latest?base=$orderCurrency";
+
+            $rates = json_decode(file_get_contents($url), true);
+
+            $amount = (int) ceil($orderAmount * $rates['rates'][Razorpay_Payments_Model_Paymentmethod::CURRENCY]);
+
+            Mage::getSingleton('core/session')->setOrderAmount($amount);
+        }
+
+        return $amount;
+    }
+
     public function createOrder($order)
     {
-        $amount             = (int) ($order->getBaseGrandTotal() * 100);
-        $base_currency      = $order->getBaseCurrencyCode();
-        $quote_currency     = $order->getCurrencyCode();
-        $quote_amount       = round($order->getGrandTotal(), 2);
-
         $orderId = $order->getRealOrderId();
 
         $razorpayOrderId = Mage::getSingleton('core/session')->getRazorpayOrderID();
@@ -151,16 +177,30 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
         $bA = $order->getBillingAddress();
 
+        $amount            = (int) ($order->getBaseGrandTotal() * 100);
+        $baseCurrency      = $order->getBaseCurrencyCode();
+
+        $quoteCurrency     = $order->getOrderCurrencyCode();
+        $quoteAmount       = round($order->getGrandTotal(), 2);
+
+        // For eg. If base currency is USD
+        if ($baseCurrency !== Razorpay_Payments_Model_Paymentmethod::CURRENCY)
+        {
+            $amount = $this->getOrderAmountInInr($amount, $baseCurrency);
+        }
+
+        Mage::getSingleton('core/session')->unsetOrderAmount();
+
         $responseArray = array(
             // order id has to be stored and fetched later from the db or session
             'customer_name'     => $bA->getFirstname() . ' ' . $bA->getLastname(),
             'customer_phone'    => $bA->getTelephone() ?: '',
             'order_id'          => $orderId,
             'base_amount'       => $amount,
-            'base_currency'     => $base_currency,
+            'base_currency'     => Razorpay_Payments_Model_Paymentmethod::CURRENCY,
             'customer_email'    => $order->getData('customer_email') ?: '',
-            'quote_currency'    => $quote_currency,
-            'quote_amount'      => $quote_amount,
+            'quote_currency'    => $quoteCurrency,
+            'quote_amount'      => $quoteAmount,
             'razorpay_order_id' => $razorpayOrderId, 
             'callback_url'      => $this->getCallbackUrl()
         );
