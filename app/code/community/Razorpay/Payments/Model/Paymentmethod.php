@@ -29,6 +29,7 @@ class Razorpay_Payments_Model_Paymentmethod extends Mage_Payment_Model_Method_Ab
     const RAZORPAY_SIGNATURE            = 'razorpay_signature';
 
     protected $_code                    = self::METHOD_CODE;
+    protected $_formBlockType           = 'payment/razorpay';
     protected $_canOrder                = false;
     protected $_isInitializeNeeded      = false;
     protected $_isGateway               = true;
