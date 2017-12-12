@@ -49,4 +49,4 @@ function RazorpayUtils(options) {
 
             checkout.open();
         }
-};
+}
