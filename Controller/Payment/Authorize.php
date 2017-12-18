@@ -79,8 +79,7 @@ class Authorize extends \Razorpay\Magento\Controller\BaseController
             $paymentId = $attributes['razorpay_payment_id'];
 
             $magentoOrder->setState('processing')
-                         ->setStatus('processing')
-                         ->save();
+                         ->setStatus('processing');
 
             $payment->setStatus(PaymentMethod::STATUS_APPROVED)
                     ->setAmountPaid($amount)
@@ -90,11 +89,16 @@ class Authorize extends \Razorpay\Magento\Controller\BaseController
                     ->setShouldCloseParentTransaction(true)
                     ->setAdditionalData('razorpay_payment_id', $paymentId)
                     ->place();
+
+            $magentoOrder->save();
         }
         catch (\Exception $e)
         {
+            $comment = 'Payment pending. Razorpay payment failed.';
+
             $magentoOrder->setState('pending')
                          ->setStatus('pending')
+                         ->addStatusHistoryComment($comment)
                          ->save();
 
             $this->logger->critical($e);
