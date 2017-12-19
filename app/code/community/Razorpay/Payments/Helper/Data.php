@@ -186,7 +186,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
         // For eg. If base currency is USD
         if ($baseCurrency !== Razorpay_Payments_Model_Paymentmethod::CURRENCY)
         {
-            $amount = $this->getOrderAmountInInr($amount, $baseCurrency);
+            $amount = $this->getOrderAmountInInr($amount, $baseCurrency, false);
         }
 
         Mage::getSingleton('core/session')->unsetOrderAmount();
