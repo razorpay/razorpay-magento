@@ -96,8 +96,8 @@ class Authorize extends \Razorpay\Magento\Controller\BaseController
         {
             $comment = 'Payment pending. Razorpay payment failed.';
 
-            $magentoOrder->setState('pending')
-                         ->setStatus('pending')
+            $magentoOrder->setState('pending_payment')
+                         ->setStatus('pending_payment')
                          ->addStatusHistoryComment($comment)
                          ->save();
 
