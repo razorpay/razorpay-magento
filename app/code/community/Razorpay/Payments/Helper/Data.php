@@ -51,7 +51,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
         $razorpayOrder = $this->sendRequest($url, 'GET');
 
-        $orderData = $this->getExpectedRazorpayOrderData($order);
+        $orderData = $this->getExpectedRazorpayOrderData($order, false);
 
         $orderData['id'] = $razorpayOrderId;
 
@@ -70,7 +70,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
         return true;
     }
 
-    protected function getExpectedRazorpayOrderData($order)
+    protected function getExpectedRazorpayOrderData($order, $create)
     {
         $orderCurrency = $order->getBaseCurrencyCode();
 
@@ -78,7 +78,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
         if ($orderCurrency !== Razorpay_Payments_Model_Paymentmethod::CURRENCY)
         {
-            $orderAmount = $this->getOrderAmountInInr($orderAmount, $orderCurrency, false);
+            $orderAmount = $this->getOrderAmountInInr($orderAmount, $orderCurrency, $create);
         }
 
         $data = array(
@@ -94,7 +94,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
     protected function getRazorpayOrderData($order)
     {
-        $data = $this->getExpectedRazorpayOrderData($order);
+        $data = $this->getExpectedRazorpayOrderData($order, true);
 
         $data['payment_capture'] = 1;
 
@@ -147,7 +147,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
 
         try
         {
-            if (($razorpayOrderId === null) or 
+            if (($razorpayOrderId === null) or
                 (($razorpayOrderId) and ($this->verifyOrderAmount($razorpayOrderId, $order) === false)))
             {
                 $data = $this->getRazorpayOrderData($order);
@@ -201,7 +201,7 @@ class Razorpay_Payments_Helper_Data extends Mage_Core_Helper_Abstract
             'customer_email'    => $order->getData('customer_email') ?: '',
             'quote_currency'    => $quoteCurrency,
             'quote_amount'      => $quoteAmount,
-            'razorpay_order_id' => $razorpayOrderId, 
+            'razorpay_order_id' => $razorpayOrderId,
             'callback_url'      => $this->getCallbackUrl()
         );
 
