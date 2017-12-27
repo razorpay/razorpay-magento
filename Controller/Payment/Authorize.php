@@ -67,8 +67,10 @@ class Authorize extends \Razorpay\Magento\Controller\BaseController
         {
             $magentoOrder = $this->checkoutSession->getLastRealOrder();
 
+            $amountAuthorized = $magentoOrder->getBaseGrandTotal();
+
             // Order amount has to be in INR, and base currenct should be in INR
-            $amount = (int) (round($magentoOrder->getBaseGrandTotal() * 100, 2));
+            $amount = (int) (round($amountAuthorized * 100, 2));
 
             $payment = $magentoOrder->getPayment();
 
@@ -78,8 +80,12 @@ class Authorize extends \Razorpay\Magento\Controller\BaseController
 
             $paymentId = $attributes['razorpay_payment_id'];
 
-            $magentoOrder->setState('processing')
-                         ->setStatus('processing');
+            $comment = "Payment processed. Razorpay Payment ID: $paymentId.";
+
+            $magentoOrder->setState(\Magento\Sales\Model\Order::STATE_PROCESSING)
+                         ->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING)
+                         ->setCustomerNote($comment)
+                         ->save();
 
             $payment->setStatus(PaymentMethod::STATUS_APPROVED)
                     ->setAmountPaid($amount)
@@ -88,16 +94,14 @@ class Authorize extends \Razorpay\Magento\Controller\BaseController
                     ->setIsTransactionClosed(true)
                     ->setShouldCloseParentTransaction(true)
                     ->setAdditionalData('razorpay_payment_id', $paymentId)
-                    ->place();
-
-            $magentoOrder->save();
+                    ->save();
         }
         catch (\Exception $e)
         {
             $comment = 'Payment pending. Razorpay payment failed.';
 
-            $magentoOrder->setState('pending_payment')
-                         ->setStatus('pending_payment')
+            $magentoOrder->setState(\Magento\Sales\Model\Order::STATE_PENDING_PAYMENT)
+                         ->setStatus(\Magento\Sales\Model\Order::STATE_PENDING_PAYMENT)
                          ->addStatusHistoryComment($comment)
                          ->save();
 

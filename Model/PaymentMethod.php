@@ -193,6 +193,21 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         return $this;
     }
 
+    public function order(\Magento\Payment\Model\InfoInterface $payment, $amount)
+    {
+        $order = $payment->getOrder();
+
+        $state = \Magento\Sales\Model\Order::STATE_PENDING_PAYMENT;
+
+        $order->setState($state)
+              ->setStatus($state)
+              ->save();
+
+        $payment->setSkipOrderProcessing(true)->save();
+
+        return $this;
+    }
+
     /**
      * Format param "channel" for transaction
      *

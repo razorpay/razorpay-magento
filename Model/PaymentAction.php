@@ -13,6 +13,10 @@ class PaymentAction implements ArrayInterface
     {
         return [
             [
+                'value' => \Razorpay\Magento\Model\PaymentMethod::ACTION_ORDER,
+                'label' => __('Order')
+            ],
+            [
                 'value' => \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE,
                 'label' => __('Authorize Only'),
             ],
