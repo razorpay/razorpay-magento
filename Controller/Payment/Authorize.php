@@ -82,18 +82,21 @@ class Authorize extends \Razorpay\Magento\Controller\BaseController
 
             $comment = "Payment processed. Razorpay Payment ID: $paymentId.";
 
+            $payment->authorize(false, $amountAuthorized)
+                    ->capture();
+
             $magentoOrder->setState(\Magento\Sales\Model\Order::STATE_PROCESSING)
                          ->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING)
-                         ->setCustomerNote($comment)
+                         ->addStatusToHistory(\Magento\Sales\Model\Order::STATE_PROCESSING, $comment)
                          ->save();
 
             $payment->setStatus(PaymentMethod::STATUS_APPROVED)
                     ->setAmountPaid($amount)
                     ->setLastTransId($paymentId)
                     ->setTransactionId($paymentId)
+                    ->setAdditionalData('razorpay_payment_id', $paymentId)
                     ->setIsTransactionClosed(true)
                     ->setShouldCloseParentTransaction(true)
-                    ->setAdditionalData('razorpay_payment_id', $paymentId)
                     ->save();
         }
         catch (\Exception $e)
@@ -102,7 +105,7 @@ class Authorize extends \Razorpay\Magento\Controller\BaseController
 
             $magentoOrder->setState(\Magento\Sales\Model\Order::STATE_PENDING_PAYMENT)
                          ->setStatus(\Magento\Sales\Model\Order::STATE_PENDING_PAYMENT)
-                         ->addStatusHistoryComment($comment)
+                         ->addStatusToHistory(\Magento\Sales\Model\Order::STATE_PENDING_PAYMENT, $comment)
                          ->save();
 
             $this->logger->critical($e);
