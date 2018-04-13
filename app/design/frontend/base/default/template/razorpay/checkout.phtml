@@ -3,15 +3,15 @@
     var razorpayUtils = new RazorpayUtils(razorpayOptions);
 
     var onSuccess = function(data) {
-        $('razorpay_payment_id').value = data.razorpay_payment_id;
-        $('razorpay_order_id').value = data.razorpay_order_id;
-        $('razorpay_signature').value = data.razorpay_signature;
+        document.querySelector('#razorpay_payment_id').value = data.razorpay_payment_id;
+        document.querySelector('#razorpay_order_id').value = data.razorpay_order_id;
+        document.querySelector('#razorpay_signature').value = data.razorpay_signature;
 
-        $('razorpay').submit();
+        document.querySelector('form#razorpay').submit();
     };
 
     var onDismiss = function() {
-        $('razorpay').submit();
+        document.querySelector('form#razorpay').submit();
     };
 
     if (razorpayOptions.hasOwnProperty('error') === false && razorpayOptions.error !== false)
