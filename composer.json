@@ -12,18 +12,18 @@
     ],
     "authors": [
         {
-            "name": "Vivek",
-            "email": "vivek@razorpay.com",
+            "name": "Gaurav",
+            "email": "gaurav.kumar@example.com",
             "role": "Developer"
         },
         {
-            "name": "Mayank Amencherla",
-            "email": "mayank.amencherla@razorpay.com",
+            "name": "Saurav Kumar",
+            "email": "saurav.kumar@example.com",
             "role": "Developer"
         }
     ],
     "support": {
-      "email": "support@razorpay.com",
+      "email": "test@test.com",
       "issues": "https://github.com/razorpay/razorpay-magento/issues",
       "docs": "https://docs.razorpay.com/v1/page/integrating-your-magento-store-with-razorpay"
     },
