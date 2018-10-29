@@ -7,38 +7,36 @@
         "razorpay/razorpay": "2.*"
     },
     "keywords": [
-      "razorpay", "magento", "payments", "india",
-      "payment gateway", "wallets", "netbanking"
+        "razorpay",
+        "magento",
+        "payments",
+        "india",
+        "payment gateway",
+        "wallets",
+        "netbanking"
     ],
     "authors": [
         {
-            "name": "Vivek",
-            "email": "vivek@razorpay.com",
-            "role": "Developer"
-        },
-        {
-            "name": "Mayank Amencherla",
-            "email": "mayank.amencherla@razorpay.com",
+            "name": "Team Razorpay",
+            "homepage": "https://razorpay.com/about/",
             "role": "Developer"
         }
     ],
     "support": {
-      "email": "support@razorpay.com",
-      "issues": "https://github.com/razorpay/razorpay-magento/issues",
-      "docs": "https://docs.razorpay.com/v1/page/integrating-your-magento-store-with-razorpay"
+        "source": "https://github.com/razorpay/razorpay-magento",
+        "issues": "https://razorpay.com/support/",
+        "rss": "https://github.com/razorpay/razorpay-magento/releases.atom",
+        "docs":
+            "https://docs.razorpay.com/v1/page/integrating-your-magento-store-with-razorpay"
     },
     "homepage": "https://razorpay.com",
     "suggest": {
         "magento/module-checkout-agreements": "100.0.*"
     },
     "type": "magento2-module",
-    "license": [
-        "MIT"
-    ],
+    "license": ["MIT"],
     "autoload": {
-        "files": [
-            "registration.php"
-        ],
+        "files": ["registration.php"],
         "psr-4": {
             "Razorpay\\Magento\\": ""
         }
