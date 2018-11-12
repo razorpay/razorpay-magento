@@ -6,12 +6,14 @@ use \Magento\Framework\App\Config\ScopeConfigInterface;
 
 class Config
 {
-    const KEY_ALLOW_SPECIFIC = 'allowspecific';
-    const KEY_SPECIFIC_COUNTRY = 'specificcountry';
-    const KEY_ACTIVE = 'active';
-    const KEY_PUBLIC_KEY = 'key_id';
-    const KEY_PRIVATE_KEY = 'key_secret';
+    const KEY_ALLOW_SPECIFIC         = 'allowspecific';
+    const KEY_SPECIFIC_COUNTRY       = 'specificcountry';
+    const KEY_ACTIVE                 = 'active';
+    const KEY_PUBLIC_KEY             = 'key_id';
+    const KEY_PRIVATE_KEY            = 'key_secret';
     const KEY_MERCHANT_NAME_OVERRIDE = 'merchant_name_override';
+    const ENABLE_WEBHOOK             = 'enable_webhook';
+    const WEBHOOK_SECRET             = 'webhook_secret';
 
     /**
      * @var string
@@ -31,9 +33,8 @@ class Config
     /**
      * @param ScopeConfigInterface $scopeConfig
      */
-    public function __construct(
-        ScopeConfigInterface $scopeConfig
-    ) {
+    public function __construct(ScopeConfigInterface $scopeConfig) 
+    {
         $this->scopeConfig = $scopeConfig;
     }
 
@@ -48,6 +49,16 @@ class Config
     public function getKeyId()
     {
         return $this->getConfigData(self::KEY_PUBLIC_KEY);
+    }
+
+    public function isWebhookEnabled()
+    {
+        return ($this->getConfigData(self::ENABLE_WEBHOOK) === 1);
+    }
+
+    public function getWebhookSecret()
+    {
+        return $this->getConfigData(self::WEBHOOK_SECRET);
     }
 
     /**
@@ -70,7 +81,8 @@ class Config
      */
     public function getConfigData($field, $storeId = null)
     {
-        if ($storeId == null) {
+        if ($storeId == null) 
+        {
             $storeId = $this->storeId;
         }
 
@@ -99,9 +111,11 @@ class Config
         /*
         for specific country, the flag will set up as 1
         */
-        if ($this->getConfigData(self::KEY_ALLOW_SPECIFIC) == 1) {
+        if ($this->getConfigData(self::KEY_ALLOW_SPECIFIC) == 1) 
+        {
             $availableCountries = explode(',', $this->getConfigData(self::KEY_SPECIFIC_COUNTRY));
-            if (!in_array($country, $availableCountries)) {
+            if (!in_array($country, $availableCountries)) 
+            {
                 return false;
             }
         }
