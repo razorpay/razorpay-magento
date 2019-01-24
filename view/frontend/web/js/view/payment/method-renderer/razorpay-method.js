@@ -60,15 +60,15 @@ define(
             },
 
             initObservable: function() {
-                var self = this;
+                var self = this._super();
 
-                if(!this.razorpayDataFrameLoaded) {
+                if(!self.razorpayDataFrameLoaded) {
                     $.getScript("https://checkout.razorpay.com/v1/checkout.js", function() {
-                        this.razorpayDataFrameLoaded = true;
+                        self.razorpayDataFrameLoaded = true;
                     });
                 }
 
-                return this;
+                return self;
             },
 
             /**
