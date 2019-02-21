@@ -18,7 +18,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
      * @param \Magento\Checkout\Model\Session $checkoutSession
      * @param \Magento\Razorpay\Model\CheckoutFactory $checkoutFactory
      * @param \Magento\Razorpay\Model\Config\Payment $razorpayConfig
-     * @var \Magento\Quote\Model\Quote $quote
+     * @var \Magento\Quote\Model\Quote $_quote
      */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
@@ -26,22 +26,19 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Magento\Checkout\Model\Session $checkoutSession,
         \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
         \Razorpay\Magento\Model\Config $config,
-        \Magento\Catalog\Model\Session $catalogSession,
-	\Magento\Quote\Model\Quote $_quote
+        \Magento\Catalog\Model\Session $catalogSession
 	    
     ) {
         parent::__construct(
             $context,
             $customerSession,
             $checkoutSession,
-            $config,
-	    $_quote
+            $config
         );
 
         $this->checkoutFactory = $checkoutFactory;
         $this->catalogSession = $catalogSession;
 	$this->checkoutSession = $checkoutSession;
-	$this->_quote = $_quote;
     }
 
     public function execute()
@@ -49,7 +46,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $amount = (int) (round($this->getQuote()->getBaseGrandTotal(), 2) * 100);
 
         $receipt_id = $this->getQuote()->getId(); 
-	//$sample_id = $this->getQuote()->reserverOrderId();
 
         $code = 400;
 
