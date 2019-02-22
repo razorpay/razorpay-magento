@@ -19,6 +19,10 @@ class Order extends \Razorpay\Magento\Controller\BaseController
      * @param \Magento\Razorpay\Model\CheckoutFactory $checkoutFactory
      * @param \Magento\Razorpay\Model\Config\Payment $razorpayConfig
      * @var \Magento\Quote\Model\Quote $_quote
+     * @param \Magento\Framework\ObjectManagerInterface $objectManager
+     * @param \Magento\Quote\Model\QuoteFactory $quoteFactory,
+     * @param \Magento\Sales\Model\Order $_order
+     * @param \Magento\Framework\Event\Observer $observer
      */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
@@ -26,27 +30,34 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Magento\Checkout\Model\Session $checkoutSession,
         \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
         \Razorpay\Magento\Model\Config $config,
-        \Magento\Catalog\Model\Session $catalogSession
-	    
+        \Magento\Catalog\Model\Session $catalogSession,
+	\Magento\Framework\ObjectManagerInterface $objectManager,
+	\Magento\Quote\Model\QuoteFactory $quoteFactory,
+        \Magento\Sales\Model\Order $_order
     ) {
         parent::__construct(
             $context,
             $customerSession,
             $checkoutSession,
-            $config
+            $config,
+	    $objectManager,
+	    $quoteFactory,
+	    $_order
+	     
         );
 
         $this->checkoutFactory = $checkoutFactory;
         $this->catalogSession = $catalogSession;
 	$this->checkoutSession = $checkoutSession;
+	$this->_order = $_order;
     }
 
-    public function execute()
+    public function execute(\Magento\Framework\Event\Observer $observer)
     {
         $amount = (int) (round($this->getQuote()->getBaseGrandTotal(), 2) * 100);
 	    
-	$_order = $this->checkoutSession->getRealOrderId();
-	$receipt_id = $_order->getIncrementId();
+	$_order = $observer->getEvent()->getOrder();
+	$receipt_id = $_order->getId();
 
         $code = 400;
 
