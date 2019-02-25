@@ -28,16 +28,14 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Magento\Checkout\Model\Session $checkoutSession,
         \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
         \Razorpay\Magento\Model\Config $config,
-        \Magento\Catalog\Model\Session $catalogSession,
-	\Magento\Quote\Model\Quote $_quote
+        \Magento\Catalog\Model\Session $catalogSession
 	    
     ) {
         parent::__construct(
             $context,
             $customerSession,
             $checkoutSession,
-            $config,
-	    $_quote
+            $config
 	     
         );
 
