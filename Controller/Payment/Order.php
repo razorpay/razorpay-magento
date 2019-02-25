@@ -50,8 +50,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     {
         $amount = (int) (round($this->getQuote()->getBaseGrandTotal(), 2) * 100);
 	    
-	this->checkoutSession->getQuote()->reserveOrderId();
-	$receipt_id = $this->checkoutSession->getQuote()->getReservedOrderId();
+	$_orderid = this->checkoutSession->getQuote()->reserveOrderId();
+	$receipt_id = $_orderid->getReservedOrderId();
 
         $code = 400;
 
