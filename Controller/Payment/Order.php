@@ -29,7 +29,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
         \Razorpay\Magento\Model\Config $config,
         \Magento\Catalog\Model\Session $catalogSession,
-	\Magento\Sales\Model\Order $_order
+	\Magento\Quote\Model\Quote $_quote
 	    
     ) {
         parent::__construct(
@@ -37,14 +37,13 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             $customerSession,
             $checkoutSession,
             $config,
-	    $_order
+	    $_quote
 	     
         );
 
         $this->checkoutFactory = $checkoutFactory;
         $this->catalogSession = $catalogSession;
 	$this->checkoutSession = $checkoutSession;
-	$this->_order = $_order;
     }
 
     public function execute()
