@@ -29,8 +29,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
         \Razorpay\Magento\Model\Config $config,
         \Magento\Catalog\Model\Session $catalogSession,
-	\Magento\Sales\Model\Order $_order,
-	\Magento\Framework\Event\Observer $observer
+	\Magento\Sales\Model\Order $_order
 	    
     ) {
         parent::__construct(
@@ -38,7 +37,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             $customerSession,
             $checkoutSession,
             $config,
-	    $observer,
 	    $_order
 	     
         );
@@ -46,7 +44,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $this->checkoutFactory = $checkoutFactory;
         $this->catalogSession = $catalogSession;
 	$this->checkoutSession = $checkoutSession;
-	$this->observer = $observer;
 	$this->_order = $_order;
     }
 
@@ -54,8 +51,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     {
         $amount = (int) (round($this->getQuote()->getBaseGrandTotal(), 2) * 100);
 	    
-	$_order = $this->observer->getEvent()->getOrder();
-	$receipt_id = $_order->getIncrementId();
+	this->checkoutSession->getQuote()->reserveOrderId();
+	$receipt_id = $this->checkoutSession->getQuote()->getReservedOrderId();
 
         $code = 400;
 
