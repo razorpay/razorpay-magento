@@ -21,6 +21,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
      * @var \Magento\Quote\Model\Quote $_quote
      * @param \Magento\Sales\Model\Order $_order
      * @param \Magento\Framework\Event\Observer $observer
+     * @param \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
      */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
@@ -28,26 +29,30 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Magento\Checkout\Model\Session $checkoutSession,
         \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
         \Razorpay\Magento\Model\Config $config,
-        \Magento\Catalog\Model\Session $catalogSession
+        \Magento\Catalog\Model\Session $catalogSession,
+	\Magento\Sales\Api\OrderRepositoryInterface $orderRepository
     ) {
         parent::__construct(
             $context,
             $customerSession,
             $checkoutSession,
-            $config
+            $config,
+	    $orderRepository
         );
 
         $this->checkoutFactory = $checkoutFactory;
         $this->catalogSession = $catalogSession;
 	$this->checkoutSession = $checkoutSession;
+	$this->orderRepository = $orderRepository;
     }
 
     public function execute()
     {
         $amount = (int) (round($this->getQuote()->getBaseGrandTotal(), 2) * 100);
 	    
-	$receipt_id = $this->checkoutSession->getLastRealOrder()->getIncrementId();
-
+	$_order = $this->orderRepository->get($orderId);
+	$receipt_id = $_order->getIncrementId();    
+	    
         $code = 400;
 
         try
