@@ -28,30 +28,25 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Magento\Checkout\Model\Session $checkoutSession,
         \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
         \Razorpay\Magento\Model\Config $config,
-        \Magento\Catalog\Model\Session $catalogSession,
-	\Magento\Quote\Model\Quote $_quote
-	    
+        \Magento\Catalog\Model\Session $catalogSession	    
     ) {
         parent::__construct(
             $context,
             $customerSession,
             $checkoutSession,
-            $config,
-	    $_quote
+            $config
         );
 
         $this->checkoutFactory = $checkoutFactory;
         $this->catalogSession = $catalogSession;
 	$this->checkoutSession = $checkoutSession;
-	$this->_quote = $_quote;
     }
 
     public function execute()
     {
         $amount = (int) (round($this->getQuote()->getBaseGrandTotal(), 2) * 100);
 	    
-	//$this->_quote->reserveOrderId()->save();
-	$receipt_id = $this->_quote->getReservedOrderId();
+	$receipt_id = $this->checkoutSession->getReservedOrderId();
 
         $code = 400;
 
