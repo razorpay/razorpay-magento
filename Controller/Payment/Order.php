@@ -50,7 +50,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     {
         $amount = (int) (round($this->getQuote()->getBaseGrandTotal(), 2) * 100);
 	    
-	$_order = $this->orderRepository->get($orderId);
+	$_order = $this->orderRepository->get(orderId);
 	$receipt_id = $_order->getIncrementId();    
 	    
         $code = 400;
