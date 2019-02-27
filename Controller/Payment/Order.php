@@ -29,29 +29,25 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Magento\Checkout\Model\Session $checkoutSession,
         \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
         \Razorpay\Magento\Model\Config $config,
-        \Magento\Catalog\Model\Session $catalogSession,
-	\Magento\Sales\Api\OrderRepositoryInterface $orderRepository
+        \Magento\Catalog\Model\Session $catalogSession
     ) {
         parent::__construct(
             $context,
             $customerSession,
             $checkoutSession,
-            $config,
-	    $orderRepository
+            $config
         );
 
         $this->checkoutFactory = $checkoutFactory;
         $this->catalogSession = $catalogSession;
 	$this->checkoutSession = $checkoutSession;
-	$this->orderRepository = $orderRepository;
     }
 
     public function execute()
     {
         $amount = (int) (round($this->getQuote()->getBaseGrandTotal(), 2) * 100);
 	    
-	$_order = $this->orderRepository->get(orderId);
-	$receipt_id = $_order->getIncrementId();    
+	$receipt_id = $this->checkoutSession->getLastRealOrder()->getIncrementId();    
 	    
         $code = 400;
 
