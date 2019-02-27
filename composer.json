@@ -4,7 +4,7 @@
     "require": {
         "php": "~5.5.0|~5.6.0|^7.0",
         "magento/framework": "~102.0.0",
-        "rzp/rzp-php"
+        "rzp/rzp-php" : "2.*"
     },
     "keywords": [
         "razorpay",
