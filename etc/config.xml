@@ -11,6 +11,8 @@
                 <order_status>processing</order_status>
                 <key_id>Key ID</key_id>
                 <key_secret>Key Secret</key_secret>
+                <can_authorize>1</can_authorize>
+                <can_capture>1</can_capture>
             </razorpay>
         </payment>
     </default>
