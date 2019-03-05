@@ -6,7 +6,7 @@
                data-bind="attr: {'id': getCode()}, value: getCode(), checked: isChecked, click: selectPaymentMethod, visible: isRadioButtonVisible()"/>
         <label data-bind="attr: {'for': getCode()}" class="label"><span data-bind="text: getTitle()"></span></label>
     </div>
-
+    <img data-bind="attr: {src: 'https://razorpay.com/assets/razorpay-logo-95e9447029.svg', alt: $t('Acceptance Mark')}" class="payment-icon"/>
     <div class="payment-method-content">
         <!-- ko foreach: getRegion('messages') -->
         <!-- ko template: getTemplate() --><!-- /ko -->
