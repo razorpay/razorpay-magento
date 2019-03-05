@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+ 
+<layout version="0.1.0">
+    <checkout_onepage_index>
+        <reference name="checkout.payment.methods">
+            <block type="core/template" name="payment.method.rzp" template="razorpay/logo.phtml" />
+        </reference>
+    </checkout_onepage_index>
+</layout>
