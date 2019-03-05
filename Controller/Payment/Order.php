@@ -18,10 +18,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
      * @param \Magento\Checkout\Model\Session $checkoutSession
      * @param \Magento\Razorpay\Model\CheckoutFactory $checkoutFactory
      * @param \Magento\Razorpay\Model\Config\Payment $razorpayConfig
-     * @var \Magento\Quote\Model\Quote $_quote
-     * @param \Magento\Sales\Model\Order $_order
-     * @param \Magento\Framework\Event\Observer $observer
-     * @param \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
      */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
@@ -40,15 +36,12 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
         $this->checkoutFactory = $checkoutFactory;
         $this->catalogSession = $catalogSession;
-	$this->checkoutSession = $checkoutSession;
     }
 
     public function execute()
     {
         $amount = (int) (round($this->getQuote()->getBaseGrandTotal(), 2) * 100);
-	    
-	$receipt_id = $this->getQuote()->getId();
-	    
+	$receipt_id = $this->getQuote()->getId();    
         $code = 400;
 
         try
