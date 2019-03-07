@@ -46,10 +46,13 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 	$receipt_id = $this->getQuote()->getId();
 	    
 	$payment_action = $this->config->getConfigData(Config::KEY_PAYMENT_ACTION));
-	if($payment_action == "authorize")
-		$payment_capture = 0;
-	else $payment_capture = 1;
 	    
+	if($payment_action == "authorize") {
+		$payment_capture = 0;
+	}
+	else { 
+		$payment_capture = 1;
+	}    
         $code = 400;
 
         try
