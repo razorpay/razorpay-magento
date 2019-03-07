@@ -25,25 +25,30 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Magento\Checkout\Model\Session $checkoutSession,
         \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
         \Razorpay\Magento\Model\Config $config,
-        \Magento\Catalog\Model\Session $catalogSession
+        \Magento\Catalog\Model\Session $catalogSession,
+	\Razorpay\Magento\Model\PaymentAction $paymentAction
     ) {
         parent::__construct(
             $context,
             $customerSession,
             $checkoutSession,
-            $config
+            $config,
+	    $paymentAction
         );
 
         $this->checkoutFactory = $checkoutFactory;
         $this->catalogSession = $catalogSession;
+	$this->paymentAction = $paymentAction;
     }
 
     public function execute()
     {
         $amount = (int) (round($this->getQuote()->getBaseGrandTotal(), 2) * 100);
 
-        $receipt_id = $this->getQuote()->getId();
-
+        //$receipt_id = $this->getQuote()->getId();
+	    
+	$receipt_id = $this->paymentAction;
+	    
         $code = 400;
 
         try
