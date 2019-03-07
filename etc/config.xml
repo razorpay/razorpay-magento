@@ -11,7 +11,6 @@
                 <order_status>processing</order_status>
                 <key_id>Key ID</key_id>
                 <key_secret>Key Secret</key_secret>
-                <can_capture_partial>1</can_capture_partial>
             </razorpay>
         </payment>
     </default>
