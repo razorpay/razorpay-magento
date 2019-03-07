@@ -38,7 +38,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     /**
      * @var bool
      */
-    protected $_canCapture              = true;
+    protected $_canCapture              = false;
 
     /**
      * @var bool
