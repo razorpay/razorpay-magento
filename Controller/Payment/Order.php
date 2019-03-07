@@ -25,27 +25,30 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Magento\Checkout\Model\Session $checkoutSession,
         \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
         \Razorpay\Magento\Model\Config $config,
-        \Magento\Catalog\Model\Session $catalogSession,
-	\Razorpay\Magento\Model\PaymentAction $paymentAction
+        \Magento\Catalog\Model\Session $catalogSession
     ) {
         parent::__construct(
             $context,
             $customerSession,
             $checkoutSession,
-            $config,
-	    $paymentAction
+            $config
         );
 
         $this->checkoutFactory = $checkoutFactory;
         $this->catalogSession = $catalogSession;
-	$this->paymentAction = $paymentAction;
+	$this->config = $config;
     }
 
     public function execute()
     {
         $amount = (int) (round($this->getQuote()->getBaseGrandTotal(), 2) * 100);
     
-	$receipt_id = $this->paymentAction;
+	$receipt_id = $this->getQuote()->getId();
+	    
+	$payment_action = $this->config->getConfigData(Config::KEY_PAYMENT_ACTION));
+	if($payment_action == "authorize")
+		$payment_capture = 0;
+	else $payment_capture = 1;
 	    
         $code = 400;
 
@@ -55,7 +58,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 'amount' => $amount,
                 'receipt' => $receipt_id,
                 'currency' => $this->_currency,
-                'payment_capture' => 0                 // auto-capture
+                'payment_capture' => $payment_capture                 // auto-capture
             ]);
 
             $responseContent = [
