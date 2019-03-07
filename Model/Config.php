@@ -12,6 +12,7 @@ class Config
     const KEY_PUBLIC_KEY = 'key_id';
     const KEY_PRIVATE_KEY = 'key_secret';
     const KEY_MERCHANT_NAME_OVERRIDE = 'merchant_name_override';
+    const KEY_PAYMENT_ACTION = 'payment_action';
 
     /**
      * @var string
@@ -49,7 +50,11 @@ class Config
     {
         return $this->getConfigData(self::KEY_PUBLIC_KEY);
     }
-
+    
+    public function getPaymentAction()
+    {
+        return $this->getConfigData(self::KEY_PAYMENT_ACTION);
+    }
     /**
      * @param int $storeId
      * @return $this
