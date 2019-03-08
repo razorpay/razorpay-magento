@@ -45,7 +45,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     
 	$receipt_id = $this->getQuote()->getId();
 	    
-	$payment_action = $this->config->getConfigData(Config::KEY_PAYMENT_ACTION));
+	$payment_action = $this->config->getPaymentAction();
 	    
 	if($payment_action == "authorize") {
 		$payment_capture = 0;
