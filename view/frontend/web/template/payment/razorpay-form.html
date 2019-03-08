@@ -4,7 +4,7 @@
                name="payment[method]"
                class="radio"
                data-bind="attr: {'id': getCode()}, value: getCode(), checked: isChecked, click: selectPaymentMethod, visible: isRadioButtonVisible()"/>
-        <label data-bind="attr: {'for': getCode()}" class="label"><span data-bind="text: getTitle()"></span></label>
+        <img src="https://cdn.razorpay.com/logo.png" width="20%" alt="Razorpay" class="payment-icon"/>      //Display logo in Payment Options
     </div>
 
     <div class="payment-method-content">
