@@ -36,23 +36,14 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
         $this->checkoutFactory = $checkoutFactory;
         $this->catalogSession = $catalogSession;
-	$this->config = $config;
     }
 
     public function execute()
     {
         $amount = (int) (round($this->getQuote()->getBaseGrandTotal(), 2) * 100);
-    
-	$receipt_id = $this->getQuote()->getId();
-	    
-	$payment_action = $this->config->getPaymentAction();
-	    
-	if($payment_action == "authorize") {
-		$payment_capture = 0;
-	}
-	else { 
-		$payment_capture = 1;
-	}    
+
+        $receipt_id = $this->getQuote()->getId();
+
         $code = 400;
 
         try
@@ -61,7 +52,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 'amount' => $amount,
                 'receipt' => $receipt_id,
                 'currency' => $this->_currency,
-                'payment_capture' => $payment_capture
+                'payment_capture' => 1                 // auto-capture
             ]);
 
             $responseContent = [
