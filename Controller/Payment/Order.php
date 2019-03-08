@@ -61,7 +61,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 'amount' => $amount,
                 'receipt' => $receipt_id,
                 'currency' => $this->_currency,
-                'payment_capture' => $payment_capture                 // auto-capture
+                'payment_capture' => $payment_capture
             ]);
 
             $responseContent = [
