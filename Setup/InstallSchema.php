@@ -8,11 +8,6 @@ use Magento\Framework\App\Filesystem\DirectoryList;
  
 class InstallSchema implements InstallSchemaInterface
 {
-    /**
-     * {@inheritdoc}
-     *
-     * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
-     */
     public function install(
         SchemaSetupInterface $setup,
         ModuleContextInterface $context
