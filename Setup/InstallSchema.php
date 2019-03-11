@@ -2,11 +2,7 @@
 
 namespace Razorpay\Magento\Setup;
  
-use Magento\Framework\Setup\InstallSchemaInterface;
-use Magento\Framework\Setup\SchemaSetupInterface;
-use Magento\Framework\App\Filesystem\DirectoryList;
- 
-class InstallSchema implements InstallSchemaInterface
+class InstallSchema implements Magento\Framework\Setup\InstallSchemaInterface
 {
     public function install(
         SchemaSetupInterface $setup
