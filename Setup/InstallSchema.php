@@ -11,8 +11,8 @@ class InstallSchema implements InstallSchemaInterface
 {
     public function install(
         SchemaSetupInterface $setup,
-        ModuleContextInterface $context) 
-    {
+        ModuleContextInterface $context
+    ) {
         $setup->getConnection()->addColumn(
                 $setup->getTable('sales_payment_transaction'),
                 ‘verify_transaction',
