@@ -15,15 +15,10 @@ class UpgradeSchema implements UpgradeSchemaInterface
      */
     public function upgrade(SchemaSetupInterface $setup, ModuleContextInterface $context)
     {
-        $installer = $setup;
         $setup->startSetup();
-
-        $version = $context->getVersion();
-        $connection = $setup->getConnection();
-        $tablename = "sales_payment_transaction";
         
-        $connection->addColumn(
-            $setup->getTable($tablename),
+        $setup->getConnection()->addColumn(
+            $setup->getTable('sales_payment_transaction'),
             'verify_transaction',
             [
                 'type' => \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
