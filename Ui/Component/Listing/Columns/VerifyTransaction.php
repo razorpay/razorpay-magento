@@ -23,12 +23,7 @@ class Sendmail extends Column
         parent::__construct($context, $uiComponentFactory, $components, $data);
     }
  
-    /**
-     * Prepare Data Source
-     *
-     * @param array $dataSource
-     * @return array
-     **/
+    
     public function prepareDataSource(array $dataSource)
     {
         if (isset($dataSource['data']['items'])) {
