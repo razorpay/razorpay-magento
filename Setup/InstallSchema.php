@@ -9,8 +9,7 @@ use Magento\Framework\App\Filesystem\DirectoryList;
 class InstallSchema implements InstallSchemaInterface
 {
     public function install(
-        SchemaSetupInterface $setup,
-        ModuleContextInterface $context
+        SchemaSetupInterface $setup
     ) {
         $setup->getConnection()->addColumn(
                 $setup->getTable('sales_payment_transaction'),
