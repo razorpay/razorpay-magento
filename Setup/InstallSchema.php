@@ -1,13 +1,11 @@
 <?php
+
 namespace Razorpay\Magento\Setup;
  
 use Magento\Framework\Setup\InstallSchemaInterface;
 use Magento\Framework\Setup\SchemaSetupInterface;
 use Magento\Framework\App\Filesystem\DirectoryList;
  
-/**
- * @codeCoverageIgnore
- */
 class InstallSchema implements InstallSchemaInterface
 {
     /**
