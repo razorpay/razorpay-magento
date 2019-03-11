@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <virtualType name="Magento\Sales\Model\ResourceModel\Order\Grid\Payment\Transaction">
+    <arguments>
+        <argument name="columns">
+            <item name="verify_transaction" xsi:type="string">sales_payment_transaction.verify_transaction</item>
+        </argument>
+    </arguments>
+</virtualType>
+</config>
