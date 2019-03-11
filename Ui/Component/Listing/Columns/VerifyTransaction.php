@@ -28,7 +28,7 @@ class Sendmail extends Column
      *
      * @param array $dataSource
      * @return array
-     */
+     **/
     public function prepareDataSource(array $dataSource)
     {
         if (isset($dataSource['data']['items'])) {
