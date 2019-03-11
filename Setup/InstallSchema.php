@@ -1,4 +1,4 @@
-
+<?php
 namespace Razorpay\Magento\Setup;
  
 use Magento\Framework\Setup\InstallSchemaInterface;
