@@ -3,7 +3,7 @@
     <virtualType name="Magento\Sales\Model\ResourceModel\Order\Grid\Payment\Transaction">
     <arguments>
         <argument name="columns">
-            <item name="verify_transaction" xsi:type="string">sales_payment_transaction.verify_transaction</item>
+            <item name="verify_transaction" xsi:type="string">sales_payment_transaction.txn_id</item>
         </argument>
     </arguments>
 </virtualType>
