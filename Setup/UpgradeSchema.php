@@ -22,7 +22,7 @@ class UpgradeSchema implements UpgradeSchemaInterface
         $connection = $setup->getConnection();
         $tablename = "sales_payment_transaction";
         
-       $connection->addColumn(
+        $connection->addColumn(
             $setup->getTable($tablename),
             'verify_transaction',
             [
