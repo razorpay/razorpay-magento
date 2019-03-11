@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <virtualType name="Magento\Sales\Model\ResourceModel\Order\Grid\Payment\Transaction">
+    <arguments>
+        <argument name="columns">
+            <item name="transaction_status" xsi:type="string">sales_payment_transaction.transaction_status</item>
+        </argument>
+    </arguments>
+</virtualType>
+</config>
