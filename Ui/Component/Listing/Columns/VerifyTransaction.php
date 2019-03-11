@@ -8,20 +8,10 @@ use Magento\Ui\Component\Listing\Columns\Column;
  
 class Sendmail extends Column
 {
-    /**
-     * @var UrlInterface
-     */
+    
     protected $urlBuilder;
  
-    /**
-     * Constructor
-     *
-     * @param ContextInterface $context
-     * @param UiComponentFactory $uiComponentFactory
-     * @param UrlInterface $urlBuilder
-     * @param array $components
-     * @param array $data
-     */
+    
     public function __construct(
         ContextInterface $context,
         UiComponentFactory $uiComponentFactory,
