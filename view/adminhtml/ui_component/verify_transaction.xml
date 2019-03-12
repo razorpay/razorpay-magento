@@ -4,7 +4,7 @@
         <column name=“verify_transaction" component="Magento_Ui/js/grid/columns/select">
             <settings> 
                 <addField>true</addField> 
-                <options class="Magento\Payment\Ui\Component\Listing\Column\Method\Options"/> 
+                <options class="Magento\Config\Model\Config\Source\Yesno"/> 
                 <filter>select</filter> 
                 <dataType>select</dataType> 
                 <sortable>false</sortable> 
