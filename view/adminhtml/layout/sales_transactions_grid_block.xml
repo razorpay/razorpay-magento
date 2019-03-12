@@ -7,18 +7,14 @@
 -->
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <body>
-        <referenceBlock name="sales_transactions.grid.container">
-            <block class="Magento\Backend\Block\Widget\Grid" name="sales.transactions.grid" as="grid">
-                <block class="Magento\Backend\Block\Widget\Grid\ColumnSet" as="grid.columnSet" name="sales.transactions.grid.columnSet">
-                    <block class="Magento\Backend\Block\Widget\Grid\Column" name="verify_txn" as="verify_txn">
-                        <arguments>
-                            <argument name="header" xsi:type="string" translate="true">Verify Transaction</argument>
-                            <argument name="type" xsi:type="string">text</argument>
-                            <argument name="header_css_class" xsi:type="string">col-transaction-id</argument>
-                            <argument name="column_css_class" xsi:type="string">col-transaction-id</argument>
-                        </arguments>
-                    </block>
-                </block>
+        <referenceBlock class="Magento\Backend\Block\Widget\Grid\ColumnSet" as="grid.columnSet" name="sales.transactions.grid.columnSet">
+            <block class="Magento\Backend\Block\Widget\Grid\Column" name="verify_txn" as="verify_txn">
+                <arguments>
+                    <argument name="header" xsi:type="string" translate="true">Verify Transaction</argument>
+                    <argument name="type" xsi:type="string">text</argument>
+                    <argument name="header_css_class" xsi:type="string">col-transaction-id</argument>
+                    <argument name="column_css_class" xsi:type="string">col-transaction-id</argument>
+                </arguments>
             </block>
         </referenceBlock>
     </body>
