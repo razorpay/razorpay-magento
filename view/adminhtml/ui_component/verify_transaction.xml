@@ -1,11 +1,14 @@
+<?xml version="1.0" encoding="utf-8”?>
 <listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
 <columns name="sales_payment_transaction">
-    <actionsColumn name=“verify_transaction" class=“Razorpay\Magento\Ui\Component\Listing\Columns”>
-        <argument name="data" xsi:type="array">
-            <item name="config" xsi:type="array">
-                <item name="filter" xsi:type="string">text</item>
-                <item name="label" xsi:type="string" translate="true”>Verify Transaction</item>
-            </item>
-        </argument>
+    <actionsColumn name=“verify_transaction" component="Magento_Ui/js/grid/columns/select">
+        <settings> 
+            <addField>true</addField> 
+            <options class="Magento\Config\Model\Config\Source\Yesno"/> 
+            <filter>select</filter> 
+            <dataType>select</dataType> 
+            <sortable>false</sortable> 
+            <label translate="true">Verify Transaction</label> 
+       </settings> 
     </actionsColumn>
 </columns>
