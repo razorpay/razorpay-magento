@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8”?>
 <listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
 <columns name="sales_payment_transaction">
-    <actionsColumn name=“verify_transaction" component="Magento_Ui/js/grid/columns/select">
+    <column name=“verify_transaction" component="Magento_Ui/js/grid/columns/select">
         <settings> 
             <addField>true</addField> 
             <options class="Magento\Config\Model\Config\Source\Yesno"/> 
@@ -10,5 +10,5 @@
             <sortable>false</sortable> 
             <label translate="true">Verify Transaction</label> 
        </settings> 
-    </actionsColumn>
+    </column>
 </columns>
