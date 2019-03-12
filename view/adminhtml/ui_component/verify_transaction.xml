@@ -8,7 +8,7 @@
                 <filter>select</filter> 
                 <dataType>select</dataType> 
                 <sortable>false</sortable> 
-                <label translate="true">Verify Transaction</label> 
+                <label translate="true">Verify Transactions</label> 
            </settings> 
         </column>
     </columns>
