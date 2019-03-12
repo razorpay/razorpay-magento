@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="utf-8”?>
 <listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
     <columns name="sales_payment_transaction">
-        <column name=“verify_transaction" component="Magento_Ui/js/grid/columns/select">
-            <settings> 
-                <addField>true</addField> 
-                <options class="Magento\Config\Model\Config\Source\Yesno"/> 
-                <filter>select</filter> 
-                <dataType>select</dataType> 
-                <sortable>false</sortable> 
-                <label translate="true">Verify Transaction</label> 
-           </settings> 
-        </column>
+        <actionsColumn name="actions" class="Magento\Sales\Ui\Component\Listing\Column\ViewAction">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="viewUrlPath" xsi:type="string">sales/order/view</item>
+                    <item name="urlEntityParamName" xsi:type="string">order_id</item>
+                </item>
+            </argument>
+            <settings>
+                <indexField>entity_id</indexField>
+            </settings>
+        </actionsColumn>
     </columns>
 </listing>
 
