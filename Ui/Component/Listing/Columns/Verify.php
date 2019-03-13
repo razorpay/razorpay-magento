@@ -44,7 +44,7 @@ class Verify extends Column
         if (isset($dataSource['data']['items'])) {
             $fieldName = $this->getData('name');
             foreach ($dataSource['data']['items'] as & $item) { 
-                $item[$fieldName . '_html'] = "<button class='button'><span>Send Mail</span></button>";
+                $item[$fieldName . '_html'] = "<button class='button'><span>Verify</span></button>";
                 $item[$fieldName . '_title'] = __('Please enter a message that you want to send to customer');
                 $item[$fieldName . '_submitlabel'] = __('Send');
                 $item[$fieldName . '_cancellabel'] = __('Reset');
