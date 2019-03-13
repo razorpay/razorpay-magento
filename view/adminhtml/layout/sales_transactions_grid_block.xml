@@ -11,7 +11,7 @@
             <block class="Magento\Backend\Block\Widget\Grid\Column" name="verify_txn" as="verify_txn">
                 <arguments>
                     <argument name="header" xsi:type="string" translate="true">Verify Transaction</argument>
-                    <argument name="type" xsi:type="string">text</argument>
+                    <argument name="type" xsi:type="string">action</argument>
                     <argument name="header_css_class" xsi:type="string">col-transaction-id</argument>
                     <argument name="column_css_class" xsi:type="string">col-transaction-id</argument>
                 </arguments>
