@@ -18,6 +18,7 @@
                         <argument name="sortable" xsi:type="boolean">false</argument>
                         <argument name="index" xsi:type="string">entity_id</argument>
                         <argument name="is_system" xsi:type="boolean">true</argument>
+                        <argument name="renderer" xsi:type="string">Razorpay\Magento\Block\Adminhtml\Grid\Column\Renderer\Verify</argument>
                         <argument name="header_css_class" xsi:type="string">col-actions</argument>
                         <argument name="column_css_class" xsi:type="string">col-actions</argument>
                     </arguments>
