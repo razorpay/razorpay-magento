@@ -1,5 +1,5 @@
 <?php
-namespace namespace Webkul\Grid\Ui\Component\Listing\Columns;;
+namespace namespace Webkul\Grid\Ui\Component\Listing\Columns;
  
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
