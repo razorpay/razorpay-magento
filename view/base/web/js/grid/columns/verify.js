@@ -2,7 +2,7 @@ define([
     'Magento_Ui/js/grid/columns/column',
     'jquery',
     'mage/template',
-    'text!razorpay-magento/templates/grid/cells/customer/verify.html',
+    'text!razorpay-magento/templates/grid/cells/sales/verify.html',
     'Magento_Ui/js/modal/modal'
 ], function (Column, $, mageTemplate, sendmailPreviewTemplate) {
     'use strict';
