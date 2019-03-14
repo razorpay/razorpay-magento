@@ -1,0 +1,14 @@
+<form id="send-mail-form-<%- customerid %>" method="get" enctype="multipart/form-data" action="<%- formaction %>">
+    <div class="modal-body">
+        <div class="bootbox-body">
+            <textarea class="bootbox-input bootbox-input-text form-control required-entry" name="send_message" rows="4" cols="83"></textarea>
+            <input type="hidden" name="entity_id" value="<%- customerid %>">         
+        </div>
+    </div>
+    <div class="modal-footer">
+        <span class="error"></span>
+        <button type="reset" class="btn btn-default"><span><%- cancellabel %></span></button>
+        <button type="submit" class="btn btn-primary"><span><%- submitlabel %></span></button>
+        <span class="clear"></span>
+    </div>
+</form>
