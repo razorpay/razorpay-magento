@@ -6,7 +6,7 @@ use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
 use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
-use Magento\Framework\Model\AbstractModel;
+use Magento\Sales\Model\Order\Payment\Transaction;
  
 class Verify extends Column
 {
@@ -28,7 +28,7 @@ class Verify extends Column
         ContextInterface $context,
         UiComponentFactory $uiComponentFactory,
         UrlInterface $urlBuilder,
-        AbstractModel $transaction,
+        Transaction $transaction,
         array $components = [],
         array $data = []
     ) {
@@ -53,7 +53,7 @@ class Verify extends Column
                 $item[$fieldName . '_title'] = __('Please enter a message that you want to send to customer');
                 $item[$fieldName . '_submitlabel'] = __('Send');
                 $item[$fieldName . '_cancellabel'] = __('Reset');
-                $item[$fieldName . '_customerid'] = $this->transaction->getData('txn_id');
+                $item[$fieldName . '_customerid'] = $this->transaction->getData('transaction_id');
  
                 $item[$fieldName . '_formaction'] = $this->urlBuilder->getUrl('grid/sales/verify');
             }
