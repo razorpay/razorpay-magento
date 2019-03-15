@@ -31,7 +31,7 @@ class Verify extends Column
         array $data = []
     ) {
         $this->urlBuilder = $urlBuilder;
-        parent::__construct($context, $uiComponentFactory, $components, $data, $txnId);
+        parent::__construct($context, $uiComponentFactory, $components, $data);
     }
  
     public function getTxnId(Magento\Sales\Model\Order\Payment\Transaction $txnId) {
