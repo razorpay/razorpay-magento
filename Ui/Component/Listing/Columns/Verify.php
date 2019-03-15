@@ -1,6 +1,7 @@
 <?php
 namespace Razorpay\Magento\Ui\Component\Listing\Columns;
- 
+
+use Razorpay\Api\Api;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
 use Magento\Framework\View\Element\UiComponentFactory;
@@ -48,7 +49,7 @@ class Verify extends Column
                 $item[$fieldName . '_title'] = __('Please enter a message that you want to send to customer');
                 $item[$fieldName . '_submitlabel'] = __('Send');
                 $item[$fieldName . '_cancellabel'] = __('Reset');
-                $item[$fieldName . '_customerid'] = $item['entity_id'];
+                $item[$fieldName . '_customerid'] = $item['increment_id'];
  
                 $item[$fieldName . '_formaction'] = $this->urlBuilder->getUrl('grid/sales/verify');
             }
