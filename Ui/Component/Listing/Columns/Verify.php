@@ -6,8 +6,9 @@ use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
 use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
+use Magento\Sales\Model\Spi\TransactionResourceInterface;
  
-class Verify extends Column
+class Verify extends Column implements TransactionResourceInterface
 {
     /**
      * @var UrlInterface
@@ -31,9 +32,13 @@ class Verify extends Column
         array $data = []
     ) {
         $this->urlBuilder = $urlBuilder;
-        parent::__construct($context, $uiComponentFactory, $components, $data);
+        parent::__construct($context, $uiComponentFactory, $components, $data, $txnId);
     }
  
+    public function getTxnId(Magento\Sales\Model\Order\Payment\Transaction $transaction) {
+         $txnId = $transaction->getTxnId();
+         return $txnId;
+    }
     /**
      * Prepare Data Source
      *
@@ -49,7 +54,7 @@ class Verify extends Column
                 $item[$fieldName . '_title'] = __('Please enter a message that you want to send to customer');
                 $item[$fieldName . '_submitlabel'] = __('Send');
                 $item[$fieldName . '_cancellabel'] = __('Reset');
-                $item[$fieldName . '_customerid'] = $item['increment_id'];
+                $item[$fieldName . '_customerid'] = getTxnId();
  
                 $item[$fieldName . '_formaction'] = $this->urlBuilder->getUrl('grid/sales/verify');
             }
