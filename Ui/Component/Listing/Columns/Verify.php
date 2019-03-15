@@ -6,9 +6,8 @@ use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
 use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
-use Magento\Sales\Model\Spi\TransactionResourceInterface;
  
-class Verify extends Column implements TransactionResourceInterface
+class Verify extends Column
 {
     /**
      * @var UrlInterface
@@ -35,8 +34,7 @@ class Verify extends Column implements TransactionResourceInterface
         parent::__construct($context, $uiComponentFactory, $components, $data, $txnId);
     }
  
-    public function getTxnId(Magento\Sales\Model\Order\Payment\Transaction $transaction) {
-         $txnId = $transaction->getTxnId();
+    public function getTxnId(Magento\Sales\Model\Order\Payment\Transaction $txnId) {
          return $txnId;
     }
     /**
