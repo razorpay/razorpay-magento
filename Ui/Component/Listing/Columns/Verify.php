@@ -24,16 +24,16 @@ class Verify extends Column
      * @param array $data
      */
     public function __construct(
+        \Magento\Sales\Model\Order\Payment\Transaction $transaction,
         ContextInterface $context,
         UiComponentFactory $uiComponentFactory,
         UrlInterface $urlBuilder,
-        \Magento\Sales\Model\Order\Payment\Transaction $transaction,
         array $components = [],
         array $data = []
     ) {
         $this->urlBuilder = $urlBuilder;
         $this->transaction = $transaction;
-        parent::__construct($context, $uiComponentFactory, $transaction, $components, $data);
+        parent::__construct($transaction, $context, $uiComponentFactory, $components, $data);
     }
  
     
