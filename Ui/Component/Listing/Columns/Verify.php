@@ -6,7 +6,6 @@ use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
 use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
-use Magento\Sales\Model\Order\Payment\Transaction;
  
 class Verify extends Column
 {
@@ -28,7 +27,7 @@ class Verify extends Column
         ContextInterface $context,
         UiComponentFactory $uiComponentFactory,
         UrlInterface $urlBuilder,
-        Transaction $transaction,
+        \Magento\Sales\Model\Order\Payment\Transaction $transaction,
         array $components = [],
         array $data = []
     ) {
