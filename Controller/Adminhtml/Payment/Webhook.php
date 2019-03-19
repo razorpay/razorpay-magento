@@ -1,5 +1,5 @@
 <?php 
-namespace Razorpay\Magento\Controller\Payment;
+namespace Razorpay\Magento\Controller\Adminhtml\Payment;
 use Razorpay\Api\Api;
 use Razorpay\Api\Errors;
 use Razorpay\Magento\Model\Config;
