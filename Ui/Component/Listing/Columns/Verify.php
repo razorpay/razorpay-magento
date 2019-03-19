@@ -34,7 +34,7 @@ class Verify extends Column
         array $data = []
     ) {
         $this->urlBuilder = $urlBuilder;
-        $this->transaction = $transaction
+        $this->transaction = $transaction;
         parent::__construct($context, $uiComponentFactory, $components, $data);
     }
  
