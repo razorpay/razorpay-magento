@@ -4,7 +4,7 @@ use Razorpay\Api\Api;
 use Razorpay\Api\Errors;
 use Razorpay\Magento\Model\Config;
 use Razorpay\Magento\Model\PaymentMethod;
-class Webhook extends \Razorpay\Magento\Controller\BaseController
+class Webhook extends \Razorpay\Magento\Controller\Adminhtml\BaseController
 {
     /**
      * @var \Magento\Checkout\Model\Session
