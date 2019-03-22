@@ -20,7 +20,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
            $customerSession,
            $checkoutSession,
            $config,
-           $transaction,
            $salesTransactionCollectionFactory
         );
         
