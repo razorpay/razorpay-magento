@@ -8,7 +8,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
      */
     
     public function __construct(
-      Magento\Sales\Model\Order\Payment\Transaction $transaction 
+      \Magento\Sales\Model\Order\Payment\Transaction $transaction 
     ) 
     {
         parent::__construct(
