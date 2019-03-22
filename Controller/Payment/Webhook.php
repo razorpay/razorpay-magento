@@ -1,18 +1,14 @@
 <?php 
 namespace Razorpay\Magento\Controller\Payment;
 
-use Magento\Sales\Model\Order\Payment\Transaction;
-
-
 class Webhook extends \Razorpay\Magento\Controller\BaseController
 {
     /**
      * @var \Magento\Sales\Model\Order\Payment\Transaction
      */
-    protected $transaction;
     
     public function __construct(
-      Transaction $transaction 
+      Magento\Sales\Model\Order\Payment\Transaction $transaction 
     ) 
     {
         parent::__construct(
