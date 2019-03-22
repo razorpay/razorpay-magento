@@ -1,7 +1,6 @@
 <?php 
 namespace Razorpay\Magento\Controller\Payment;
 
-use Magento\Sales\Model\Order\Payment\Transaction;
 use Magento\Sales\Model\ResourceModel\Order\Payment\Transaction\CollectionFactory as TransactionCollectionFactory;
 
 class Webhook extends \Razorpay\Magento\Controller\BaseController
@@ -11,7 +10,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
       \Magento\Customer\Model\Session $customerSession,
       \Magento\Checkout\Model\Session $checkoutSession,
       \Razorpay\Magento\Model\Config $config,
-      Transaction $transaction,
       TransactionCollectionFactory $salesTransactionCollectionFactory
     ) 
     {
@@ -23,7 +21,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
            $salesTransactionCollectionFactory
         );
         
-        $this->transaction = $transaction;
         $this->salesTransactionCollectionFactory = $salesTransactionCollectionFactory;
     }
     /**
