@@ -29,7 +29,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     {
         var_dump("Proof of life");
         $txn_id = $this->salesTransactionCollectionFactory->getTxnId();
-        echo $txn_id;
+        echo "Transaction ID = " . $txn_id;
     }
 }
    
