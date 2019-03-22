@@ -4,10 +4,12 @@ namespace Razorpay\Magento\Controller\Payment;
 class Webhook extends \Razorpay\Magento\Controller\BaseController
 {
     public function __construct(
+      \Magento\Framework\App\Action\Context $context,
       \Magento\Sales\Model\Order\Payment\Transaction $transaction 
     ) 
     {
         parent::__construct(
+           $context,
            $transaction
         );
         
