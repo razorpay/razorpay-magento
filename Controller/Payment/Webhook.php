@@ -2,6 +2,7 @@
 namespace Razorpay\Magento\Controller\Payment;
 
 use Magento\Sales\Model\Order\Payment\Transaction;
+use Magento\Sales\Model\ResourceModel\Order\Payment\Transaction\CollectionFactory as TransactionCollectionFactory;
 
 class Webhook extends \Razorpay\Magento\Controller\BaseController
 {
@@ -10,7 +11,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
       \Magento\Customer\Model\Session $customerSession,
       \Magento\Checkout\Model\Session $checkoutSession,
       \Razorpay\Magento\Model\Config $config,
-      Transaction $transaction 
+      Transaction $transaction,
+      TransactionCollectionFactory $salesTransactionCollectionFactory
     ) 
     {
         parent::__construct(
@@ -18,10 +20,12 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
            $customerSession,
            $checkoutSession,
            $config,
-           $transaction
+           $transaction,
+           $salesTransactionCollectionFactory
         );
         
         $this->transaction = $transaction;
+        $this->salesTransactionCollectionFactory = $salesTransactionCollectionFactory;
     }
     /**
      * Processes the incoming webhook
@@ -29,7 +33,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     public function execute()
     {
         var_dump("Proof of life");
-        $txn_id = $this->transaction->getTxnId();
+        $txn_id = $this->salesTransactionCollectionFactory->getTxnId();
         echo $txn_id;
     }
 }
