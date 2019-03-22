@@ -1,57 +1,25 @@
 <?php 
 namespace Razorpay\Magento\Controller\Payment;
 
-use Razorpay\Magento\Model\PaymentMethod;
+use Magento\Sales\Model\Order\Payment\Transaction;
+
 
 class Webhook extends \Razorpay\Magento\Controller\BaseController
 {
     /**
-     * @var \Magento\Checkout\Model\Session
+     * @var \Magento\Sales\Model\Order\Payment\Transaction
      */
-    protected $checkoutSession;
-    /**
-     * @var \Magento\Quote\Model\QuoteRepository
-     */
+    protected $transaction;
     
-    /**
-     * @param \Magento\Framework\App\Action\Context $context
-     * @param \Magento\Customer\Model\Session $customerSession
-     * @param \Magento\Checkout\Model\Session $checkoutSession
-     * @param \Magento\Razorpay\Model\CheckoutFactory $checkoutFactory
-     * @param \Razorpay\Magento\Model\Config $config
-     * @param \Magento\Catalog\Model\Session $catalogSession
-     * @param \Magento\Quote\Model\QuoteRepository $quoteRepository,
-     * @param \Magento\Sales\Api\Data\OrderInterface $order
-     */
     public function __construct(
-        \Magento\Framework\App\Action\Context $context,
-        \Magento\Customer\Model\Session $customerSession,
-        \Magento\Checkout\Model\Session $checkoutSession,
-        \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
-        \Razorpay\Magento\Model\Config $config,
-        \Magento\Catalog\Model\Session $catalogSession,
-        \Magento\Quote\Model\QuoteRepository $quoteRepository,
-        \Magento\Sales\Api\Data\OrderInterface $order,
-        \Magento\Quote\Model\QuoteManagement $quoteManagement,
-        \Magento\Store\Model\StoreManagerInterface $storeManagement,
-        \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository,
-        \Psr\Log\LoggerInterface $logger
+      Transaction $transaction 
     ) 
     {
         parent::__construct(
-            $context,
-            $customerSession,
-            $checkoutSession,
-            $config
+           $transaction
         );
         
-        $this->objectManagement   = \Magento\Framework\App\ObjectManager::getInstance();
-        $this->quoteManagement    = $quoteManagement;
-        $this->checkoutFactory    = $checkoutFactory;
-        $this->catalogSession     = $catalogSession;
-        $this->quoteRepository    = $quoteRepository;
-        $this->storeManagement    = $storeManagement;
-        $this->customerRepository = $customerRepository;
+        $this->transaction = $transaction;
     }
     /**
      * Processes the incoming webhook
@@ -59,6 +27,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     public function execute()
     {
         var_dump("Proof of life");
+        $txn_id = $this->transaction->getTxnId();
+        echo $txn_id;
     }
 }
    
