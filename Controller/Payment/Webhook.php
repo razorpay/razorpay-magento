@@ -1,6 +1,8 @@
 <?php 
 namespace Razorpay\Magento\Controller\Payment;
 
+use Magento\Sales\Model\Order\Payment\Transaction;
+
 class Webhook extends \Razorpay\Magento\Controller\BaseController
 {
     public function __construct(
@@ -8,7 +10,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
       \Magento\Customer\Model\Session $customerSession,
       \Magento\Checkout\Model\Session $checkoutSession,
       \Razorpay\Magento\Model\Config $config,
-      \Magento\Sales\Model\Order\Payment\Transaction $transaction 
+      Transaction $transaction 
     ) 
     {
         parent::__construct(
