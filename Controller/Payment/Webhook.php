@@ -75,6 +75,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     public function execute()
     {
         $post = $this->getPostData();
+        mail("seher@kdc.in","Test Webhook 1",$post,"From: webmaster@m23.aws.rzp.re");=
         if (json_last_error() !== 0)
         {
             return;
@@ -84,8 +85,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         {
             if (isset($_SERVER['HTTP_X_RAZORPAY_SIGNATURE']) === true)
             {
-                
-                mail("seher@kdc.in","Test Webhook 1",$post,"From: webmaster@m23.aws.rzp.re");
                 $webhookSecret = $this->config->getWebhookSecret();
                 //
                 // To accept webhooks, the merchant must configure 
