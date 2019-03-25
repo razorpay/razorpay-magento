@@ -1,6 +1,7 @@
 <?php 
 namespace Razorpay\Magento\Controller\Payment;
 
+use Magento\Framework\Controller\ResultFactory;
 use Magento\Sales\Model\ResourceModel\Order\Payment\Transaction\CollectionFactory as TransactionCollectionFactory;
 use Magento\Sales\Model\Order\Payment\Transaction;
 use Razorpay\Magento\Model\Config;
@@ -12,8 +13,10 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
       \Magento\Framework\App\Action\Context $context,
       \Magento\Customer\Model\Session $customerSession,
       \Magento\Checkout\Model\Session $checkoutSession,
+      \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
       \Razorpay\Magento\Model\Config $config,
       \Magento\Framework\App\RequestInterface $request,
+      \Magento\Catalog\Model\Session $catalogSession,
       TransactionCollectionFactory $salesTransactionCollectionFactory
     ) 
     {
@@ -23,7 +26,10 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
            $checkoutSession,
            $config
         );
+        $this->checkoutFactory = $checkoutFactory;
+	    $this->config = $config;
         $this->request = $request;
+        $this->catalogSession = $catalogSession;
         $this->salesTransactionCollectionFactory = $salesTransactionCollectionFactory;
     }
     /**
@@ -33,15 +39,15 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     {
         echo "Hello World\n";
         
-        $request = $this->getPostData();
-        $txn_id = $request['rzp_payment_id'];
+        //$request = $this->getPostData();
+        //$txn_id = $request['rzp_payment_id'];
+        $txn_id = getTxnId();
         echo "\nTransaction ID = " . $txn_id;
     }
     
-    protected function getPostData()
+    protected function getTxnId(\Magento\Sales\Model\Order\Payment\Transaction $transaction)
     {
-        $request = file_get_contents('php://input');
-        return json_decode($request, true);
+        return $transaction->getTxnId();
     }
 }
    
