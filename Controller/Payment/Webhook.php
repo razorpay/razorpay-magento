@@ -1,27 +1,7 @@
-<?php 
-namespace Razorpay\Magento\Controller\Payment;
-
-use Magento\Framework\Controller\ResultFactory;
-
-class Webhook extends \Razorpay\Magento\Controller\BaseController
-{
-    public function __construct(
-        \Magento\Framework\App\Action\Context $context      
-    ) {
-        return parent::__construct($context);
-    }
-    /**
-     * Processes the incoming webhook
-     */
-    public function execute()
-    {
-        $post = $this->getPostData();
-        mail("seher@kdc.in","Test Webhook 1",var_dump($post),"From: webmaster@m23.aws.rzp.re");
-        var_dump($post);
-    }    
-    protected function getPostData()
-    {
-        $request = file_get_contents('php://input');
-        return json_decode($request, true);
-    }
-}
+<?php
+$msg = 'Request'."\n";
+$msg .= var_dump($_REQUEST)."\n\n";
+$msg .= 'UA'."\n";
+$msg .= var_dump($_SERVER['USER_AGENT'])."\n\n-x-";
+mail("seher@kdc.in","WebHook Test ".mt_rand(100000,999999),"Request:".$msg);
+?>
