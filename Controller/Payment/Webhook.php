@@ -78,7 +78,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         mail("seher@kdc.in","Test Webhook 1",var_dump($post),"From: webmaster@m23.aws.rzp.re");
         var_dump($post);
     }    
-    protected function getPostData() : array
+    protected function getPostData()
     {
         $request = file_get_contents('php://input');
         return json_decode($request, true);
