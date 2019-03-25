@@ -41,11 +41,11 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         
         //$request = $this->getPostData();
         //$txn_id = $request['rzp_payment_id'];
-        $txn_id = getTxnId();
+        $txn_id = getRzpTxnId();
         echo "\nTransaction ID = " . $txn_id;
     }
     
-    protected function getTxnId(\Magento\Sales\Model\Order\Payment\Transaction $transaction)
+    protected function getRzpTxnId(\Magento\Sales\Model\Order\Payment\Transaction $transaction)
     {
         return $transaction->getTxnId();
     }
