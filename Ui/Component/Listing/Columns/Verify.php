@@ -31,11 +31,13 @@ class Verify extends Column
         ContextInterface $context,
         UiComponentFactory $uiComponentFactory,
         UrlInterface $urlBuilder,
+        Payment $payment,
         Transaction $transaction,
         array $components = [],
         array $data = []
     ) {
         $this->urlBuilder = $urlBuilder;
+        $this->payment = $payment;
         $this->transaction = $transaction;
         parent::__construct($context, $uiComponentFactory, $components, $data);
     }
@@ -56,7 +58,7 @@ class Verify extends Column
                 $item[$fieldName . '_title'] = __('Please enter a message that you want to send to customer');
                 $item[$fieldName . '_submitlabel'] = __('Send');
                 $item[$fieldName . '_cancellabel'] = __('Reset');
-                $item[$fieldName . '_customerid'] = $this->transaction->getTransactionId();
+                $item[$fieldName . '_customerid'] = $this->payment->getTransactionId();
  
                 $item[$fieldName . '_formaction'] = $this->urlBuilder->getUrl('grid/sales/verify');
             }
