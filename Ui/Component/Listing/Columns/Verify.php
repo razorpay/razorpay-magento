@@ -7,6 +7,7 @@ use Magento\Framework\View\Element\UiComponent\ContextInterface;
 use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
 use Magento\Sales\Model\Order\Payment\Transaction;
+use Magento\Sales\Model\Order\Payment;
  
 class Verify extends Column
 {
@@ -54,7 +55,7 @@ class Verify extends Column
                 $item[$fieldName . '_title'] = __('Please enter a message that you want to send to customer');
                 $item[$fieldName . '_submitlabel'] = __('Send');
                 $item[$fieldName . '_cancellabel'] = __('Reset');
-                $item[$fieldName . '_customerid'] = $this->transaction->getId();
+                $item[$fieldName . '_customerid'] = $this->getData('transaction_id');
  
                 $item[$fieldName . '_formaction'] = $this->urlBuilder->getUrl('grid/sales/verify');
             }
