@@ -54,7 +54,7 @@ class Verify extends Column
                 $item[$fieldName . '_title'] = __('Please enter a message that you want to send to customer');
                 $item[$fieldName . '_submitlabel'] = __('Send');
                 $item[$fieldName . '_cancellabel'] = __('Reset');
-                $item[$fieldName . '_customerid'] = $this->transaction->getTxnId();
+                $item[$fieldName . '_customerid'] = $this->transaction->getId();
  
                 $item[$fieldName . '_formaction'] = $this->urlBuilder->getUrl('grid/sales/verify');
             }
