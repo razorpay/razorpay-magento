@@ -15,6 +15,7 @@ class Verify extends Column
      * @var UrlInterface
      */
     protected $urlBuilder;
+    protected $transaction;
  
     /**
      * Constructor
@@ -55,7 +56,7 @@ class Verify extends Column
                 $item[$fieldName . '_title'] = __('Please enter a message that you want to send to customer');
                 $item[$fieldName . '_submitlabel'] = __('Send');
                 $item[$fieldName . '_cancellabel'] = __('Reset');
-                $item[$fieldName . '_customerid'] = $this->getData('transaction_id');
+                $item[$fieldName . '_customerid'] = $this->transaction->getTransactionId();
  
                 $item[$fieldName . '_formaction'] = $this->urlBuilder->getUrl('grid/sales/verify');
             }
