@@ -2,7 +2,7 @@
 
 namespace Razorpay\Magento\Controller\Payment;
 
-class Webhook extends \Razorpay\Magento\Controller\BaseController
+class Webhook extends \Magento\Framework\App\Action\Action
 {
     /** @var \Psr\Log\LoggerInterface  */
     protected $logger;
