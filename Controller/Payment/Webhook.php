@@ -4,11 +4,8 @@ namespace Razorpay\Magento\Controller\Payment;
 
 class Webhook extends \Magento\Framework\App\Action\Action
 {
-    /** @var \Psr\Log\LoggerInterface  */
     protected $logger;
-    /**
-    * @param \Psr\Log\LoggerInterface $logger
-    */
+    
     public function __construct(\Psr\Log\LoggerInterface $logger) {
         $this->logger = $logger;
     }
