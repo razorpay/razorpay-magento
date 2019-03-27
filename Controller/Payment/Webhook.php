@@ -12,11 +12,12 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
+        \Magento\Customer\Model\Session $customerSession,
         \Psr\Log\LoggerInterface $logger
     ) {
         $this->logger = $logger;
       
-        parent::__construct($context);
+        parent::__construct($context,$customerSession);
     }
     public function execute()
     {
