@@ -1,7 +1,7 @@
 <?php
 
 $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-$resource = $objectManager->get('Magento\Framework \App\ResourceConnection');
+$resource = $objectManager->get('Magento\Framework\App\ResourceConnection');
 $connection = $resource->getConnection();
 $tableName = $resource->getTableName('sales_payment_transaction');
 //$dates = date("Y-m-d");
