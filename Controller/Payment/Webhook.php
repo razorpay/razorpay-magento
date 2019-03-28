@@ -2,11 +2,13 @@
 
 namespace Razorpay\Magento\Controller\Payment;
 
+use \Psr\Log\LoggerInterface;
+
 class Webhook extends \Magento\Framework\App\Action\Action
 {
     protected $logger;
     
-    public function __construct(\Psr\Log\LoggerInterface $logger) {
+    public function __construct(LoggerInterface $logger) {
         $this->logger = $logger;
     }
     public function execute()
@@ -16,5 +18,6 @@ class Webhook extends \Magento\Framework\App\Action\Action
         $request = file_get_contents('php://input');
         $msg = json_encode($request, true);
         $this->logger->addDebug("Json Output: ".print_r($msg, true));
+        echo $msg;
     }
 }
