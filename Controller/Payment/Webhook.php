@@ -1,13 +1,11 @@
 <?php
-namespace Razorpay\Magento\Controller\Payment;
 
-class Webhook extends \Magento\Framework\App\Action\Action
-{
-    public function execute()
-    {
-        echo "hello"."\n\n";
-        $request = $_REQUEST; //file_get_contents('php://input');
-        $msg = json_encode($request, true);
-        echo "Request = ".$msg;
-    }
-}
+$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+$resource = $objectManager->get('Magento\Framework \App\ResourceConnection');
+$connection = $resource->getConnection();
+$tableName = $resource->getTableName('sales_payment_transaction');
+//$dates = date("Y-m-d");
+//$phone = $_POST["phone"];
+$sql = "SELECT * FROM sales_payment_transaction WHERE is_closed = '0'";
+$result = $connection->fetchAll($sql); 
+echo '<pre>'; print_r($result); echo '</pre>';
