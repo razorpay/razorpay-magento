@@ -9,7 +9,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession
-     * @param \Magento\Razorpay\Model\CheckoutFactory $checkoutFactory
      * @param \Magento\Razorpay\Model\Config\Payment $razorpayConfig
      */
     public function __construct(
