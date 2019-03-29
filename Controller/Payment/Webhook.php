@@ -12,7 +12,7 @@ $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
 $resource = $objectManager->get('Magento\Framework\App\ResourceConnection');
 $connection = $resource->getConnection();
 
-$query1 = "SELECT order_id FROM sales_payment_transaction WHERE txn_id = '$rzp_id'";
+$query1 = "SELECT order_id FROM sales_payment_transaction WHERE txn_id = 'pay_CDBwkdURcNaAHN'";
 $magento_orderId = $connection->fetchAll($query1); 
 
 //$query2 = "SELECT status FROM sales_order WHERE entity_id = '$magento_orderId'";
