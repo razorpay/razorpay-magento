@@ -14,12 +14,14 @@ $connection = $resource->getConnection();
 
 $query1 = "SELECT order_id FROM sales_payment_transaction WHERE txn_id = 'pay_CDBwkdURcNaAHN'";
 $response1 = $connection->fetchAll($query1); 
-
 $magento_orderId = $response1[0]['order_id'];
 
-//$query2 = "SELECT status FROM sales_order WHERE entity_id = '$magento_orderId'";
-//$magento_orderStatus = $connection->fetchAll($query2);
+$query2 = "SELECT status FROM sales_order WHERE entity_id = '$magento_orderId'";
+$response2 = $connection->fetchAll($query2);
+
+$magento_orderStatus = $response1[0]['status'];
 
 echo '<pre>'; print_r($response1); echo '</pre>';
 echo '<pre>'; print_r($magento_orderId); echo '</pre>';
-//echo '<pre>'; print_r($magento_orderStatus); echo '</pre>';
+echo '<pre>'; print_r($response1); echo '</pre>';
+echo '<pre>'; print_r($magento_orderStatus); echo '</pre>';
