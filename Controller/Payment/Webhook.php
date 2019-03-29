@@ -1,9 +1,9 @@
 <?php
 
 $response = file_get_contents('php://input');
-$rzp_response = json_encode($response, true)."\n\n";
+$rzp_response = json_decode($response, true)."\n\n";
 
-$rzp = $rzp_response[0]['payload']['payment']['entity'];
+$rzp = $rzp_response['payload']['payment']['entity'];
 $rzp_id = $rzp['id'];
 $rzp_status = $rzp['status'];
 $rzp_captured = $rzp['captured'];
