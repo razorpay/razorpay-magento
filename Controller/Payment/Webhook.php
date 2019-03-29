@@ -15,8 +15,8 @@ $connection = $resource->getConnection();
 $query1 = "SELECT order_id FROM sales_payment_transaction WHERE txn_id = '$rzp_id'";
 $magento_orderId = $connection->fetchAll($query1); 
 
-$query2 = "SELECT status FROM sales_order WHERE entity_id = '$magento_orderId'";
-$magento_orderStatus = $connection->fetchAll($query2);
+//$query2 = "SELECT status FROM sales_order WHERE entity_id = '$magento_orderId'";
+//$magento_orderStatus = $connection->fetchAll($query2);
 
 echo '<pre>'; print_r($magento_orderId); echo '</pre>';
-echo '<pre>'; print_r($magento_orderStatus); echo '</pre>';
+//echo '<pre>'; print_r($magento_orderStatus); echo '</pre>';
