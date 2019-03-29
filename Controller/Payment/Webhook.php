@@ -12,7 +12,7 @@ $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
 $resource = $objectManager->get('Magento\Framework\App\ResourceConnection');
 $connection = $resource->getConnection();
 
-$query1 = "SELECT order_id FROM sales_payment_transaction WHERE txn_id = 'pay_CDBwkdURcNaAHN'";
+$query1 = "SELECT order_id FROM sales_payment_transaction WHERE txn_id = '$rzp_id'";
 $response1 = $connection->fetchAll($query1); 
 $magento_orderId = $response1[0]['order_id'];
 
@@ -21,7 +21,7 @@ $response2 = $connection->fetchAll($query2);
 
 $magento_orderStatus = $response2[0]['status'];
 
-echo '<pre>'; print_r($response1); echo '</pre>';
+//echo '<pre>'; print_r($response1); echo '</pre>';
 echo '<pre>'; print_r($magento_orderId); echo '</pre>';
-echo '<pre>'; print_r($response2); echo '</pre>';
+//echo '<pre>'; print_r($response2); echo '</pre>';
 echo '<pre>'; print_r($magento_orderStatus); echo '</pre>';
