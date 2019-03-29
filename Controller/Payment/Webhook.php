@@ -1,11 +1,22 @@
 <?php
 
+$response = file_get_contents('php://input');
+$rzp_response = json_encode($response, true)."\n\n";
+
+$rzp = $rzp_response['payload']['payment']['entity'];
+$rzp_id = $rzp['id'];
+$rzp_status = $rzp['status'];
+$rzp_captured = $rzp['captured'];
+
 $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
 $resource = $objectManager->get('Magento\Framework\App\ResourceConnection');
 $connection = $resource->getConnection();
-$tableName = $resource->getTableName('sales_payment_transaction');
-//$dates = date("Y-m-d");
-//$phone = $_POST["phone"];
-$sql = "SELECT * FROM sales_payment_transaction WHERE is_closed = '0'";
-$result = $connection->fetchAll($sql); 
-echo '<pre>'; print_r($result); echo '</pre>';
+
+$query1 = "SELECT order_id FROM sales_payment_transaction WHERE txn_id = '$rzp_id'";
+$magento_orderId = $connection->fetchAll($query1); 
+
+$query2 = "SELECT status FROM sales_order WHERE entity_id = '$magento_orderId'";
+$magento_orderStatus = $connection->fetchAll($query2);
+
+echo '<pre>'; print_r($magento_orderId); echo '</pre>';
+echo '<pre>'; print_r($magento_orderStatus); echo '</pre>';
