@@ -19,9 +19,9 @@ $magento_orderId = $response1[0]['order_id'];
 $query2 = "SELECT status FROM sales_order WHERE entity_id = '$magento_orderId'";
 $response2 = $connection->fetchAll($query2);
 
-//$magento_orderStatus = $response1[0]['status'];
+$magento_orderStatus = $response2[0]['status'];
 
 echo '<pre>'; print_r($response1); echo '</pre>';
 echo '<pre>'; print_r($magento_orderId); echo '</pre>';
-echo '<pre>'; print_r($response1); echo '</pre>';
-//echo '<pre>'; print_r($magento_orderStatus); echo '</pre>';
+echo '<pre>'; print_r($response2); echo '</pre>';
+echo '<pre>'; print_r($magento_orderStatus); echo '</pre>';
