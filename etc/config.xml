@@ -10,7 +10,6 @@
                 <enable_webhook>0</enable_webhook>
                 <webhook_secret></webhook_secret>
                 <active>0</active>
-                <order_status>processing</order_status>
                 <key_id>Key ID</key_id>
                 <key_secret>Key Secret</key_secret>
             </razorpay>
