@@ -44,15 +44,14 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $amount = (int) (round($this->getQuote()->getBaseGrandTotal(), 2) * 100);
 
         $receipt_id = $this->getQuote()->getId();
-	    
-	$payment_action = $this->config->getPaymentAction();
-	    
-	if($payment_action == "authorize") {
-		$payment_capture = 0;
+
+        $payment_action = $this->config->getPaymentAction();
+
+        if($payment_action == "authorize") {
+                $payment_capture = 0;
+        } else { 
+                $payment_capture = 1;
 	}
-	else { 
-		$payment_capture = 1;
-	}    
 
         $code = 400;
 
