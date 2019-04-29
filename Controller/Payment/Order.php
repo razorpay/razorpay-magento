@@ -36,7 +36,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
         $this->checkoutFactory = $checkoutFactory;
         $this->catalogSession = $catalogSession;
-	$this->config = $config;
+        $this->config = $config;
     }
 
     public function execute()
@@ -47,11 +47,14 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
         $payment_action = $this->config->getPaymentAction();
 
-        if($payment_action == "authorize") {
+        if ($payment_action === 'authorize') 
+        {
                 $payment_capture = 0;
-        } else { 
+        }
+        else
+        {
                 $payment_capture = 1;
-	}
+        }
 
         $code = 400;
 
