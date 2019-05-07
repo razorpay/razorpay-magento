@@ -60,7 +60,7 @@ define(
             },
 
             initObservable: function() {
-                var self = this;
+                var self = this._super();
 
                 if(!this.razorpayDataFrameLoaded) {
                     $.getScript("https://checkout.razorpay.com/v1/checkout.js", function() {
@@ -68,7 +68,7 @@ define(
                     });
                 }
 
-                return this;
+                return self;
             },
 
             /**
