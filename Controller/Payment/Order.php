@@ -47,6 +47,10 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
         $payment_action = $this->config->getPaymentAction();
 
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $productMetadata = $objectManager->get('Magento\Framework\App\ProductMetadataInterface');
+        $maze_version = $productMetadata->getVersion();
+
         if ($payment_action === 'authorize') 
         {
                 $payment_capture = 0;
@@ -80,7 +84,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                     'order_id'       => $receipt_id,
                     'amount'         => $order->amount,
                     'quote_currency' => $this->getQuote()->getQuoteCurrencyCode(),
-                    'quote_amount'   => round($this->getQuote()->getGrandTotal(), 2)
+                    'quote_amount'   => round($this->getQuote()->getGrandTotal(), 2),
+                    'maze_version'   => $maze_version,
                 ];
 
                 $code = 200;
