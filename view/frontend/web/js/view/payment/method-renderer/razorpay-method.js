@@ -180,8 +180,9 @@ define(
                         email: this.user.email
                     },
                     _: {
-                        integration: 'Magento',
-                        integration_version: data.maze_version,
+                        integration: 'magento',
+                        integration_version: data.module_version,
+                        integration_parent_version: data.maze_version,
                     }
                 };
 
