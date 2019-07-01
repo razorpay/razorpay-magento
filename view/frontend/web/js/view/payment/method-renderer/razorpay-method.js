@@ -60,15 +60,16 @@ define(
             },
 
             initObservable: function() {
-                this._super();              //Resolves UI Error on Checkout
+                var self = this._super();              //Resolves UI Error on Checkout
 
-                if(!this.razorpayDataFrameLoaded) {
+
+                if(!self.razorpayDataFrameLoaded) {
                     $.getScript("https://checkout.razorpay.com/v1/checkout.js", function() {
-                        this.razorpayDataFrameLoaded = true;
+                        self.razorpayDataFrameLoaded = true;
                     });
                 }
 
-                return this;
+                return self;
             },
 
             /**
