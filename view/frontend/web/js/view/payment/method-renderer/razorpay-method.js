@@ -77,6 +77,11 @@ define(
              */
              /** Process Payment */
             preparePayment: function (context, event) {
+
+                if(!additionalValidators.validate()) {   //Resolve checkout aggreement accept error
+                    return false;
+                }
+
                 var self = this,
                     billing_address,
                     rzp_order_id;
@@ -174,6 +179,11 @@ define(
                         name: this.user.name,
                         contact: this.user.contact,
                         email: this.user.email
+                    },
+                    _: {
+                        integration: 'magento',
+                        integration_version: data.module_version,
+                        integration_parent_version: data.maze_version,
                     }
                 };
 

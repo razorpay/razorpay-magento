@@ -47,6 +47,9 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
         $payment_action = $this->config->getPaymentAction();
 
+        $maze_version = $this->_objectManager->get('Magento\Framework\App\ProductMetadataInterface')->getVersion();
+        $module_version =  $this->_objectManager->get('Magento\Framework\Module\ModuleList')->getOne('Razorpay_Magento')['setup_version'];
+
         if ($payment_action === 'authorize') 
         {
                 $payment_capture = 0;
@@ -75,12 +78,14 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             if (null !== $order && !empty($order->id))
             {
                 $responseContent = [
-                    'success'        => true,
-                    'rzp_order'      => $order->id,
-                    'order_id'       => $receipt_id,
-                    'amount'         => $order->amount,
-                    'quote_currency' => $this->getQuote()->getQuoteCurrencyCode(),
-                    'quote_amount'   => round($this->getQuote()->getGrandTotal(), 2)
+                    'success'           => true,
+                    'rzp_order'         => $order->id,
+                    'order_id'          => $receipt_id,
+                    'amount'            => $order->amount,
+                    'quote_currency'    => $this->getQuote()->getQuoteCurrencyCode(),
+                    'quote_amount'      => round($this->getQuote()->getGrandTotal(), 2),
+                    'maze_version'      => $maze_version,
+                    'module_version'    => $module_version,
                 ];
 
                 $code = 200;
