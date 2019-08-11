@@ -198,7 +198,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         {
             /** @var \Magento\Sales\Model\Order\Payment $payment */
             $order = $payment->getOrder();
-            $orderId = $order->getIncrementId();
 
             $request = $this->getPostData();
 
@@ -211,7 +210,10 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                     ->setLastTransId($payment_id)
                     ->setTransactionId($payment_id)
                     ->setIsTransactionClosed(true)
-                    ->setShouldCloseParentTransaction(true);
+                    ->setShouldCloseParentTransaction(true)
+                    ->place();
+
+            $order->save();
         } 
         catch (\Exception $e) 
         {
