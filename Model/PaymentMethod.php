@@ -222,6 +222,24 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         return $this;
     }
 
+    /**
+     * Capture specified amount with authorization
+     *
+     * @param InfoInterface $payment
+     * @param string $amount
+     * @return $this
+     */
+
+    public function capture(InfoInterface $payment, $amount)
+    {
+        //check if payment has been authorized
+        if(is_null($payment->getParentTransactionId())) {
+            $this->authorize($payment, $amount);
+        }
+
+        return $this;
+    }
+
     protected function validateSignature($request)
     {
         $attributes = array(
