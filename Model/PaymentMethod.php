@@ -212,6 +212,9 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                     ->setTransactionId($payment_id)
                     ->setIsTransactionClosed(true)
                     ->setShouldCloseParentTransaction(true);
+
+            //update the Razorpay payment with corresponding created order ID of this quote ID
+            $this->updatePaymentNote($payment_id, $order);
         } 
         catch (\Exception $e) 
         {
@@ -238,6 +241,25 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         }
 
         return $this;
+    }
+
+    /**
+     * Update the payment note with Magento frontend OrderID
+     *
+     * @param string $razorPayPaymentId
+     * @param object $salesOrder
+     */
+    protected function updatePaymentNote($paymentId, $order)
+    {
+        //update the Razorpay payment with corresponding created order ID of this quote ID        
+        $this->rzp->payment->fetch($paymentId)->edit(
+            array(
+                'notes' => array(
+                    'merchant_order_id' => $order->getIncrementId(),
+                    'merchant_quote_id' => $order->getQuoteId()
+                )
+            )
+        );
     }
 
     protected function validateSignature($request)

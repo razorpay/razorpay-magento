@@ -173,7 +173,8 @@ define(
                         }
                     },
                     notes: {
-                        merchant_order_id: data.order_id
+                        merchant_order_id: '',
+                        merchant_quote_id: data.order_id
                     },
                     prefill: {
                         name: this.user.name,
