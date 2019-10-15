@@ -72,19 +72,39 @@ define(
                 return self;
             },
 
-            /**
-             * @override
-             */
-             /** Process Payment */
-            preparePayment: function (context, event) {
+            placeOrder: function (event) {
+                var self = this;
 
-                if(!additionalValidators.validate()) {   //Resolve checkout aggreement accept error
-                    return false;
+                if (event) {
+                    event.preventDefault();
                 }
 
+                if(!self.orderId) {
+                    this.isPlaceOrderActionAllowed(false);
+                    this.getPlaceOrderDeferredObject()
+                        .fail(
+                            function () {
+                                self.isPlaceOrderActionAllowed(true);
+                            }
+                        ).done(
+                        function (orderId) {
+                            self.getRzpOrderId(orderId);
+                            self.orderId =  orderId;
+                        }
+                    );
+                }else{
+                    self.getRzpOrderId(self.orderId);
+                }
+
+                return;
+
+            },
+
+            doCheckoutPayment: function(rzpResponse){
+
                 var self = this,
-                    billing_address,
-                    rzp_order_id;
+                billing_address,
+                rzp_order_id;
 
                 fullScreenLoader.startLoader();
                 this.messageContainer.clear();
@@ -105,24 +125,38 @@ define(
                     this.user.email = customer.customerData.email;
                 }
 
+                self.renderIframe(rzpResponse);
+
                 this.isPaymentProcessing = $.Deferred();
 
-                $.when(this.isPaymentProcessing).done(
-                    function () {
-                        self.placeOrder();
-                    }
-                ).fail(
+                $.when(this.isPaymentProcessing).fail(
                     function (result) {
                         self.handleError(result);
                     }
                 );
 
-                self.getRzpOrderId();
-
                 return;
+
             },
 
-            getRzpOrderId: function () {
+            /**
+             * @override
+             */
+             /** Process Payment */
+            preparePayment: function (context, event) {
+
+                if(!additionalValidators.validate()) {   //Resolve checkout aggreement accept error
+                    return false;
+                }
+                fullScreenLoader.startLoader();
+                this.placeOrder(event);
+
+                return;
+
+            },
+
+
+            getRzpOrderId: function (orderId) {
                 var self = this;
 
                 $.ajax({
@@ -136,7 +170,8 @@ define(
                     success: function (response) {
                         fullScreenLoader.stopLoader();
                         if (response.success) {
-                            self.renderIframe(response);
+                           //self.placeOrder(this.event, response);
+                           self.doCheckoutPayment(response);
                         } else {
                             self.isPaymentProcessing.reject(response.message);
                         }
@@ -164,17 +199,18 @@ define(
                     amount: data.amount,
                     handler: function (data) {
                         self.rzp_response = data;
-                        self.placeOrder(data);
+                        self.validateOrder(data);
                     },
                     order_id: data.rzp_order,
                     modal: {
-                        ondismiss: function() {
+                        ondismiss: function() { //alert('asdsadsa');
+                            fullScreenLoader.stopLoader();
                             self.isPaymentProcessing.reject("Payment Closed");
+                            self.isPlaceOrderActionAllowed(true);
                         }
                     },
                     notes: {
-                        merchant_order_id: '',
-                        merchant_quote_id: data.order_id
+                        merchant_order_id: data.order_id,
                     },
                     prefill: {
                         name: this.user.name,
@@ -197,6 +233,45 @@ define(
                 this.rzp = new Razorpay(options);
 
                 this.rzp.open();
+            },
+
+            validateOrder: function(data){
+
+                var self = this;
+                fullScreenLoader.startLoader();
+
+                $.ajax({
+                    type: 'POST',
+                    url: url.build('razorpay/payment/validate'),
+                    data: JSON.stringify(data),
+                    dataType: 'json',
+                    contentType: 'application/json',
+
+                    /**
+                     * Success callback
+                     * @param {Object} response
+                     */
+                    success: function (response) {
+                        fullScreenLoader.stopLoader();
+                        if (response.success) {
+                            window.location.replace(response.redirect_url);
+                        } else {
+                            self.isPaymentProcessing.reject(response.message);
+                            self.handleError(response);
+                        }
+                    },
+
+                    /**
+                     * Error callback
+                     * @param {*} response
+                     */
+                    error: function (response) {
+                        fullScreenLoader.stopLoader();
+                        self.isPaymentProcessing.reject(response.message);
+                        self.handleError(response);
+                    }
+                });
+
             },
 
             getData: function() {
