@@ -41,9 +41,11 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
     public function execute()
     {
-        $amount = (int) (round($this->getQuote()->getBaseGrandTotal(), 2) * 100);
+        $mazeOrder = $this->checkoutSession->getLastRealOrder();
 
-        $receipt_id = $this->getQuote()->getId();
+        $amount = (int) (round($mazeOrder->getBaseGrandTotal(), 2) * 100);
+
+        $receipt_id = $mazeOrder->getIncrementId();
 
         $payment_action = $this->config->getPaymentAction();
 
@@ -66,7 +68,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             $order = $this->rzp->order->create([
                 'amount' => $amount,
                 'receipt' => $receipt_id,
-                'currency' => $this->_currency,
+                'currency' => $mazeOrder->getOrderCurrencyCode(),
                 'payment_capture' => $payment_capture
             ]);
 
@@ -82,8 +84,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                     'rzp_order'         => $order->id,
                     'order_id'          => $receipt_id,
                     'amount'            => $order->amount,
-                    'quote_currency'    => $this->getQuote()->getQuoteCurrencyCode(),
-                    'quote_amount'      => round($this->getQuote()->getGrandTotal(), 2),
+                    'quote_currency'    => $mazeOrder->getOrderCurrencyCode(),
+                    'quote_amount'      => round($mazeOrder->getBaseGrandTotal(), 2),
                     'maze_version'      => $maze_version,
                     'module_version'    => $module_version,
                 ];

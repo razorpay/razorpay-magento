@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <event name="sales_order_payment_place_end">
+        <observer name="razorpay_payment_gateway_after_place_order" instance="Razorpay\Magento\Observer\AfterPlaceOrderObserver"/>
+    </event>
+</config>
