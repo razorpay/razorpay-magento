@@ -41,7 +41,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
     public function execute()
     {
-        $amount = (int) (round($this->getQuote()->getBaseGrandTotal(), 2) * 100);
+        $amount = (int) (round($this->getQuote()->getGrandTotal(), 2) * 100);
 
         $receipt_id = $this->getQuote()->getId();
 
@@ -66,7 +66,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             $order = $this->rzp->order->create([
                 'amount' => $amount,
                 'receipt' => $receipt_id,
-                'currency' => $this->_currency,
+                'currency' => $this->getQuote()->getQuoteCurrencyCode(),
                 'payment_capture' => $payment_capture
             ]);
 
