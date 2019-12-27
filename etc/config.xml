@@ -6,7 +6,7 @@
                 <model>Razorpay\Magento\Model\PaymentMethod</model>
                 <title>Razorpay</title>
                 <merchant_name_override>Magento</merchant_name_override>
-                <payment_action>authorize</payment_action>
+                <payment_action>authorize_capture</payment_action>
                 <active>0</active>
                 <order_status>processing</order_status>
                 <key_id>Key ID</key_id>
