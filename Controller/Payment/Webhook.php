@@ -184,6 +184,9 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController implements Csr
 
         $this->logger->warning("Razorpay Webhook processing started for Razorpay payment_id(:$paymentId)");
 
+        //validate if the quote Order is still active
+        $quote = $this->quoteRepository->get($quoteId);
+
         //exit if quote is not active
         if(!$quote->getIsActive())
         {
