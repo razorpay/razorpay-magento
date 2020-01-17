@@ -34,6 +34,18 @@
                     <comment>**Required (Enter test key secret for testing)**</comment>
                     <config_path>payment/razorpay/key_secret</config_path>
                 </field>
+                <field id="enable_webhook" translate="label" type="select" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Webhook Enabled</label>
+                    <comment>** {{base_url}} Copy the Webhook Url from below **</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <frontend_model>Razorpay\Magento\Model\WebhookUrl</frontend_model>
+                    <config_path>payment/razorpay/enable_webhook</config_path>
+                </field>
+                <field id="webhook_secret" translate="label" type="text" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Webhook Secret</label>
+                    <comment>This field has to match the one set in dashboard.razorpay.com/webhooks</comment>
+                    <config_path>payment/razorpay/webhook_secret</config_path>
+                </field>
                 <field id="order_status" translate="label" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>New Order Status</label>
                     <source_model>Magento\Sales\Model\Config\Source\Order\Status\Processing</source_model>

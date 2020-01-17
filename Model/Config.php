@@ -13,6 +13,8 @@ class Config
     const KEY_PRIVATE_KEY = 'key_secret';
     const KEY_MERCHANT_NAME_OVERRIDE = 'merchant_name_override';
     const KEY_PAYMENT_ACTION = 'payment_action';
+    const ENABLE_WEBHOOK = 'enable_webhook';
+    const WEBHOOK_SECRET = 'webhook_secret';
 
     /**
      * @var string
@@ -49,6 +51,16 @@ class Config
     public function getKeyId()
     {
         return $this->getConfigData(self::KEY_PUBLIC_KEY);
+    }
+
+    public function isWebhookEnabled()
+    {
+        return (bool) (int) $this->getConfigData(self::ENABLE_WEBHOOK, $this->storeId);
+    }
+
+    public function getWebhookSecret()
+    {
+        return $this->getConfigData(self::WEBHOOK_SECRET);
     }
     
     public function getPaymentAction()

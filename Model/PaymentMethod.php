@@ -202,9 +202,17 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
             $request = $this->getPostData();
 
-            $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
-            
-            $this->validateSignature($request);
+            if(empty($request['payload']['payment']['entity']['id']) === false)
+            {
+                $payment_id = $request['payload']['payment']['entity']['id'];
+                //validate that request is from webhook only
+                $this->validateWebhookSignature($request);
+            }
+            else
+            {
+                $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
+                $this->validateSignature($request);
+            }
 
             $payment->setStatus(self::STATUS_APPROVED)
                     ->setAmountPaid($amount)
@@ -271,6 +279,18 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         );
         
         $this->rzp->utility->verifyPaymentSignature($attributes);
+    }
+
+    /**
+     * [validateWebhookSignature Used in case of webhook request for payment auth]
+     * @param  array  $post
+     * @return [type]
+     */
+    public  function validateWebhookSignature(array $post)
+    {
+        $webhookSecret = $this->config->getWebhookSecret();
+
+        $this->rzp->utility->verifyWebhookSignature(json_encode($post), $_SERVER['HTTP_X_RAZORPAY_SIGNATURE'], $webhookSecret);
     }
 
     protected function getPostData()
