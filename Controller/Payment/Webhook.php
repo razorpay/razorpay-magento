@@ -10,7 +10,7 @@ use Magento\Framework\App\CsrfAwareActionInterface;
 use Magento\Framework\App\Request\InvalidRequestException;
 use Magento\Framework\App\RequestInterface;
 
-class Webhook extends \Razorpay\Magento\Controller\BaseController implements CsrfAwareActionInterface
+class Webhook extends \Razorpay\Magento\Controller\BaseController
 {
     /**
      * @var \Magento\Checkout\Model\Session
@@ -87,23 +87,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController implements Csr
         $this->quoteRepository    = $quoteRepository;
         $this->storeManagement    = $storeManagement;
         $this->customerRepository = $customerRepository;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function createCsrfValidationException(
-        RequestInterface $request
-    ): ?InvalidRequestException {
-        return true;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function validateForCsrf(RequestInterface $request): ?bool
-    {
-        return true;
     }
 
     /**
