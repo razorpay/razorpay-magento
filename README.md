@@ -11,6 +11,20 @@ composer require razorpay/magento
 bin/magento module:enable Razorpay_Magento
 ```
 
+### Install through "code.zip" file
+
+Extract the attached code.zip from release
+
+Go to "app" folder
+
+Overwrite content of "code" folder with step one "code" folder (Note: if code folder not exist just place the code folder from step-1).
+
+Run from magento root folder.
+
+```
+bin/magento module:enable Razorpay_Magento
+bin/magento setup:upgrade
+```
 
 You can check if the module has been installed using `bin/magento module:status`
 
@@ -22,6 +36,8 @@ Go to `Admin -> Stores -> Configuration -> Payment Method -> Razorpay` to config
 
 If you do not see Razorpay in your gateway list, please clear your Magento Cache from your admin
 panel (System -> Cache Management).
+
+### Note: Don't mix composer and zip install.
 
 ### Support
 
