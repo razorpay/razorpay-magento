@@ -15,7 +15,7 @@ class CsrfValidatorSkip
         $action
     ) { 
         if ($request->getModuleName() == 'razorpay') {
-            //return; // Skip CSRF check
+            return; // Skip CSRF check
         }
         $proceed($request, $action); // Proceed Magento 2 core functionalities
     }
