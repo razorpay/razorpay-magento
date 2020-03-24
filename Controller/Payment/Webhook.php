@@ -173,7 +173,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         if((time() - $payment_created_time) < 10)
         {
             $this->logger->warning("Razorpay Webhook: Order processing is active for quoteID: $quoteId and Razorpay payment_id(:$paymentId)");
-            header('Status: 425 Too Early for processing', true, 425);
+            header('Status: 409 Conflict, too early for processing', true, 409);
             exit;
         }
 
