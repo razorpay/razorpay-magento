@@ -103,6 +103,11 @@ class Order extends \Razorpay\Magento\Controller\BaseController implements CsrfA
 
             $order = $this->quoteManagement->submit($quote);
 
+            $this->checkoutSession->setLastSuccessQuoteId($quote->getId());
+            $this->checkoutSession->setLastQuoteId($quote->getId());
+            $this->checkoutSession->setLastOrderId($order->getId());
+            $this->checkoutSession->setLastRealOrderId($order->getIncrementId());
+
             $payment = $order->getPayment();
 
             $payment->setAmountPaid($amount)
