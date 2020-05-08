@@ -100,7 +100,7 @@ define(
                 if (!customer.isLoggedIn()) {
                     this.user.email = quote.guestEmail;
                 }
-                else 
+                else
                 {
                     this.user.email = customer.customerData.email;
                 }
@@ -127,7 +127,7 @@ define(
 
                 $.ajax({
                     type: 'POST',
-                    url: url.build('razorpay/payment/order'), 
+                    url: url.build('razorpay/payment/order'),
 
                     /**
                      * Success callback
@@ -136,11 +136,16 @@ define(
                     success: function (response) {
                         fullScreenLoader.stopLoader();
                         if (response.success) {
-                            self.renderIframe(response);
+                            if (response.is_hosted) {
+                                self.renderHosted(response);
+                            } else {
+                                self.renderIframe(response);
+                            }
                         } else {
                             self.isPaymentProcessing.reject(response.message);
                         }
                     },
+
 
                     /**
                      * Error callback
@@ -151,6 +156,84 @@ define(
                         self.isPaymentProcessing.reject(response.message);
                     }
                 });
+            },
+
+            _prepareHiddenFormFields: function (options, form) {
+                var self = this;
+
+                function visitNestedOption(options, parentKey) {
+                    for (let curKey in options) {
+                      if (options.hasOwnProperty(curKey)) {
+                        const value = options[curKey];
+                        let prepareKey = parentKey ? `${parentKey}[${curKey}]` : curKey;
+
+                        if (typeof value === 'object') {
+                          visitNestedOption(value, prepareKey);
+                        } else {
+                          // Exception: Rename key -> key_id (merchant key)
+                          if (prepareKey === 'key') {
+                            prepareKey = 'key_id';
+                          }
+
+                          form.appendChild(self._createHiddenInput(prepareKey, value));
+                        }
+                      }
+                    }
+                }
+              visitNestedOption(options);
+            },
+
+            _createHiddenInput: function(key, value) {
+              var input = document.createElement('input');
+
+              input.type = 'hidden';
+              input.name = key;
+              input.value = value;
+
+              return input;
+            },
+
+            renderHosted: function(data) {
+                var self = this;
+
+                this.merchant_order_id = data.order_id;
+
+                var opts = {
+                    key: self.getKeyId(),
+                    name: self.getMerchantName(),
+                    amount: data.amount,
+                    order_id: data.rzp_order,
+                    notes: {
+                        merchant_order_id: '',
+                        merchant_quote_id: data.order_id
+                    },
+                    prefill: {
+                        name: this.user.name,
+                        contact: this.user.contact,
+                        email: this.user.email
+                    },
+                    callback_url: url.build('razorpay/payment/order'),
+                    _: {
+                        integration: 'magento',
+                        integration_version: data.module_version,
+                        integration_parent_version: data.maze_version,
+                    }
+                }
+                const options = JSON.parse(JSON.stringify(opts));
+
+                var form = document.createElement('form'),
+                    method = 'POST',
+                    input,
+                    key;
+
+                form.method = method;
+                form.action = 'https://api.razorpay.com/v1/checkout/embedded';
+
+                self._prepareHiddenFormFields(options, form);
+
+                document.body.appendChild(form);
+
+                form.submit();
             },
 
             renderIframe: function(data) {
@@ -181,6 +264,7 @@ define(
                         contact: this.user.contact,
                         email: this.user.email
                     },
+                    callback_url: url.build('razorpay/payment/order'),
                     _: {
                         integration: 'magento',
                         integration_version: data.module_version,

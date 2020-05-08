@@ -194,7 +194,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      */
     public function authorize(InfoInterface $payment, $amount)
     {
-        try 
+        try
         {
             /** @var \Magento\Sales\Model\Order\Payment $payment */
             $order = $payment->getOrder();
@@ -208,10 +208,19 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                 //validate that request is from webhook only
                 $this->validateWebhookSignature($request);
             }
-            else
+            elseif(empty($request['paymentMethod']['additional_data']['rzp_payment_id']) === false)
             {
                 $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
-                $this->validateSignature($request);
+                $signature  = $request['paymentMethod']['additional_data']['rzp_signature'];
+
+                $this->validateSignature($payment_id, $signature);
+            }
+            else
+            {
+                $payment_id = $_POST['razorpay_payment_id'];
+                $signature  = $_POST['razorpay_signature'];
+
+                $this->validateSignature($payment_id, $signature);
             }
 
             $payment->setStatus(self::STATUS_APPROVED)
@@ -223,8 +232,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
             //update the Razorpay payment with corresponding created order ID of this quote ID
             $this->updatePaymentNote($payment_id, $order);
-        } 
-        catch (\Exception $e) 
+        }
+        catch (\Exception $e)
         {
             $this->_logger->critical($e);
             throw new LocalizedException(__('Razorpay Error: %1.', $e->getMessage()));
@@ -259,7 +268,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      */
     protected function updatePaymentNote($paymentId, $order)
     {
-        //update the Razorpay payment with corresponding created order ID of this quote ID        
+        //update the Razorpay payment with corresponding created order ID of this quote ID
         $this->rzp->payment->fetch($paymentId)->edit(
             array(
                 'notes' => array(
@@ -270,14 +279,14 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         );
     }
 
-    protected function validateSignature($request)
+    protected function validateSignature($payment_id, $signature)
     {
         $attributes = array(
-            'razorpay_payment_id' => $request['paymentMethod']['additional_data']['rzp_payment_id'],
+            'razorpay_payment_id' => $payment_id,
             'razorpay_order_id'   => $this->order->getOrderId(),
-            'razorpay_signature'  => $request['paymentMethod']['additional_data']['rzp_signature'],
+            'razorpay_signature'  => $signature,
         );
-        
+
         $this->rzp->utility->verifyPaymentSignature($attributes);
     }
 
