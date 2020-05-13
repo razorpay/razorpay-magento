@@ -213,6 +213,7 @@ define(
                         email: this.user.email
                     },
                     callback_url: url.build('razorpay/payment/order'),
+                    cancel_url  : url.build('checkout/cart'),
                     _: {
                         integration: 'magento',
                         integration_version: data.module_version,

@@ -25,14 +25,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController implements CsrfA
      */
     protected $order;
 
-    protected $quoteManagement;
-
-    protected $objectManagement;
-
-    protected $storeManager;
-
-    protected $customerRepository;
-
     protected $_currency = PaymentMethod::CURRENCY;
 
     const STATUS_APPROVED = 'APPROVED';
@@ -48,14 +40,10 @@ class Order extends \Razorpay\Magento\Controller\BaseController implements CsrfA
         \Magento\Framework\App\Action\Context $context,
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Checkout\Model\Session $checkoutSession,
-        \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
         \Razorpay\Magento\Model\Config $config,
         \Magento\Catalog\Model\Session $catalogSession,
-        \Magento\Quote\Model\QuoteRepository $quoteRepository,
-        \Magento\Sales\Api\Data\OrderInterface $order,
-        \Magento\Quote\Model\QuoteManagement $quoteManagement,
-        \Magento\Store\Model\StoreManagerInterface $storeManagement,
-        \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository
+        \Magento\Quote\Api\CartManagementInterface $cartManagement,
+        \Magento\Quote\Model\QuoteRepository $quoteRepository
     ) {
         parent::__construct(
             $context,
@@ -64,14 +52,10 @@ class Order extends \Razorpay\Magento\Controller\BaseController implements CsrfA
             $config
         );
 
-        $this->objectManagement   = \Magento\Framework\App\ObjectManager::getInstance();
-        $this->quoteManagement    = $quoteManagement;
         $this->quoteRepository    = $quoteRepository;
-        $this->storeManagement    = $storeManagement;
-        $this->customerRepository = $customerRepository;
-        $this->checkoutFactory    = $checkoutFactory;
         $this->catalogSession     = $catalogSession;
         $this->config             = $config;
+        $this->cartManagement     = $cartManagement;
     }
 
     /**
@@ -97,27 +81,30 @@ class Order extends \Razorpay\Magento\Controller\BaseController implements CsrfA
 
         $receipt_id = $this->getQuote()->getId();
 
-        if(empty($_POST) === false && isset($_POST['razorpay_payment_id']))
+        if(empty($_POST) === false)
         {
-            $quote = $this->getQuoteObject($receipt_id);
+            if(isset($_POST['razorpay_payment_id']))
+            {
+                $quote = $this->quoteRepository->get($receipt_id);
 
-            $order = $this->quoteManagement->submit($quote);
+                $quote->getPayment()->setMethod(PaymentMethod::METHOD_CODE);
 
-            $this->checkoutSession->setLastSuccessQuoteId($quote->getId());
-            $this->checkoutSession->setLastQuoteId($quote->getId());
-            $this->checkoutSession->setLastOrderId($order->getId());
-            $this->checkoutSession->setLastRealOrderId($order->getIncrementId());
-
-            $payment = $order->getPayment();
-
-            $payment->setAmountPaid($amount)
-                    ->setLastTransId($_POST['razorpay_payment_id'])
-                    ->setTransactionId($_POST['razorpay_payment_id'])
-                    ->setIsTransactionClosed(true)
-                    ->setShouldCloseParentTransaction(true);
-            $order->save();
-
-            return $this->_redirect('checkout/onepage/success');
+                try
+                {
+                    $this->cartManagement->placeOrder($receipt_id);
+                    return $this->_redirect('checkout/onepage/success');
+                }
+                catch(\Exception $e)
+                {
+                    $this->messageManager->addError(__($e->getMessage()));
+                    return $this->_redirect('checkout/cart');
+                }
+            }
+            else
+            {
+                $this->messageManager->addError(__('Payment Failed'));
+                return $this->_redirect('checkout/cart');
+            }
         }
         else
         {
@@ -227,58 +214,5 @@ class Order extends \Razorpay\Magento\Controller\BaseController implements CsrfA
         }
 
         return $preferences;
-    }
-
-    protected function getQuoteObject($quoteId)
-    {
-        $quote = $this->quoteRepository->get($quoteId);
-
-        $firstName = $quote->getBillingAddress()['customer_firstname'] ?? 'null';
-        $lastName  = $quote->getBillingAddress()['customer_lastname'] ?? 'null';
-        $email     = $quote->getBillingAddress()['email'] ?? 'null';
-
-        $quote->getPayment()->setMethod(PaymentMethod::METHOD_CODE);
-
-        $store = $this->storeManagement->getStore();
-
-        $websiteId = $store->getWebsiteId();
-
-        $customer = $this->objectManagement->create('Magento\Customer\Model\Customer');
-
-        $customer->setWebsiteId($websiteId);
-
-        //get customer from quote , otherwise from payment email
-        if(empty($quote->getBillingAddress()['email']) === false)
-        {
-            $customer = $customer->loadByEmail($quote->getBillingAddress()['email']);
-        }
-
-        //if quote billing address doesn't contains address, set it as customer default billing address
-        if(empty($quote->getBillingAddress()['customer_firstname']) === true)
-        {
-            $quote->getBillingAddress()->setCustomerAddressId($customer->getDefaultBillingAddress()['id']);
-        }
-
-        //If need to insert new customer
-        if (empty($customer->getEntityId()) === true)
-        {
-            $customer->setWebsiteId($websiteId)
-                     ->setStore($store)
-                     ->setFirstname($firstName)
-                     ->setLastname($lastName)
-                     ->setEmail($email);
-
-            $customer->save();
-        }
-
-        $customer = $this->customerRepository->getById($customer->getEntityId());
-
-        $quote->assignCustomer($customer);
-
-        $quote->setStore($store);
-
-        $quote->save();
-
-        return $quote;
     }
 }
