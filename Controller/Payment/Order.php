@@ -5,35 +5,27 @@ namespace Razorpay\Magento\Controller\Payment;
 use Razorpay\Api\Api;
 use Razorpay\Magento\Model\PaymentMethod;
 use Magento\Framework\Controller\ResultFactory;
-use Magento\Framework\App\CsrfAwareActionInterface;
-use Magento\Framework\App\Request\InvalidRequestException;
-use Magento\Framework\App\RequestInterface;
 
-class Order extends \Razorpay\Magento\Controller\BaseController implements CsrfAwareActionInterface
+class Order extends \Razorpay\Magento\Controller\BaseController
 {
     protected $quote;
 
     protected $checkoutSession;
 
-    /**
-     * @var \Magento\Quote\Model\QuoteRepository
-     */
-    protected $quoteRepository;
+    protected $_currency = PaymentMethod::CURRENCY;
+
+    protected $cartManagement;
 
     /**
      * @var \Magento\Sales\Api\Data\OrderInterface
      */
     protected $order;
 
-    protected $_currency = PaymentMethod::CURRENCY;
-
     const STATUS_APPROVED = 'APPROVED';
-
     /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession
-     * @param \Magento\Razorpay\Model\CheckoutFactory $checkoutFactory
      * @param \Magento\Razorpay\Model\Config\Payment $razorpayConfig
      */
     public function __construct(
@@ -42,8 +34,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController implements CsrfA
         \Magento\Checkout\Model\Session $checkoutSession,
         \Razorpay\Magento\Model\Config $config,
         \Magento\Catalog\Model\Session $catalogSession,
-        \Magento\Quote\Api\CartManagementInterface $cartManagement,
-        \Magento\Quote\Model\QuoteRepository $quoteRepository
+        \Magento\Quote\Api\CartManagementInterface $cartManagement
     ) {
         parent::__construct(
             $context,
@@ -52,27 +43,9 @@ class Order extends \Razorpay\Magento\Controller\BaseController implements CsrfA
             $config
         );
 
-        $this->quoteRepository    = $quoteRepository;
-        $this->catalogSession     = $catalogSession;
-        $this->config             = $config;
-        $this->cartManagement     = $cartManagement;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function createCsrfValidationException(
-        RequestInterface $request
-    ): ?InvalidRequestException {
-        return true;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function validateForCsrf(RequestInterface $request): ?bool
-    {
-        return true;
+        $this->catalogSession  = $catalogSession;
+        $this->config          = $config;
+        $this->cartManagement  = $cartManagement;
     }
 
     public function execute()
@@ -85,13 +58,11 @@ class Order extends \Razorpay\Magento\Controller\BaseController implements CsrfA
         {
             if(isset($_POST['razorpay_payment_id']))
             {
-                $quote = $this->quoteRepository->get($receipt_id);
-
-                $quote->getPayment()->setMethod(PaymentMethod::METHOD_CODE);
+                $this->getQuote()->getPayment()->setMethod(PaymentMethod::METHOD_CODE);
 
                 try
                 {
-                    $this->cartManagement->placeOrder($receipt_id);
+                    $this->cartManagement->placeOrder($this->getQuote()->getId());
                     return $this->_redirect('checkout/onepage/success');
                 }
                 catch(\Exception $e)

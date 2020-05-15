@@ -202,25 +202,26 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
             $request = $this->getPostData();
 
+            if((empty($request) === true) and (isset($_POST['razorpay_signature']) === true))
+            {
+                //set request data based on redirect flow
+                $request['paymentMethod']['additional_data'] = [
+                    'rzp_payment_id' => $_POST['razorpay_payment_id'],
+                    'rzp_order_id' => $_POST['razorpay_order_id'],
+                    'rzp_signature' => $_POST['razorpay_signature']
+                ];
+            }
+
             if(empty($request['payload']['payment']['entity']['id']) === false)
             {
                 $payment_id = $request['payload']['payment']['entity']['id'];
                 //validate that request is from webhook only
                 $this->validateWebhookSignature($request);
             }
-            elseif(empty($request['paymentMethod']['additional_data']['rzp_payment_id']) === false)
-            {
-                $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
-                $signature  = $request['paymentMethod']['additional_data']['rzp_signature'];
-
-                $this->validateSignature($payment_id, $signature);
-            }
             else
             {
-                $payment_id = $_POST['razorpay_payment_id'];
-                $signature  = $_POST['razorpay_signature'];
-
-                $this->validateSignature($payment_id, $signature);
+                $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
+                $this->validateSignature($request);
             }
 
             $payment->setStatus(self::STATUS_APPROVED)
@@ -279,12 +280,12 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         );
     }
 
-    protected function validateSignature($payment_id, $signature)
+    protected function validateSignature($request)
     {
         $attributes = array(
-            'razorpay_payment_id' => $payment_id,
+            'razorpay_payment_id' => $request['paymentMethod']['additional_data']['rzp_payment_id'],
             'razorpay_order_id'   => $this->order->getOrderId(),
-            'razorpay_signature'  => $signature,
+            'razorpay_signature'  => $request['paymentMethod']['additional_data']['rzp_signature'],
         );
 
         $this->rzp->utility->verifyPaymentSignature($attributes);
