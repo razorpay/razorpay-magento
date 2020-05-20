@@ -212,7 +212,7 @@ define(
                         contact: this.user.contact,
                         email: this.user.email
                     },
-                    callback_url: url.build('razorpay/payment/order'),
+                    callback_url: url.build('razorpay/payment/order?email='+this.user.email),
                     cancel_url  : url.build('checkout/cart'),
                     _: {
                         integration: 'magento',

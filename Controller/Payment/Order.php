@@ -46,6 +46,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $this->catalogSession  = $catalogSession;
         $this->config          = $config;
         $this->cartManagement  = $cartManagement;
+        $this->customerSession = $customerSession;
     }
 
     public function execute()
@@ -62,6 +63,10 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
                 try
                 {
+                    if(!$this->customerSession->isLoggedIn()) {
+                        $this->getQuote()->setCheckoutMethod($this->cartManagement::METHOD_GUEST);
+                        $this->getQuote()->setCustomerEmail($_GET['email']);
+                    }
                     $this->cartManagement->placeOrder($this->getQuote()->getId());
                     return $this->_redirect('checkout/onepage/success');
                 }
