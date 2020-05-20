@@ -128,6 +128,9 @@ define(
                 $.ajax({
                     type: 'POST',
                     url: url.build('razorpay/payment/order'),
+                    data: {
+                        email: this.user.email
+                    },
 
                     /**
                      * Success callback
@@ -212,7 +215,7 @@ define(
                         contact: this.user.contact,
                         email: this.user.email
                     },
-                    callback_url: url.build('razorpay/payment/order?email='+this.user.email),
+                    callback_url: url.build('razorpay/payment/order'),
                     cancel_url  : url.build('checkout/cart'),
                     _: {
                         integration: 'magento',

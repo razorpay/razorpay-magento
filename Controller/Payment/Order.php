@@ -55,30 +55,28 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
         $receipt_id = $this->getQuote()->getId();
 
-        if(empty($_POST) === false)
+        if(empty($_POST['error']) === false)
         {
-            if(isset($_POST['razorpay_payment_id']))
-            {
-                $this->getQuote()->getPayment()->setMethod(PaymentMethod::METHOD_CODE);
+            $this->messageManager->addError(__('Payment Failed'));
+            return $this->_redirect('checkout/cart');
+        }
 
-                try
-                {
-                    if(!$this->customerSession->isLoggedIn()) {
-                        $this->getQuote()->setCheckoutMethod($this->cartManagement::METHOD_GUEST);
-                        $this->getQuote()->setCustomerEmail($_GET['email']);
-                    }
-                    $this->cartManagement->placeOrder($this->getQuote()->getId());
-                    return $this->_redirect('checkout/onepage/success');
-                }
-                catch(\Exception $e)
-                {
-                    $this->messageManager->addError(__($e->getMessage()));
-                    return $this->_redirect('checkout/cart');
-                }
-            }
-            else
+        if(isset($_POST['razorpay_payment_id']))
+        {
+            $this->getQuote()->getPayment()->setMethod(PaymentMethod::METHOD_CODE);
+
+            try
             {
-                $this->messageManager->addError(__('Payment Failed'));
+                if(!$this->customerSession->isLoggedIn()) {
+                    $this->getQuote()->setCheckoutMethod($this->cartManagement::METHOD_GUEST);
+                    $this->getQuote()->setCustomerEmail($this->customerSession->getCustomerEmailAddress());
+                }
+                $this->cartManagement->placeOrder($this->getQuote()->getId());
+                return $this->_redirect('checkout/onepage/success');
+            }
+            catch(\Exception $e)
+            {
+                $this->messageManager->addError(__($e->getMessage()));
                 return $this->_redirect('checkout/cart');
             }
         }
@@ -88,6 +86,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
             $maze_version = $this->_objectManager->get('Magento\Framework\App\ProductMetadataInterface')->getVersion();
             $module_version =  $this->_objectManager->get('Magento\Framework\Module\ModuleList')->getOne('Razorpay_Magento')['setup_version'];
+
+            $this->customerSession->setCustomerEmailAddress($_POST['email']);
 
             if ($payment_action === 'authorize')
             {
