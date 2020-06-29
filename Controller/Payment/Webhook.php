@@ -138,7 +138,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                         $e->getMessage(), 
                         [
                             'data'  => $post,
-                            'event' => 'razorpay.wc.signature.verify_failed'
+                            'event' => 'razorpay.magento.signature.verify_failed'
                         ]);
 
                     //Set the validation error in response
