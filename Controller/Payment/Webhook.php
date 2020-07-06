@@ -179,14 +179,14 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         $quoteId   = $post['payload']['payment']['entity']['notes']['merchant_quote_id'];
         $paymentId = $post['payload']['payment']['entity']['id'];
 
-        if (empty($this->cache->load("quote_processing_".$quoteId)) === false)
+        if (empty($this->cache->load("quote_Front_processing_".$quoteId)) === false)
         {
             $this->logger->warning("Razorpay Webhook: Order processing is active for quoteID: $quoteId and Razorpay payment_id(:$paymentId)");
             header('Status: 409 Conflict, too early for processing', true, 409);
             exit;
         }
 
-        $this->cache->save("started", "quote_processing_$quoteId", ["razorpay"], 8);
+        $this->cache->save("started", "quote_processing_$quoteId", ["razorpay"], 30);
 
         $amount    = number_format($post['payload']['payment']['entity']['amount']/100, 2, ".", "");
 
