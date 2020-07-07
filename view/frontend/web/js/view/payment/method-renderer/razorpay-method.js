@@ -238,6 +238,41 @@ define(
                 document.body.appendChild(form);
 
                 form.submit();
+
+            checkRzpOrder: function (data) {
+                var self = this;
+
+                $.ajax({
+                    type: 'POST',
+                    url: url.build('razorpay/payment/order?' + Math.random().toString(36).substring(10)),
+                    data: "order_check=1",
+
+                    /**
+                     * Success callback
+                     * @param {Object} response
+                     */
+                    success: function (response) {
+                        //fullScreenLoader.stopLoader();
+                        if (response.success) {
+                            if(response.order_id){
+                                $(location).attr('href', 'onepage/success?' + Math.random().toString(36).substring(10));
+                            }else{
+                                setTimeout(function(){ self.checkRzpOrder(data); }, 1000);
+                            }
+                        } else {
+                            self.placeOrder(data);
+                        }
+                    },
+
+                    /**
+                     * Error callback
+                     * @param {*} response
+                     */
+                    error: function (response) {
+                        fullScreenLoader.stopLoader();
+                        self.isPaymentProcessing.reject(response.message);
+                    }
+                });
             },
 
             renderIframe: function(data) {
@@ -251,8 +286,8 @@ define(
                     amount: data.amount,
                     handler: function (data) {
                         self.rzp_response = data;
-                        self.placeOrder(data);
-                    },
+                        self.checkRzpOrder(data);
+                     },
                     order_id: data.rzp_order,
                     modal: {
                         ondismiss: function() {

@@ -39,6 +39,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
     protected $customerRepository;
 
+    protected $cache;
+
     const STATUS_APPROVED = 'APPROVED';
 
     /**
@@ -50,6 +52,11 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
      * @param \Magento\Catalog\Model\Session $catalogSession
      * @param \Magento\Quote\Model\QuoteRepository $quoteRepository,
      * @param \Magento\Sales\Api\Data\OrderInterface $order
+     * @param \Magento\Quote\Model\QuoteManagement $quoteManagement
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManagement
+     * @param \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository
+     * @param \Magento\Framework\App\CacheInterface $cache
+     * @param \Psr\Log\LoggerInterface $logger
      */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
@@ -63,6 +70,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         \Magento\Quote\Model\QuoteManagement $quoteManagement,
         \Magento\Store\Model\StoreManagerInterface $storeManagement,
         \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository,
+        \Magento\Framework\App\CacheInterface $cache,
         \Psr\Log\LoggerInterface $logger
     )
     {
@@ -87,6 +95,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         $this->quoteRepository    = $quoteRepository;
         $this->storeManagement    = $storeManagement;
         $this->customerRepository = $customerRepository;
+        $this->cache = $cache;
     }
 
     /**
@@ -129,7 +138,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                         $e->getMessage(),
                         [
                             'data'  => $post,
-                            'event' => 'razorpay.wc.signature.verify_failed'
+                            'event' => 'razorpay.magento.signature.verify_failed'
                         ]);
 
                     //Set the validation error in response
@@ -161,17 +170,35 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
      */
     protected function orderPaid(array $post)
     {
+        if (isset($post['payload']['payment']['entity']['notes']['merchant_quote_id']) === false)
+        {
+            $this->logger->warning("Razorpay Webhook: Quote ID not set for Razorpay payment_id(:$paymentId)");
+            return;
+        }
+
         $quoteId   = $post['payload']['payment']['entity']['notes']['merchant_quote_id'];
-        $amount    = number_format($post['payload']['payment']['entity']['amount']/100, 2, ".", "");
         $paymentId = $post['payload']['payment']['entity']['id'];
 
+        if (empty($this->cache->load("quote_Front_processing_".$quoteId)) === false)
+        {
+            $this->logger->warning("Razorpay Webhook: Order processing is active for quoteID: $quoteId and Razorpay payment_id(:$paymentId)");
+            header('Status: 409 Conflict, too early for processing', true, 409);
+            exit;
+        }
+
+        $this->cache->save("started", "quote_processing_$quoteId", ["razorpay"], 30);
+
+        $amount    = number_format($post['payload']['payment']['entity']['amount']/100, 2, ".", "");
+
         $this->logger->warning("Razorpay Webhook processing started for Razorpay payment_id(:$paymentId)");
+
+        $payment_created_time = $post['payload']['payment']['entity']['created_at'];
 
         //validate if the quote Order is still active
         $quote = $this->quoteRepository->get($quoteId);
 
         //exit if quote is not active
-        if(!$quote->getIsActive())
+        if (!$quote->getIsActive())
         {
             $this->logger->warning("Razorpay Webhook: Quote order is inactive for quoteID: $quoteId and Razorpay payment_id(:$paymentId)");
                 return;
@@ -180,7 +207,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         //validate amount before placing order
         $quoteAmount = (int) (round($quote->getGrandTotal(), 2) * 100);
 
-        if($quoteAmount !== $post['payload']['payment']['entity']['amount'])
+        if ($quoteAmount !== $post['payload']['payment']['entity']['amount'])
         {
             $this->logger->warning("Razorpay Webhook: Amount paid doesn't match with store order amount for Razorpay payment_id(:$paymentId)");
                 return;
@@ -196,17 +223,18 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
         $salesOrder = $collection->getData();
 
-        if(empty($salesOrder['entity_id']) === false)
+
+        if (empty($salesOrder['entity_id']) === false)
         {
             $order = $this->order->load($salesOrder['entity_id']);
             $orderRzpPaymentId = $order->getPayment()->getLastTransId();
-            if($orderRzpPaymentId === $paymentId)
+
+            if ($orderRzpPaymentId === $paymentId)
             {
                 $this->logger->warning("Razorpay Webhook: Sales Order and payment already exist for Razorpay payment_id(:$paymentId)");
                 return;
             }
         }
-
 
         $quote = $this->getQuoteObject($post, $quoteId);
 
@@ -221,7 +249,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 ->setShouldCloseParentTransaction(true);
         $order->save();
 
-        $this->logger->warning("Razorpay Webhook Processed successfully for Razorpay payment_id(:$paymentId)");
+        $this->logger->warning("Razorpay Webhook Processed successfully for Razorpay payment_id(:$paymentId): and quoteID(: $quoteId) and OrderID(: ". $order->getEntityId() .")");
     }
 
     protected function getQuoteObject($post, $quoteId)
@@ -231,8 +259,9 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         $quote = $this->quoteRepository->get($quoteId);
 
 
-        $firstName = $quote->getBillingAddress()['customer_firstname'] ?? 'null';
-        $lastName = $quote->getBillingAddress()['customer_lastname'] ?? 'null';
+        $firstName = $quote->getBillingAddress()->getFirstname() ?? 'null';
+        $lastName = $quote->getBillingAddress()->getLastname() ?? 'null';
+
 
         $quote->getPayment()->setMethod(PaymentMethod::METHOD_CODE);
 
@@ -245,9 +274,13 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         $customer->setWebsiteId($websiteId);
 
         //get customer from quote , otherwise from payment email
-        if(empty($quote->getBillingAddress()['email']) === false)
+        if (empty($quote->getBillingAddress()->getEmail()) === false)
         {
-            $customer = $customer->loadByEmail($quote->getBillingAddress()['email']);
+            $customer = $customer->loadByEmail($quote->getBillingAddress()->getEmail());
+        }
+        else
+        {
+            $customer = $customer->loadByEmail($email);
         }
         else
         {
@@ -255,7 +288,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         }
 
         //if quote billing address doesn't contains address, set it as customer default billing address
-        if(empty($quote->getBillingAddress()['customer_firstname']) === true)
+        if ((empty($quote->getBillingAddress()->getFirstname()) === true) and (empty($customer->getEntityId()) === false))
         {
             $quote->getBillingAddress()->setCustomerAddressId($customer->getDefaultBillingAddress()['id']);
         }
@@ -263,18 +296,17 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         //If need to insert new customer
         if (empty($customer->getEntityId()) === true)
         {
-            $customer->setWebsiteId($websiteId)
-                     ->setStore($store)
-                     ->setFirstname($firstName)
-                     ->setLastname($lastName)
-                     ->setEmail($email);
-
-            $customer->save();
+            $quote->setCustomerFirstname($firstName);
+            $quote->setCustomerLastname($lastName);
+            $quote->setCustomerEmail($email);
+            $quote->setCustomerIsGuest(true);
         }
+        else
+        {
+            $customer = $this->customerRepository->getById($customer->getEntityId());
 
-        $customer = $this->customerRepository->getById($customer->getEntityId());
-
-        $quote->assignCustomer($customer);
+            $quote->assignCustomer($customer);
+        }
 
         $quote->setStore($store);
 

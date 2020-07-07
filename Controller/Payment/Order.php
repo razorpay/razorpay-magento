@@ -22,11 +22,19 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     protected $order;
 
     const STATUS_APPROVED = 'APPROVED';
+
+    protected $cache;
+    protected $orderRepository;
+    protected $logger;
     /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession
      * @param \Magento\Razorpay\Model\Config\Payment $razorpayConfig
+     * @param \Magento\Framework\App\CacheInterface $cache
+     * @param \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
+     * @param \Psr\Log\LoggerInterface $logger
+     * @param \Magento\Catalog\Model\Session $catalogSession
      */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
@@ -35,6 +43,9 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Razorpay\Magento\Model\Config $config,
         \Magento\Catalog\Model\Session $catalogSession,
         \Magento\Quote\Api\CartManagementInterface $cartManagement
+        \Magento\Framework\App\CacheInterface $cache,
+        \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
+        \Psr\Log\LoggerInterface $logger,
     ) {
         parent::__construct(
             $context,
@@ -47,12 +58,15 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $this->config          = $config;
         $this->cartManagement  = $cartManagement;
         $this->customerSession = $customerSession;
+        $this->checkoutFactory = $checkoutFactory;
+        $this->cache           = $cache;
+        $this->orderRepository = $orderRepository;
+        $this->logger          = $logger;
+        $this->objectManagement= \Magento\Framework\App\ObjectManager::getInstance();
     }
 
     public function execute()
     {
-        $amount = (int) (round($this->getQuote()->getGrandTotal(), 2) * 100);
-
         $receipt_id = $this->getQuote()->getId();
 
         if(empty($_POST['error']) === false)
@@ -60,6 +74,73 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             $this->messageManager->addError(__('Payment Failed'));
             return $this->_redirect('checkout/cart');
         }
+        if (isset($_POST['order_check']))
+        {
+            if (empty($this->cache->load("quote_processing_".$receipt_id)) === false)
+            {
+                $responseContent = [
+                'success'   => true,
+                'order_id'  => false,
+                'parameters' => []
+                ];
+
+                # fetch the related sales order and verify the payment ID with rzp payment id
+                # To avoid duplicate order entry for same quote
+                $collection = $this->_objectManager->get('Magento\Sales\Model\Order')
+                                                   ->getCollection()
+                                                   ->addFieldToSelect('entity_id')
+                                                   ->addFilter('quote_id', $receipt_id)
+                                                   ->getFirstItem();
+
+                $salesOrder = $collection->getData();
+
+                if (empty($salesOrder['entity_id']) === false)
+                {
+                    $this->logger->warning("Razorpay inside order already processed with webhook quoteID:" . $receipt_id
+                                    ." and OrderID:".$salesOrder['entity_id']);
+
+                    $this->checkoutSession
+                            ->setLastQuoteId($this->getQuote()->getId())
+                            ->setLastSuccessQuoteId($this->getQuote()->getId())
+                            ->clearHelperData();
+
+                    $order = $this->orderRepository->get($salesOrder['entity_id']);
+
+                    if ($order) {
+                        $this->checkoutSession->setLastOrderId($order->getId())
+                                           ->setLastRealOrderId($order->getIncrementId())
+                                           ->setLastOrderStatus($order->getStatus());
+                    }
+
+                    $responseContent['order_id'] = true;
+                }
+            }
+            else
+            {
+                //set the chache to stop webhook processing
+                $this->cache->save("started", "quote_Front_processing_$receipt_id", ["razorpay"], 30);
+
+                $this->logger->warning("Razorpay front-end order processing started quoteID:" . $receipt_id);
+
+                $responseContent = [
+                'success'   => false,
+                'parameters' => []
+                ];
+            }
+
+            $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
+            $response->setData($responseContent);
+            $response->setHttpResponseCode(200);
+
+            return $response;
+        }
+
+        $amount = (int) (round($this->getQuote()->getGrandTotal(), 2) * 100);
+
+        $payment_action = $this->config->getPaymentAction();
+
+        $maze_version = $this->_objectManager->get('Magento\Framework\App\ProductMetadataInterface')->getVersion();
+        $module_version =  $this->_objectManager->get('Magento\Framework\Module\ModuleList')->getOne('Razorpay_Magento')['setup_version'];
 
         if(isset($_POST['razorpay_payment_id']))
         {
