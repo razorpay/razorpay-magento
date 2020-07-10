@@ -283,10 +283,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         {
             $customer = $customer->loadByEmail($email);
         }
-        else
-        {
-            $customer = $customer->loadByEmail($email);
-        }
 
         //if quote billing address doesn't contains address, set it as customer default billing address
 
