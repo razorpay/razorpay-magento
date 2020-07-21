@@ -15,6 +15,7 @@ class Config
     const KEY_PAYMENT_ACTION = 'payment_action';
     const ENABLE_WEBHOOK = 'enable_webhook';
     const WEBHOOK_SECRET = 'webhook_secret';
+    const NEW_ORDER_STATUS = 'order_status';
 
     /**
      * @var string
@@ -66,6 +67,11 @@ class Config
     public function getPaymentAction()
     {
         return $this->getConfigData(self::KEY_PAYMENT_ACTION);
+    }
+
+    public function getNewOrderStatus()
+    {
+        return $this->getConfigData(self::NEW_ORDER_STATUS);
     }
 
     /**
