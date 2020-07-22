@@ -209,6 +209,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                         'module_version'    => $module_version,
                         'is_hosted'         => $merchantPreferences['is_hosted'],
                         'image'             => $merchantPreferences['image'],
+                        'embedded_url'      => $merchantPreferences['embedded_url'],
                     ];
 
                     $code = 200;
@@ -231,6 +232,9 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 ];
             }
 
+            //set the chache for race with webhook
+            $this->cache->save("started", "quote_Front_processing_$receipt_id", ["razorpay"], 30);
+
             $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
             $response->setData($responseContent);
             $response->setHttpResponseCode($code);
@@ -252,13 +256,14 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
             $response = $api->request->request("GET", "preferences");
         }
-        catch (Exception $e)
+        catch (\Razorpay\Api\Errors\Error $e)
         {
             echo 'Magento Error : ' . $e->getMessage();
         }
 
         $preferences = [];
 
+        $preferences['embedded_url'] = Api::getFullUrl("checkout/embedded");
         $preferences['is_hosted'] = false;
         $preferences['image'] = $response['options']['image'];
 

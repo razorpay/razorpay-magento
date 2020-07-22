@@ -161,7 +161,7 @@ define(
                 });
             },
 
-            _prepareHiddenFormFields: function (options, form) {
+            createInputFieldsFromOptions: function (options, form) {
                 var self = this;
 
                 function visitNestedOption(options, parentKey) {
@@ -178,7 +178,7 @@ define(
                             prepareKey = 'key_id';
                           }
 
-                          form.appendChild(self._createHiddenInput(prepareKey, value));
+                          form.appendChild(self.createHiddenInput(prepareKey, value));
                         }
                       }
                     }
@@ -186,7 +186,7 @@ define(
               visitNestedOption(options);
             },
 
-            _createHiddenInput: function(key, value) {
+            createHiddenInput: function(key, value) {
               var input = document.createElement('input');
 
               input.type = 'hidden';
@@ -231,9 +231,9 @@ define(
                     key;
 
                 form.method = method;
-                form.action = 'https://api.razorpay.com/v1/checkout/embedded';
+                form.action = data.embedded_url;
 
-                self._prepareHiddenFormFields(options, form);
+                self.createInputFieldsFromOptions(options, form);
 
                 document.body.appendChild(form);
 
