@@ -142,7 +142,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 'amount' => $amount,
                 'receipt' => $receipt_id,
                 'currency' => $this->getQuote()->getQuoteCurrencyCode(),
-                'payment_capture' => $payment_capture
+                'payment_capture' => $payment_capture,
+                'app_offer' => ($this->getDiscount() > 0) ? 1 : 0
             ]);
 
             $responseContent = [
@@ -196,5 +197,10 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     public function getOrderID()
     {
         return $this->catalogSession->getRazorpayOrderID();
+    }
+
+    public function getDiscount()
+    {
+        return ($this->getQuote()->getBaseSubtotal() - $this->getQuote()->getBaseSubtotalWithDiscount());
     }
 }
