@@ -12,19 +12,12 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
     protected $checkoutSession;
 
-    protected $_currency = PaymentMethod::CURRENCY;
-
     protected $cartManagement;
 
-    /**
-     * @var \Magento\Sales\Api\Data\OrderInterface
-     */
-    protected $order;
-
-    const STATUS_APPROVED = 'APPROVED';
-
     protected $cache;
+
     protected $orderRepository;
+
     protected $logger;
     /**
      * @param \Magento\Framework\App\Action\Context $context

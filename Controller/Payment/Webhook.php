@@ -239,7 +239,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
         $order = $this->quoteManagement->submit($quote);
 
-
         $payment = $order->getPayment();
 
         $payment->setAmountPaid($amount)
@@ -248,7 +247,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 ->setIsTransactionClosed(true)
                 ->setShouldCloseParentTransaction(true);
         $order->save();
-
 
         $this->logger->warning("Razorpay Webhook Processed successfully for Razorpay payment_id(:$paymentId): and quoteID(: $quoteId) and OrderID(: ". $order->getEntityId() .")");
     }
@@ -285,7 +283,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         }
 
         //if quote billing address doesn't contains address, set it as customer default billing address
-
         if ((empty($quote->getBillingAddress()->getFirstname()) === true) and (empty($customer->getEntityId()) === false))
         {
             $quote->getBillingAddress()->setCustomerAddressId($customer->getDefaultBillingAddress()['id']);
