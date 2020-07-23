@@ -2,6 +2,7 @@
 
 namespace Razorpay\Magento\Controller\Payment;
 
+use Razorpay\Api\Api;
 use Razorpay\Magento\Model\PaymentMethod;
 use Magento\Framework\Controller\ResultFactory;
 
@@ -11,15 +12,17 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
     protected $checkoutSession;
 
-    protected $_currency = PaymentMethod::CURRENCY;
+    protected $cartManagement;
+
     protected $cache;
+
     protected $orderRepository;
+
     protected $logger;
     /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession
-     * @param \Magento\Razorpay\Model\CheckoutFactory $checkoutFactory
      * @param \Magento\Razorpay\Model\Config\Payment $razorpayConfig
      * @param \Magento\Framework\App\CacheInterface $cache
      * @param \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
@@ -30,12 +33,13 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Magento\Framework\App\Action\Context $context,
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Checkout\Model\Session $checkoutSession,
-        \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
         \Razorpay\Magento\Model\Config $config,
+        \Magento\Catalog\Model\Session $catalogSession,
+        \Magento\Quote\Api\CartManagementInterface $cartManagement,
+        \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
         \Magento\Framework\App\CacheInterface $cache,
         \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
-        \Psr\Log\LoggerInterface $logger,
-        \Magento\Catalog\Model\Session $catalogSession
+        \Psr\Log\LoggerInterface $logger
     ) {
         parent::__construct(
             $context,
@@ -44,9 +48,11 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             $config
         );
 
+        $this->catalogSession  = $catalogSession;
+        $this->config          = $config;
+        $this->cartManagement  = $cartManagement;
+        $this->customerSession = $customerSession;
         $this->checkoutFactory = $checkoutFactory;
-        $this->catalogSession = $catalogSession;
-        $this->config = $config;
         $this->cache = $cache;
         $this->orderRepository = $orderRepository;
         $this->logger          = $logger;
@@ -56,6 +62,12 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     public function execute()
     {
         $receipt_id = $this->getQuote()->getId();
+
+        if(empty($_POST['error']) === false)
+        {
+            $this->messageManager->addError(__('Payment Failed'));
+            return $this->_redirect('checkout/cart');
+        }
 
         if (isset($_POST['order_check']))
         {
@@ -118,85 +130,143 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             return $response;
         }
 
-        $amount = (int) (round($this->getQuote()->getGrandTotal(), 2) * 100);
-
-        $payment_action = $this->config->getPaymentAction();
-
-        $maze_version = $this->_objectManager->get('Magento\Framework\App\ProductMetadataInterface')->getVersion();
-        $module_version =  $this->_objectManager->get('Magento\Framework\Module\ModuleList')->getOne('Razorpay_Magento')['setup_version'];
-
-        if ($payment_action === 'authorize') 
+        if(isset($_POST['razorpay_payment_id']))
         {
-                $payment_capture = 0;
+            $this->getQuote()->getPayment()->setMethod(PaymentMethod::METHOD_CODE);
+
+            try
+            {
+                if(!$this->customerSession->isLoggedIn()) {
+                    $this->getQuote()->setCheckoutMethod($this->cartManagement::METHOD_GUEST);
+                    $this->getQuote()->setCustomerEmail($this->customerSession->getCustomerEmailAddress());
+                }
+                $this->cartManagement->placeOrder($this->getQuote()->getId());
+                return $this->_redirect('checkout/onepage/success');
+            }
+            catch(\Exception $e)
+            {
+                $this->messageManager->addError(__($e->getMessage()));
+                return $this->_redirect('checkout/cart');
+            }
         }
         else
         {
-                $payment_capture = 1;
-        }
+            $amount = (int) (round($this->getQuote()->getGrandTotal(), 2) * 100);
 
-        $code = 400;
+            $payment_action = $this->config->getPaymentAction();
 
-        try
-        {
-            $order = $this->rzp->order->create([
-                'amount' => $amount,
-                'receipt' => $receipt_id,
-                'currency' => $this->getQuote()->getQuoteCurrencyCode(),
-                'payment_capture' => $payment_capture,
-                'app_offer' => ($this->getDiscount() > 0) ? 1 : 0
-            ]);
+            $maze_version = $this->_objectManager->get('Magento\Framework\App\ProductMetadataInterface')->getVersion();
+            $module_version =  $this->_objectManager->get('Magento\Framework\Module\ModuleList')->getOne('Razorpay_Magento')['setup_version'];
 
-            $responseContent = [
-                'message'   => 'Unable to create your order. Please contact support.',
-                'parameters' => []
-            ];
+            $this->customerSession->setCustomerEmailAddress($_POST['email']);
 
-            if (null !== $order && !empty($order->id))
+            if ($payment_action === 'authorize')
             {
+                    $payment_capture = 0;
+            }
+            else
+            {
+                    $payment_capture = 1;
+            }
+
+            $code = 400;
+
+            try
+            {
+                $order = $this->rzp->order->create([
+                    'amount' => $amount,
+                    'receipt' => $receipt_id,
+                    'currency' => $this->getQuote()->getQuoteCurrencyCode(),
+                    'payment_capture' => $payment_capture,
+                    'app_offer' => ($this->getDiscount() > 0) ? 1 : 0
+                ]);
+
                 $responseContent = [
-                    'success'           => true,
-                    'rzp_order'         => $order->id,
-                    'order_id'          => $receipt_id,
-                    'amount'            => $order->amount,
-                    'quote_currency'    => $this->getQuote()->getQuoteCurrencyCode(),
-                    'quote_amount'      => round($this->getQuote()->getGrandTotal(), 2),
-                    'maze_version'      => $maze_version,
-                    'module_version'    => $module_version,
+                    'message'   => 'Unable to create your order. Please contact support.',
+                    'parameters' => []
                 ];
 
-                $code = 200;
+                if (null !== $order && !empty($order->id))
+                {
+                    $is_hosted = false;
 
-                $this->catalogSession->setRazorpayOrderID($order->id);
+                    $merchantPreferences    = $this->getMerchantPreferences();
+
+                    $responseContent = [
+                        'success'           => true,
+                        'rzp_order'         => $order->id,
+                        'order_id'          => $receipt_id,
+                        'amount'            => $order->amount,
+                        'quote_currency'    => $this->getQuote()->getQuoteCurrencyCode(),
+                        'quote_amount'      => round($this->getQuote()->getGrandTotal(), 2),
+                        'maze_version'      => $maze_version,
+                        'module_version'    => $module_version,
+                        'is_hosted'         => $merchantPreferences['is_hosted'],
+                        'image'             => $merchantPreferences['image'],
+                        'embedded_url'      => $merchantPreferences['embedded_url'],
+                    ];
+
+                    $code = 200;
+
+                    $this->catalogSession->setRazorpayOrderID($order->id);
+                }
             }
-        }
-        catch(\Razorpay\Api\Errors\Error $e)
-        {
-            $responseContent = [
-                'message'   => $e->getMessage(),
-                'parameters' => []
-            ];
-        }
-        catch(\Exception $e)
-        {
-            $responseContent = [
-                'message'   => $e->getMessage(),
-                'parameters' => []
-            ];
-        }
+            catch(\Razorpay\Api\Errors\Error $e)
+            {
+                $responseContent = [
+                    'message'   => $e->getMessage(),
+                    'parameters' => []
+                ];
+            }
+            catch(\Exception $e)
+            {
+                $responseContent = [
+                    'message'   => $e->getMessage(),
+                    'parameters' => []
+                ];
+            }
 
-        //set the chache for race with webhook
-        $this->cache->save("started", "quote_Front_processing_$receipt_id", ["razorpay"], 30);
+            //set the chache for race with webhook
+            $this->cache->save("started", "quote_Front_processing_$receipt_id", ["razorpay"], 30);
 
-        $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
-        $response->setData($responseContent);
-        $response->setHttpResponseCode($code);
+            $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
+            $response->setData($responseContent);
+            $response->setHttpResponseCode($code);
 
-        return $response;
+            return $response;
+        }
     }
 
     public function getOrderID()
     {
         return $this->catalogSession->getRazorpayOrderID();
+    }
+
+    protected function getMerchantPreferences()
+    {
+        try
+        {
+            $api = new Api($this->config->getKeyId(),"");
+
+            $response = $api->request->request("GET", "preferences");
+        }
+        catch (\Razorpay\Api\Errors\Error $e)
+        {
+            echo 'Magento Error : ' . $e->getMessage();
+        }
+
+        $preferences = [];
+
+        $preferences['embedded_url'] = Api::getFullUrl("checkout/embedded");
+        $preferences['is_hosted'] = false;
+        $preferences['image'] = $response['options']['image'];
+
+        if(isset($response['options']['redirect']) && $response['options']['redirect'] === true)
+        {
+            $preferences['is_hosted'] = true;
+        }
+
+        return $preferences;
     }
 
     public function getDiscount()

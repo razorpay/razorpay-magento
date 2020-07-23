@@ -194,13 +194,23 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      */
     public function authorize(InfoInterface $payment, $amount)
     {
-        try 
+        try
         {
             /** @var \Magento\Sales\Model\Order\Payment $payment */
             $order = $payment->getOrder();
             $orderId = $order->getIncrementId();
 
             $request = $this->getPostData();
+
+            if((empty($request) === true) and (isset($_POST['razorpay_signature']) === true))
+            {
+                //set request data based on redirect flow
+                $request['paymentMethod']['additional_data'] = [
+                    'rzp_payment_id' => $_POST['razorpay_payment_id'],
+                    'rzp_order_id' => $_POST['razorpay_order_id'],
+                    'rzp_signature' => $_POST['razorpay_signature']
+                ];
+            }
 
             if(empty($request['payload']['payment']['entity']['id']) === false)
             {
@@ -223,8 +233,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
             //update the Razorpay payment with corresponding created order ID of this quote ID
             $this->updatePaymentNote($payment_id, $order);
-        } 
-        catch (\Exception $e) 
+        }
+        catch (\Exception $e)
         {
             $this->_logger->critical($e);
             throw new LocalizedException(__('Razorpay Error: %1.', $e->getMessage()));
@@ -259,7 +269,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      */
     protected function updatePaymentNote($paymentId, $order)
     {
-        //update the Razorpay payment with corresponding created order ID of this quote ID        
+        //update the Razorpay payment with corresponding created order ID of this quote ID
         $this->rzp->payment->fetch($paymentId)->edit(
             array(
                 'notes' => array(
@@ -277,7 +287,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             'razorpay_order_id'   => $this->order->getOrderId(),
             'razorpay_signature'  => $request['paymentMethod']['additional_data']['rzp_signature'],
         );
-        
+
         $this->rzp->utility->verifyPaymentSignature($attributes);
     }
 
