@@ -13,7 +13,7 @@ class CsrfValidatorSkip
         \Closure $proceed,
         $request,
         $action
-    ) {
+    ) { 
         if ($request->getModuleName() == 'razorpay') {
             return; // Skip CSRF check
         }

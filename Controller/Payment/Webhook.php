@@ -1,4 +1,4 @@
-<?php
+<?php 
 
 namespace Razorpay\Magento\Controller\Payment;
 
@@ -72,7 +72,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository,
         \Magento\Framework\App\CacheInterface $cache,
         \Psr\Log\LoggerInterface $logger
-    )
+    ) 
     {
         parent::__construct(
             $context,
@@ -102,8 +102,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
      * Processes the incoming webhook
      */
     public function execute()
-    {
-        $post = $this->getPostData();
+    {       
+        $post = $this->getPostData(); 
 
         if (json_last_error() !== 0)
         {
@@ -111,38 +111,38 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         }
 
         $this->logger->warning("Razorpay Webhook processing started.");
-
-        if (($this->config->isWebhookEnabled() === true) &&
+       
+        if (($this->config->isWebhookEnabled() === true) && 
             (empty($post['event']) === false))
-        {
+        { 
             if (isset($_SERVER['HTTP_X_RAZORPAY_SIGNATURE']) === true)
             {
                 $webhookSecret = $this->config->getWebhookSecret();
 
                 //
-                // To accept webhooks, the merchant must configure
+                // To accept webhooks, the merchant must configure 
                 // it on the magento backend by setting the secret
-                //
+                // 
                 if (empty($webhookSecret) === true)
                 {
                     return;
                 }
 
                 try
-                {
+                { 
                     $this->rzp->utility->verifyWebhookSignature(json_encode($post), $_SERVER['HTTP_X_RAZORPAY_SIGNATURE'], $webhookSecret);
                 }
                 catch (Errors\SignatureVerificationError $e)
                 {
                     $this->logger->warning(
-                        $e->getMessage(),
+                        $e->getMessage(), 
                         [
                             'data'  => $post,
                             'event' => 'razorpay.magento.signature.verify_failed'
                         ]);
 
                     //Set the validation error in response
-                    header('Status: 400 Signature Verification failed', true, 400);
+                    header('Status: 400 Signature Verification failed', true, 400);    
                     exit;
                 }
 
@@ -152,7 +152,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                         return;
 
                     case 'order.paid':
-                        return $this->orderPaid($post);
+                        return $this->orderPaid($post);    
 
                     default:
                         return;
@@ -165,7 +165,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
     /**
      * Order Paid webhook
-     *
+     * 
      * @param array $post
      */
     protected function orderPaid(array $post)
@@ -214,15 +214,15 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         }
 
         # fetch the related sales order and verify the payment ID with rzp payment id
-        # To avoid duplicate order entry for same quote
+        # To avoid duplicate order entry for same quote 
         $collection = $this->_objectManager->get('Magento\Sales\Model\Order')
                                            ->getCollection()
                                            ->addFieldToSelect('entity_id')
                                            ->addFilter('quote_id', $quoteId)
                                            ->getFirstItem();
-
+        
         $salesOrder = $collection->getData();
-
+        
         if (empty($salesOrder['entity_id']) === false)
         {
             $order = $this->order->load($salesOrder['entity_id']);
@@ -239,7 +239,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
         $order = $this->quoteManagement->submit($quote);
 
-        $payment = $order->getPayment();
+        $payment = $order->getPayment();        
 
         $payment->setAmountPaid($amount)
                 ->setLastTransId($paymentId)
@@ -269,7 +269,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         $websiteId = $store->getWebsiteId();
 
         $customer = $this->objectManagement->create('Magento\Customer\Model\Customer');
-
+        
         $customer->setWebsiteId($websiteId);
 
         //get customer from quote , otherwise from payment email
@@ -281,14 +281,14 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         {
             $customer = $customer->loadByEmail($email);
         }
-
+        
         //if quote billing address doesn't contains address, set it as customer default billing address
         if ((empty($quote->getBillingAddress()->getFirstname()) === true) and (empty($customer->getEntityId()) === false))
-        {
+        {   
             $quote->getBillingAddress()->setCustomerAddressId($customer->getDefaultBillingAddress()['id']);
         }
 
-        //If need to insert new customer
+        //If need to insert new customer 
         if (empty($customer->getEntityId()) === true)
         {
             $quote->setCustomerFirstname($firstName);
