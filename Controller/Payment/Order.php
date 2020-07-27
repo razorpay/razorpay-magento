@@ -151,79 +151,94 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         }
         else
         {
-            $amount = (int) (round($this->getQuote()->getGrandTotal(), 2) * 100);
-
-            $payment_action = $this->config->getPaymentAction();
-
-            $maze_version = $this->_objectManager->get('Magento\Framework\App\ProductMetadataInterface')->getVersion();
-            $module_version =  $this->_objectManager->get('Magento\Framework\Module\ModuleList')->getOne('Razorpay_Magento')['setup_version'];
-
-            $this->customerSession->setCustomerEmailAddress($_POST['email']);
-
-            if ($payment_action === 'authorize')
+            if(empty($_POST['email']) === true)
             {
-                    $payment_capture = 0;
+                $this->logger->warning("Email field is required");
+
+                $responseContent = [
+                    'message'   => "Email field is required",
+                    'parameters' => []
+                ];
+
+                $code = 200;
             }
             else
             {
-                    $payment_capture = 1;
-            }
 
-            $code = 400;
+                $amount = (int) (round($this->getQuote()->getGrandTotal(), 2) * 100);
 
-            try
-            {
-                $order = $this->rzp->order->create([
-                    'amount' => $amount,
-                    'receipt' => $receipt_id,
-                    'currency' => $this->getQuote()->getQuoteCurrencyCode(),
-                    'payment_capture' => $payment_capture,
-                    'app_offer' => ($this->getDiscount() > 0) ? 1 : 0
-                ]);
+                $payment_action = $this->config->getPaymentAction();
 
-                $responseContent = [
-                    'message'   => 'Unable to create your order. Please contact support.',
-                    'parameters' => []
-                ];
+                $maze_version = $this->_objectManager->get('Magento\Framework\App\ProductMetadataInterface')->getVersion();
+                $module_version =  $this->_objectManager->get('Magento\Framework\Module\ModuleList')->getOne('Razorpay_Magento')['setup_version'];
 
-                if (null !== $order && !empty($order->id))
+                $this->customerSession->setCustomerEmailAddress($_POST['email']);
+
+                if ($payment_action === 'authorize')
                 {
-                    $is_hosted = false;
+                    $payment_capture = 0;
+                }
+                else
+                {
+                    $payment_capture = 1;
+                }
 
-                    $merchantPreferences    = $this->getMerchantPreferences();
+                $code = 400;
+
+                try
+                {
+                    $order = $this->rzp->order->create([
+                        'amount' => $amount,
+                        'receipt' => $receipt_id,
+                        'currency' => $this->getQuote()->getQuoteCurrencyCode(),
+                        'payment_capture' => $payment_capture,
+                        'app_offer' => ($this->getDiscount() > 0) ? 1 : 0
+                    ]);
 
                     $responseContent = [
-                        'success'           => true,
-                        'rzp_order'         => $order->id,
-                        'order_id'          => $receipt_id,
-                        'amount'            => $order->amount,
-                        'quote_currency'    => $this->getQuote()->getQuoteCurrencyCode(),
-                        'quote_amount'      => round($this->getQuote()->getGrandTotal(), 2),
-                        'maze_version'      => $maze_version,
-                        'module_version'    => $module_version,
-                        'is_hosted'         => $merchantPreferences['is_hosted'],
-                        'image'             => $merchantPreferences['image'],
-                        'embedded_url'      => $merchantPreferences['embedded_url'],
+                        'message'   => 'Unable to create your order. Please contact support.',
+                        'parameters' => []
                     ];
 
-                    $code = 200;
+                    if (null !== $order && !empty($order->id))
+                    {
+                        $is_hosted = false;
 
-                    $this->catalogSession->setRazorpayOrderID($order->id);
+                        $merchantPreferences    = $this->getMerchantPreferences();
+
+                        $responseContent = [
+                            'success'           => true,
+                            'rzp_order'         => $order->id,
+                            'order_id'          => $receipt_id,
+                            'amount'            => $order->amount,
+                            'quote_currency'    => $this->getQuote()->getQuoteCurrencyCode(),
+                            'quote_amount'      => round($this->getQuote()->getGrandTotal(), 2),
+                            'maze_version'      => $maze_version,
+                            'module_version'    => $module_version,
+                            'is_hosted'         => $merchantPreferences['is_hosted'],
+                            'image'             => $merchantPreferences['image'],
+                            'embedded_url'      => $merchantPreferences['embedded_url'],
+                        ];
+
+                        $code = 200;
+
+                        $this->catalogSession->setRazorpayOrderID($order->id);
+                    }
                 }
-            }
-            catch(\Razorpay\Api\Errors\Error $e)
-            {
-                $responseContent = [
-                    'message'   => $e->getMessage(),
-                    'parameters' => []
-                ];
-            }
-            catch(\Exception $e)
-            {
-                $responseContent = [
-                    'message'   => $e->getMessage(),
-                    'parameters' => []
-                ];
+                catch(\Razorpay\Api\Errors\Error $e)
+                {
+                    $responseContent = [
+                        'message'   => $e->getMessage(),
+                        'parameters' => []
+                    ];
+                }
+                catch(\Exception $e)
+                {
+                    $responseContent = [
+                        'message'   => $e->getMessage(),
+                        'parameters' => []
+                    ];
+                }
             }
 
             //set the chache for race with webhook
