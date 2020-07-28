@@ -127,7 +127,7 @@ define(
 
                 $.ajax({
                     type: 'POST',
-                    url: url.build('razorpay/payment/order'),
+                    url: url.build('razorpay/payment/order?' + Math.random().toString(36).substring(10)),
                     data: {
                         email: this.user.email
                     },
