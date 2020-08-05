@@ -170,6 +170,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
      */
     protected function orderPaid(array $post)
     {
+        $paymentId = $post['payload']['payment']['entity']['id'];
+
         if (isset($post['payload']['payment']['entity']['notes']['merchant_quote_id']) === false)
         {
             $this->logger->warning("Razorpay Webhook: Quote ID not set for Razorpay payment_id(:$paymentId)");
@@ -177,7 +179,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         }
 
         $quoteId   = $post['payload']['payment']['entity']['notes']['merchant_quote_id'];
-        $paymentId = $post['payload']['payment']['entity']['id'];
 
         if (empty($this->cache->load("quote_Front_processing_".$quoteId)) === false)
         {
