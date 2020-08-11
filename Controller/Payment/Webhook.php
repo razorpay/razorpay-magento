@@ -71,7 +71,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         \Magento\Store\Model\StoreManagerInterface $storeManagement,
         \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository,
         \Magento\Framework\App\CacheInterface $cache,
-        \Psr\Log\LoggerInterface $logger
+        \Psr\Log\LoggerInterface $logger,
+        \Razorpay\Magento\Model\LogHandler $handler
     ) 
     {
         parent::__construct(
@@ -87,6 +88,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         $this->api             = new Api($keyId, $keySecret);
         $this->order           = $order;
         $this->logger          = $logger;
+        $this->handler         = $handler;
+        $this->logger->setHandlers ( [$this->handler] );
 
         $this->objectManagement   = \Magento\Framework\App\ObjectManager::getInstance();
         $this->quoteManagement    = $quoteManagement;
@@ -110,7 +113,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             return;
         }
 
-        $this->logger->warning("Razorpay Webhook processing started.");
+        $this->logger->info("Razorpay Webhook processing started.");
        
         if (($this->config->isWebhookEnabled() === true) && 
             (empty($post['event']) === false))
@@ -160,7 +163,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             }
         }
 
-        $this->logger->warning("Razorpay Webhook processing completed.");
+        $this->logger->info("Razorpay Webhook processing completed.");
     }
 
     /**
@@ -174,7 +177,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
         if (isset($post['payload']['payment']['entity']['notes']['merchant_quote_id']) === false)
         {
-            $this->logger->warning("Razorpay Webhook: Quote ID not set for Razorpay payment_id(:$paymentId)");
+            $this->logger->info("Razorpay Webhook: Quote ID not set for Razorpay payment_id(:$paymentId)");
             return;
         }
 
@@ -182,7 +185,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
         if (empty($this->cache->load("quote_Front_processing_".$quoteId)) === false)
         {
-            $this->logger->warning("Razorpay Webhook: Order processing is active for quoteID: $quoteId and Razorpay payment_id(:$paymentId)");
+            $this->logger->info("Razorpay Webhook: Order processing is active for quoteID: $quoteId and Razorpay payment_id(:$paymentId)");
             header('Status: 409 Conflict, too early for processing', true, 409);
             exit;
         }
@@ -191,7 +194,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
         $amount    = number_format($post['payload']['payment']['entity']['amount']/100, 2, ".", "");
 
-        $this->logger->warning("Razorpay Webhook processing started for Razorpay payment_id(:$paymentId)");
+        $this->logger->info("Razorpay Webhook processing started for Razorpay payment_id(:$paymentId)");
 
         $payment_created_time = $post['payload']['payment']['entity']['created_at'];
 
@@ -201,7 +204,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         //exit if quote is not active
         if (!$quote->getIsActive())
         {
-            $this->logger->warning("Razorpay Webhook: Quote order is inactive for quoteID: $quoteId and Razorpay payment_id(:$paymentId)");
+            $this->logger->info("Razorpay Webhook: Quote order is inactive for quoteID: $quoteId and Razorpay payment_id(:$paymentId)");
                 return;
         }
 
@@ -210,7 +213,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
         if ($quoteAmount !== $post['payload']['payment']['entity']['amount'])
         {
-            $this->logger->warning("Razorpay Webhook: Amount paid doesn't match with store order amount for Razorpay payment_id(:$paymentId)");
+            $this->logger->info("Razorpay Webhook: Amount paid doesn't match with store order amount for Razorpay payment_id(:$paymentId)");
                 return;
         }
 
@@ -231,7 +234,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
             if ($orderRzpPaymentId === $paymentId)
             {
-                $this->logger->warning("Razorpay Webhook: Sales Order and payment already exist for Razorpay payment_id(:$paymentId)");
+                $this->logger->info("Razorpay Webhook: Sales Order and payment already exist for Razorpay payment_id(:$paymentId)");
                 return;
             }
         }
@@ -249,7 +252,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 ->setShouldCloseParentTransaction(true);
         $order->save();
 
-        $this->logger->warning("Razorpay Webhook Processed successfully for Razorpay payment_id(:$paymentId): and quoteID(: $quoteId) and OrderID(: ". $order->getEntityId() .")");
+        $this->logger->info("Razorpay Webhook Processed successfully for Razorpay payment_id(:$paymentId): and quoteID(: $quoteId) and OrderID(: ". $order->getEntityId() .")");
     }
 
     protected function getQuoteObject($post, $quoteId)
