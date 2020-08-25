@@ -39,7 +39,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
         \Magento\Framework\App\CacheInterface $cache,
         \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
-        \Psr\Log\LoggerInterface $logger
+        \Psr\Log\LoggerInterface $logger,
+        \Razorpay\Magento\Model\LogHandler $handler
     ) {
         parent::__construct(
             $context,
@@ -56,6 +57,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $this->cache = $cache;
         $this->orderRepository = $orderRepository;
         $this->logger          = $logger;
+        $this->handler         = $handler;
+        $this->logger->setHandlers ( [$this->handler] );
         $this->objectManagement   = \Magento\Framework\App\ObjectManager::getInstance();
     }
 
@@ -91,7 +94,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
                 if (empty($salesOrder['entity_id']) === false)
                 {
-                    $this->logger->warning("Razorpay inside order already processed with webhook quoteID:" . $receipt_id
+                    $this->logger->info("Razorpay inside order already processed with webhook quoteID:" . $receipt_id
                                     ." and OrderID:".$salesOrder['entity_id']);
 
                     $this->checkoutSession
@@ -115,7 +118,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 //set the chache to stop webhook processing
                 $this->cache->save("started", "quote_Front_processing_$receipt_id", ["razorpay"], 30);
 
-                $this->logger->warning("Razorpay front-end order processing started quoteID:" . $receipt_id);
+                $this->logger->info("Razorpay front-end order processing started quoteID:" . $receipt_id);
 
                 $responseContent = [
                 'success'   => false,
@@ -153,7 +156,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         {
             if(empty($_POST['email']) === true)
             {
-                $this->logger->warning("Email field is required");
+                $this->logger->info("Email field is required");
 
                 $responseContent = [
                     'message'   => "Email field is required",
