@@ -309,6 +309,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
         $quote->setStore($store);
 
+        $quote->collectTotals();
+
         $quote->save();
 
         return $quote;
