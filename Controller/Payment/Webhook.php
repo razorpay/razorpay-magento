@@ -209,7 +209,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         }
 
         //validate amount before placing order
-        $quoteAmount = (int) (round($quote->getGrandTotal(), 2) * 100);
+        $quoteAmount = (int) (number_format($quote->getGrandTotal() * 100, 0, ".", ""));
 
         if ($quoteAmount !== $post['payload']['payment']['entity']['amount'])
         {
