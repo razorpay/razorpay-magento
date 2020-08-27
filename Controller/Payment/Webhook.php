@@ -292,19 +292,13 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             $quote->getBillingAddress()->setCustomerAddressId($customer->getDefaultBillingAddress()['id']);
         }
 
-        //If need to insert new customer 
+        //If need to insert new customer as guest
         if (empty($customer->getEntityId()) === true)
         {
             $quote->setCustomerFirstname($firstName);
             $quote->setCustomerLastname($lastName);
             $quote->setCustomerEmail($email);
             $quote->setCustomerIsGuest(true);
-        }
-        else
-        {
-            $customer = $this->customerRepository->getById($customer->getEntityId());
-
-            $quote->assignCustomer($customer);
         }
 
         $quote->setStore($store);
