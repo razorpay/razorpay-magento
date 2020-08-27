@@ -168,7 +168,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             else
             {
 
-                $amount = (int) (round($this->getQuote()->getGrandTotal(), 2) * 100);
+                $amount = (int) (number_format($this->getQuote()->getGrandTotal() * 100, 0, ".", ""));
 
                 $payment_action = $this->config->getPaymentAction();
 
@@ -215,7 +215,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                             'order_id'          => $receipt_id,
                             'amount'            => $order->amount,
                             'quote_currency'    => $this->getQuote()->getQuoteCurrencyCode(),
-                            'quote_amount'      => round($this->getQuote()->getGrandTotal(), 2),
+                            'quote_amount'      => number_format($this->getQuote()->getGrandTotal(), 2, ".", ""),
                             'maze_version'      => $maze_version,
                             'module_version'    => $module_version,
                             'is_hosted'         => $merchantPreferences['is_hosted'],

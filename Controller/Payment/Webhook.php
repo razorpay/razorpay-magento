@@ -257,14 +257,11 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
     protected function getQuoteObject($post, $quoteId)
     {
-        $email = $post['payload']['payment']['entity']['email'];
-
         $quote = $this->quoteRepository->get($quoteId);
 
-
         $firstName = $quote->getBillingAddress()->getFirstname() ?? 'null';
-        $lastName = $quote->getBillingAddress()->getLastname() ?? 'null';
-
+        $lastName  = $quote->getBillingAddress()->getLastname() ?? 'null';
+        $email     = $quote->getBillingAddress()->getEmail() ?? $post['payload']['payment']['entity']['email'];
 
         $quote->getPayment()->setMethod(PaymentMethod::METHOD_CODE);
 
@@ -277,23 +274,18 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         $customer->setWebsiteId($websiteId);
 
         //get customer from quote , otherwise from payment email
-        if (empty($quote->getBillingAddress()->getEmail()) === false)
-        {
-            $customer = $customer->loadByEmail($quote->getBillingAddress()->getEmail());
-        }
-        else
-        {
-            $customer = $customer->loadByEmail($email);
-        }
+        $customer = $customer->loadByEmail($email);
         
         //if quote billing address doesn't contains address, set it as customer default billing address
-        if ((empty($quote->getBillingAddress()->getFirstname()) === true) and (empty($customer->getEntityId()) === false))
+        if ((empty($quote->getBillingAddress()->getFirstname()) === true) and
+            (empty($customer->getEntityId()) === false))
         {   
             $quote->getBillingAddress()->setCustomerAddressId($customer->getDefaultBillingAddress()['id']);
         }
 
         //If need to insert new customer as guest
-        if (empty($customer->getEntityId()) === true)
+        if ((empty($customer->getEntityId()) === true) or
+            (empty($quote->getBillingAddress()->getCustomerId()) === true))
         {
             $quote->setCustomerFirstname($firstName);
             $quote->setCustomerLastname($lastName);
