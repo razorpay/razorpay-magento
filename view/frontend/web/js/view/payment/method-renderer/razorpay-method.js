@@ -129,7 +129,8 @@ define(
                     type: 'POST',
                     url: url.build('razorpay/payment/order?' + Math.random().toString(36).substring(10)),
                     data: {
-                        email: this.user.email
+                        email: this.user.email,
+                        billing_address: JSON.stringify(quote.billingAddress())
                     },
 
                     /**
