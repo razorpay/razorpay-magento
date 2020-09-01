@@ -167,8 +167,29 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             }
             else
             {
+                //setting updated billing address
+                if(empty($_POST['billing_address']) === false)
+                {
+                    $billing_address = json_decode($_POST['billing_address'], 1);
 
-                $amount = (int) (round($this->getQuote()->getGrandTotal(), 2) * 100);
+                    $this->getQuote()->getBillingAddress()
+                                    ->setFirstname($billing_address['firstname'])
+                                    ->setLastname($billing_address['lastname'])
+                                    ->setCountryId($billing_address['countryId'])
+                                    ->setPostcode($billing_address['postcode'])
+                                    ->setCity($billing_address['city'])
+                                    ->setTelephone($billing_address['telephone'])
+                                    ->setCompany($billing_address['company'])
+                                    ->setStreet($billing_address['street'])
+                                    ->setRegionId($billing_address['regionId'])
+                                    ->setRegionCode($billing_address['regionCode'])
+                                    ->setRegion($billing_address['region'])
+                                    ->setSaveInAddressBook($billing_address['saveInAddressBook']);
+
+                    $this->getQuote()->save();
+                }
+
+                $amount = (int) (number_format($this->getQuote()->getGrandTotal() * 100, 0, ".", ""));
 
                 $payment_action = $this->config->getPaymentAction();
 
@@ -215,7 +236,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                             'order_id'          => $receipt_id,
                             'amount'            => $order->amount,
                             'quote_currency'    => $this->getQuote()->getQuoteCurrencyCode(),
-                            'quote_amount'      => round($this->getQuote()->getGrandTotal(), 2),
+                            'quote_amount'      => number_format($this->getQuote()->getGrandTotal(), 2, ".", ""),
                             'maze_version'      => $maze_version,
                             'module_version'    => $module_version,
                             'is_hosted'         => $merchantPreferences['is_hosted'],
