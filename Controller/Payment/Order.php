@@ -179,12 +179,25 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                                     ->setPostcode($billing_address['postcode'])
                                     ->setCity($billing_address['city'])
                                     ->setTelephone($billing_address['telephone'])
-                                    ->setCompany($billing_address['company'])
                                     ->setStreet($billing_address['street'])
                                     ->setRegionId($billing_address['regionId'])
                                     ->setRegionCode($billing_address['regionCode'])
                                     ->setRegion($billing_address['region'])
                                     ->setSaveInAddressBook($billing_address['saveInAddressBook']);
+
+                    if(isset($billing_address['company']) and
+                       (empty($billing_address['company']) === false))
+                    {
+                        $this->getQuote()->getBillingAddress()
+                                        ->setCompany($billing_address['company']);
+                    }
+
+                    if(isset($billing_address['middlename']) and
+                       (empty($billing_address['middlename']) === false))
+                    {
+                        $this->getQuote()->getBillingAddress()
+                                        ->setCompany($billing_address['middlename']);
+                    }
 
                     $this->getQuote()->save();
                 }
