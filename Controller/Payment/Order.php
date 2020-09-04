@@ -172,31 +172,14 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 {
                     $billing_address = json_decode($_POST['billing_address'], 1);
 
-                    $this->getQuote()->getBillingAddress()
-                                    ->setFirstname($billing_address['firstname'])
-                                    ->setLastname($billing_address['lastname'])
-                                    ->setCountryId($billing_address['countryId'])
-                                    ->setPostcode($billing_address['postcode'])
-                                    ->setCity($billing_address['city'])
-                                    ->setTelephone($billing_address['telephone'])
-                                    ->setStreet($billing_address['street'])
-                                    ->setRegionId($billing_address['regionId'])
-                                    ->setRegionCode($billing_address['regionCode'])
-                                    ->setRegion($billing_address['region'])
-                                    ->setSaveInAddressBook($billing_address['saveInAddressBook']);
-
-                    if(isset($billing_address['company']) and
-                       (empty($billing_address['company']) === false))
+                    foreach ($billing_address as $field => $field_value)
                     {
-                        $this->getQuote()->getBillingAddress()
-                                        ->setCompany($billing_address['company']);
-                    }
-
-                    if(isset($billing_address['middlename']) and
-                       (empty($billing_address['middlename']) === false))
-                    {
-                        $this->getQuote()->getBillingAddress()
-                                        ->setCompany($billing_address['middlename']);
+                        if(isset($billing_address[$field]) and
+                           (empty($billing_address[$field]) === false))
+                        {
+                            $set_field = "set".ucfirst($field);
+                            $this->getQuote()->getBillingAddress()->$set_field($field_value);
+                        }
                     }
 
                     $this->getQuote()->save();
