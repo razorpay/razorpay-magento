@@ -9,6 +9,7 @@ use Razorpay\Magento\Model\PaymentMethod;
 use Magento\Framework\App\CsrfAwareActionInterface;
 use Magento\Framework\App\Request\InvalidRequestException;
 use Magento\Framework\App\RequestInterface;
+use Magento\Framework\DataObject;
 
 class Webhook extends \Razorpay\Magento\Controller\BaseController
 {
@@ -41,6 +42,11 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
     protected $cache;
 
+    /**
+     * @var ManagerInterface
+     */
+    private $eventManager;
+
     const STATUS_APPROVED = 'APPROVED';
 
     /**
@@ -71,6 +77,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         \Magento\Store\Model\StoreManagerInterface $storeManagement,
         \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository,
         \Magento\Framework\App\CacheInterface $cache,
+        \Magento\Framework\Event\ManagerInterface $eventManager,
         \Psr\Log\LoggerInterface $logger,
         \Razorpay\Magento\Model\LogHandler $handler
     ) 
@@ -98,6 +105,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         $this->quoteRepository    = $quoteRepository;
         $this->storeManagement    = $storeManagement;
         $this->customerRepository = $customerRepository;
+        $this->eventManager       = $eventManager;
         $this->cache = $cache;
     }
 
@@ -250,7 +258,33 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 ->setTransactionId($paymentId)
                 ->setIsTransactionClosed(true)
                 ->setShouldCloseParentTransaction(true);
+
+        //set razorpay webhook fields
+        $order->setByRazorpayWebhook(1);
+
         $order->save();
+
+        //disable the quote
+        $quote->setIsActive(0)->save();
+
+        //dispatch the "razorpay_webhook_order_placed_after" event
+        $eventData = [
+                        'raorpay_payment_id' => $paymentId,
+                        'magento_quote_id' => $quoteId,
+                        'magento_order_id' => $order->getEntityId(),
+                        'amount_captured' => $post['payload']['payment']['entity']['amount']
+                     ];
+
+        $transport = new DataObject($eventData);
+
+        $this->eventManager->dispatch(
+            'razorpay_webhook_order_placed_after',
+            [
+                'context'   => 'razorpay_webhook_order',
+                'payment'   => $paymentId,
+                'transport' => $transport
+            ]
+        );
 
         $this->logger->info("Razorpay Webhook Processed successfully for Razorpay payment_id(:$paymentId): and quoteID(: $quoteId) and OrderID(: ". $order->getEntityId() .")");
     }
