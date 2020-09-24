@@ -7,12 +7,12 @@ use Magento\Framework\Controller\ResultFactory;
 
 class Order extends \Razorpay\Magento\Controller\BaseController
 {
-	protected $quote;
+    protected $quote;
 
-	protected $checkoutSession;
+    protected $checkoutSession;
 
-	protected $_currency = PaymentMethod::CURRENCY;
-	/**
+    protected $_currency = PaymentMethod::CURRENCY;
+    /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession
@@ -51,6 +51,13 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
         $maze_version = $this->_objectManager->get('Magento\Framework\App\ProductMetadataInterface')->getVersion();
         $module_version =  $this->_objectManager->get('Magento\Framework\Module\ModuleList')->getOne('Razorpay_Magento')['setup_version'];
+
+
+        //if already order from same session , let make it's to pending state
+        $orderModel = $this->_objectManager->get('Magento\Sales\Model\Order')->load($mazeOrder->getEntityId());
+        $orderModel->setState('new')
+              ->setStatus('pending');
+        $orderModel->save();
 
         if ($payment_action === 'authorize') 
         {

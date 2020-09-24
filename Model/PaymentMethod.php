@@ -48,7 +48,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     /**
      * @var bool
      */
-    protected $_canUseInternal          = false;        //Disable module for Magento Admin Order
+    protected $_canUseInternal          = true;        //Disable module for Magento Admin Order
 
     /**
      * @var bool
@@ -94,6 +94,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      * @var \Magento\Sales\Api\OrderRepositoryInterface
      */
     protected $orderRepository;
+
+    //protected $_isOffline = true;
 
     /**
      * @param \Magento\Framework\Model\Context $context
@@ -202,6 +204,11 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     public function refund(InfoInterface $payment, $amount)
     {
         return $this;
+    }
+
+    public function capture(InfoInterface $payment, $amount)
+    {
+       return $this;
     }
 
     /**

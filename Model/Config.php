@@ -12,7 +12,8 @@ class Config
     const KEY_PUBLIC_KEY = 'key_id';
     const KEY_PRIVATE_KEY = 'key_secret';
     const KEY_MERCHANT_NAME_OVERRIDE = 'merchant_name_override';
-    const KEY_PAYMENT_ACTION = 'payment_action';
+    const KEY_PAYMENT_ACTION = 'rzp_payment_action';
+    const KEY_AUTO_INVOICE = 'auto_invoice';
 
     /**
      * @var string
@@ -92,6 +93,14 @@ class Config
     public function isActive()
     {
         return (bool) (int) $this->getConfigData(self::KEY_ACTIVE, $this->storeId);
+    }
+
+    /**
+     * @return bool
+     */
+    public function canAutoGenerateInvoice()
+    {
+        return (bool) (int) $this->getConfigData(self::KEY_AUTO_INVOICE, $this->storeId);
     }
 
     /**

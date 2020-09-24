@@ -170,7 +170,6 @@ define(
                     success: function (response) {
                         fullScreenLoader.stopLoader();
                         if (response.success) {
-                           //self.placeOrder(this.event, response);
                            self.doCheckoutPayment(response);
                         } else {
                             self.isPaymentProcessing.reject(response.message);
@@ -203,7 +202,9 @@ define(
                     },
                     order_id: data.rzp_order,
                     modal: {
-                        ondismiss: function() { //alert('asdsadsa');
+                        ondismiss: function(data) {
+                            //reset the cart
+                            self.resetCart(data);
                             fullScreenLoader.stopLoader();
                             self.isPaymentProcessing.reject("Payment Closed");
                             self.isPlaceOrderActionAllowed(true);
@@ -253,11 +254,55 @@ define(
                      */
                     success: function (response) {
                         fullScreenLoader.stopLoader();
-                        if (response.success) {
-                            window.location.replace(response.redirect_url);
-                        } else {
+
+                        require('Magento_Customer/js/customer-data').reload(['cart']);
+
+                        if (!response.success) { alert('asdsa');
+                            fullScreenLoader.stopLoader();
                             self.isPaymentProcessing.reject(response.message);
                             self.handleError(response);
+                            self.isPlaceOrderActionAllowed(true);
+                        }
+
+                        window.location.replace(url.build(response.redirect_url));
+                    },
+
+                    /**
+                     * Error callback
+                     * @param {*} response
+                     */
+                    error: function (response) {
+                        fullScreenLoader.stopLoader();
+                        self.isPaymentProcessing.reject(response.message);
+                        self.handleError(response);
+                    }
+                });
+
+            },
+
+            resetCart: function(data){
+
+                var self = this;
+                fullScreenLoader.startLoader();
+
+                $.ajax({
+                    type: 'POST',
+                    url: url.build('razorpay/payment/resetCart'),
+                    data: JSON.stringify(data),
+                    dataType: 'json',
+                    contentType: 'application/json',
+
+                    /**
+                     * Success callback
+                     * @param {Object} response
+                     */
+                    success: function (response) {
+                        fullScreenLoader.stopLoader();
+                        self.isPaymentProcessing.reject('order_failed');
+                        require('Magento_Customer/js/customer-data').reload(['cart']);
+
+                        if (response.success) {
+                            window.location.replace(url.build(response.redirect_url));
                         }
                     },
 
