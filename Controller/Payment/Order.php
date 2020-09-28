@@ -167,24 +167,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             }
             else
             {
-                //setting updated billing address
-                if(empty($_POST['billing_address']) === false)
-                {
-                    $billing_address = json_decode($_POST['billing_address'], 1);
-
-                    foreach ($billing_address as $field => $field_value)
-                    {
-                        if(isset($billing_address[$field]) and
-                           (empty($billing_address[$field]) === false))
-                        {
-                            $set_field = "set".ucfirst($field);
-                            $this->getQuote()->getBillingAddress()->$set_field($field_value);
-                        }
-                    }
-
-                    $this->getQuote()->save();
-                }
-
                 $amount = (int) (number_format($this->getQuote()->getGrandTotal() * 100, 0, ".", ""));
 
                 $payment_action = $this->config->getPaymentAction();
