@@ -125,6 +125,9 @@ define(
             getRzpOrderId: function () {
                 var self = this;
 
+                //update shipping and billing before order into quotes
+                require('Magento_Checkout/js/model/shipping-save-processor').saveShippingInformation();
+
                 $.ajax({
                     type: 'POST',
                     url: url.build('razorpay/payment/order?' + Math.random().toString(36).substring(10)),
