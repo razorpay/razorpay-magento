@@ -299,7 +299,12 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
         $quote->getPayment()->setMethod(PaymentMethod::METHOD_CODE);
 
-        $store = $this->storeManagement->getStore();
+        $store = $quote->getStore();
+
+        if(empty($store) === true)
+        {
+            $store = $this->storeManagement->getStore();
+        }
 
         $websiteId = $store->getWebsiteId();
 
