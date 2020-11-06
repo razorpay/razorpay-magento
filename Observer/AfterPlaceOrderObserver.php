@@ -14,10 +14,6 @@ use Razorpay\Magento\Model\PaymentMethod;
  */
 class AfterPlaceOrderObserver implements ObserverInterface
 {
-    /**
-     * Status pending
-     */
-    const STATUS_PENDING_PAYMENT = 'pending_payment';
 
     /**
      * Store key
@@ -42,10 +38,12 @@ class AfterPlaceOrderObserver implements ObserverInterface
      */
     public function __construct(
         OrderRepositoryInterface $orderRepository,
-        \Magento\Checkout\Model\Session $checkoutSession
+        \Magento\Checkout\Model\Session $checkoutSession,
+        \Razorpay\Magento\Model\Config $config
     ) {
         $this->orderRepository = $orderRepository;
         $this->checkoutSession = $checkoutSession;
+        $this->config = $config;
     }
 
     /**
@@ -76,9 +74,12 @@ class AfterPlaceOrderObserver implements ObserverInterface
     private function assignStatus(Payment $payment)
     {
         $order = $payment->getOrder();
-   
-        $order->setState(static::STATUS_PENDING_PAYMENT)
-              ->setStatus(static::STATUS_PENDING_PAYMENT);
+
+        $new_order_status = $this->config->getNewOrderStatus();
+
+        $order->setState('new')
+              ->setStatus($new_order_status);
+
         $this->orderRepository->save($order);
     }
 

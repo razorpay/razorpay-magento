@@ -43,7 +43,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     {
         $mazeOrder = $this->checkoutSession->getLastRealOrder();
 
-        $amount = (int) (round($mazeOrder->getBaseGrandTotal(), 2) * 100);
+        $amount = (int) (number_format($mazeOrder->getGrandTotal() * 100, 0, ".", ""));
 
         $receipt_id = $mazeOrder->getIncrementId();
 
@@ -54,10 +54,13 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
 
         //if already order from same session , let make it's to pending state
+        $new_order_status = $this->config->getNewOrderStatus();
+
         $orderModel = $this->_objectManager->get('Magento\Sales\Model\Order')->load($mazeOrder->getEntityId());
+
         $orderModel->setState('new')
-              ->setStatus('pending');
-        $orderModel->save();
+                   ->setStatus($new_order_status)
+                   ->save();
 
         if ($payment_action === 'authorize') 
         {
@@ -92,7 +95,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                     'order_id'          => $receipt_id,
                     'amount'            => $order->amount,
                     'quote_currency'    => $mazeOrder->getOrderCurrencyCode(),
-                    'quote_amount'      => round($mazeOrder->getBaseGrandTotal(), 2),
+                    'quote_amount'      => $amount,
                     'maze_version'      => $maze_version,
                     'module_version'    => $module_version,
                 ];

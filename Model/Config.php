@@ -14,6 +14,7 @@ class Config
     const KEY_MERCHANT_NAME_OVERRIDE = 'merchant_name_override';
     const KEY_PAYMENT_ACTION = 'rzp_payment_action';
     const KEY_AUTO_INVOICE = 'auto_invoice';
+    const KEY_NEW_ORDER_STATUS = 'order_status';
 
     /**
      * @var string
@@ -55,6 +56,11 @@ class Config
     public function getPaymentAction()
     {
         return $this->getConfigData(self::KEY_PAYMENT_ACTION);
+    }
+
+    public function getNewOrderStatus()
+    {
+        return $this->getConfigData(self::KEY_NEW_ORDER_STATUS);
     }
 
     /**
