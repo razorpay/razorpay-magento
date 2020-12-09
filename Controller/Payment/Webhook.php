@@ -249,6 +249,23 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
         $quote = $this->getQuoteObject($post, $quoteId);
 
+        //before creating order let wait for 15 sec and re-verify if the quote is active or not
+        $this->logger->info("Razorpay Webhook: Waiting for 15 sec with quoteID:$quoteId.");
+
+        sleep(15);
+
+        $this->logger->info("Razorpay Webhook: Waiting of 15 sec over with quoteID:$quoteId.");
+
+        //validate if the quote Order is still active
+        $quoteUpdated = $this->quoteRepository->get($quoteId);
+
+        //exit if quote is not active
+        if (!$quoteUpdated->getIsActive())
+        {
+            $this->logger->info("Razorpay Webhook: Quote order is inactive for quoteID: $quoteId and Razorpay payment_id(:$paymentId)");
+                return;
+        }
+
         $order = $this->quoteManagement->submit($quote);
 
         $payment = $order->getPayment();        
