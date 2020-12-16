@@ -12,6 +12,7 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Controller\ResultFactory;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
+use Psr\Log\LoggerInterface as Logger;
 
 class Validate extends \Razorpay\Magento\Controller\BaseController implements CsrfAwareActionInterface
 {
@@ -46,6 +47,11 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
      */
     protected $_transaction;
 
+    /**
+     * @var Logger
+     */
+    protected $logger;
+
 
     /**
      * @param \Magento\Framework\App\Action\Context $context
@@ -66,7 +72,8 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
         \Magento\Framework\DB\Transaction $transaction,
         \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender,
         OrderRepositoryInterface $orderRepository,
-        \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender
+        \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
+        Logger $logger
     ) 
     {
         parent::__construct(
@@ -91,6 +98,7 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
         $this->_invoiceService = $invoiceService;
         $this->_invoiceSender = $invoiceSender;
         $this->_transaction = $transaction;
+        $this->logger       = $logger;
     }
 
     /**
@@ -196,9 +204,20 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
             }
 
             //send Order email, after successfull payment
-            $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
-            $this->orderSender->send($order, true);
-            $this->checkoutSession->unsRazorpayMailSentOnSuccess();
+            try
+            {
+                $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
+                $this->orderSender->send($order);
+                $this->checkoutSession->unsRazorpayMailSentOnSuccess();
+            }
+            catch (\Magento\Framework\Exception\MailException $exception)
+            {
+                $this->logger->critical($e);
+            }
+            catch (\Exception $e)
+            {
+                $this->logger->critical($e);
+            }
 
             $responseContent = [
                 'success'           => true,
