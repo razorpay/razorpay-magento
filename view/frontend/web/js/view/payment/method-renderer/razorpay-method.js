@@ -10,9 +10,10 @@ define(
         'Magento_Customer/js/model/customer',
         'Magento_Checkout/js/action/place-order',
         'Magento_Checkout/js/model/full-screen-loader',
-        'Magento_Ui/js/model/messageList'
+        'Magento_Ui/js/model/messageList',
+        'Magento_Checkout/js/model/shipping-save-processor'
     ],
-    function (Component, quote, $, ko, additionalValidators, setPaymentInformationAction, url, customer, placeOrderAction, fullScreenLoader, messageList) {
+    function (Component, quote, $, ko, additionalValidators, setPaymentInformationAction, url, customer, placeOrderAction, fullScreenLoader, messageList, shippingSaveProcessor) {
         'use strict';
 
         return Component.extend({
@@ -126,7 +127,9 @@ define(
                 var self = this;
 
                 //update shipping and billing before order into quotes
-                require('Magento_Checkout/js/model/shipping-save-processor').saveShippingInformation();
+                if(!quote.isVirtual()) {
+                    shippingSaveProcessor.saveShippingInformation();
+                }
 
                 $.ajax({
                     type: 'POST',
