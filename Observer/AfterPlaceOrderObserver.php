@@ -81,6 +81,13 @@ class AfterPlaceOrderObserver implements ObserverInterface
               ->setStatus($new_order_status);
 
         $this->orderRepository->save($order);
+
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+
+        $lastQuoteId = $order->getQuoteId();
+        $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($lastQuoteId);
+        $quote->setIsActive(true)->save();
+        $this->checkoutSession->replaceQuote($quote);
     }
 
 }
