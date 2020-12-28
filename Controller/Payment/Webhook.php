@@ -182,6 +182,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     protected function orderPaid(array $post)
     {
         $paymentId = $post['payload']['payment']['entity']['id'];
+        $rzpOrderId = $post['payload']['order']['entity']['id'];
 
         if (isset($post['payload']['payment']['entity']['notes']['merchant_quote_id']) === false)
         {
@@ -191,14 +192,51 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
         $quoteId   = $post['payload']['payment']['entity']['notes']['merchant_quote_id'];
 
+
+        $orderLinkCollection = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                                                   ->getCollection()
+                                                   ->addFilter('quote_id', $quoteId)
+                                                   ->addFilter('rzp_order_id', $rzpOrderId)
+                                                   ->getFirstItem();
+
+        $orderLink = $orderLinkCollection->getData();
+
+        if (empty($orderLink['entity_id']) === false)
+        {
+            if ($orderLink['order_placed'])
+            {
+                 $this->logger->info(__("Razorpay Webhook: Quote order is inactive for quoteID: $quoteId and Razorpay payment_id(:$paymentId) with Maze OrderID (:%1) ", $orderLink['increment_order_id']));
+                return;
+            }
+
+            $orderLinkCollection->setWebhookCount($orderLink['webhook_count'] + 1)
+                                ->setRzpPaymentId($paymentId)
+                                ->save();
+
+            // Check if front-end cache flag active
+            if (empty($this->cache->load("quote_Front_processing_".$quoteId)) === false)
+            {
+                $this->logger->info("Razorpay Webhook: Order processing is active for quoteID: $quoteId and Razorpay payment_id(:$paymentId)");
+                header('Status: 409 Conflict, too early for processing', true, 409);
+                exit;
+            }
+
+            //ignore first webhook call
+            if ($orderLink['webhook_count'] < 2)
+            {
+                $this->logger->info(__("Razorpay Webhook: Order processing is active for quoteID: $quoteId and Razorpay payment_id(:$paymentId) and webhook attempt: %1", ($orderLink['webhook_count'] + 1)));
+                header('Status: 409 Conflict, too early for processing', true, 409);
+                exit;
+            }
+        }
+
+         // Check if front-end cache flag active
         if (empty($this->cache->load("quote_Front_processing_".$quoteId)) === false)
         {
             $this->logger->info("Razorpay Webhook: Order processing is active for quoteID: $quoteId and Razorpay payment_id(:$paymentId)");
             header('Status: 409 Conflict, too early for processing', true, 409);
             exit;
         }
-
-        $this->cache->save("started", "quote_processing_$quoteId", ["razorpay"], 30);
 
         $amount    = number_format($post['payload']['payment']['entity']['amount']/100, 2, ".", "");
 
@@ -265,6 +303,28 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             $this->logger->info("Razorpay Webhook: Quote order is inactive for quoteID: $quoteId and Razorpay payment_id(:$paymentId)");
                 return;
         }
+
+        //verify Rzp OrderLink status
+        $orderLinkCollection = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                                                   ->getCollection()
+                                                   ->addFilter('quote_id', $quoteId)
+                                                   ->addFilter('rzp_order_id', $rzpOrderId)
+                                                   ->getFirstItem();
+
+        $orderLink = $orderLinkCollection->getData();
+
+        if (empty($orderLink['entity_id']) === false)
+        {
+            if ($orderLink['order_placed'])
+            {
+                 $this->logger->info(__("Razorpay Webhook: Quote order is inactive for quoteID: $quoteId and Razorpay payment_id(:$paymentId) with Maze OrderID (:%1) ", $orderLink['increment_order_id']));
+                return;
+            }
+        }
+
+        //Now start processing the new order creation through webhook
+
+        $this->cache->save("started", "quote_processing_$quoteId", ["razorpay"], 30);
 
         $order = $this->quoteManagement->submit($quote);
 
