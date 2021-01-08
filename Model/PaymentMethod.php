@@ -221,6 +221,17 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             else
             {
                 $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
+
+                //validate RzpOrderamount with quote/order amount before signature
+                $orderAmount = (int) (number_format($amount * 100, 0, ".", ""));
+
+                if ($orderAmount !== $this->order->getRazorpayOrderAmount())
+                {
+                    $rzpOrderAmount = $order->getBaseCurrency()->formatTxt(number_format($this->order->getRazorpayOrderAmount() / 100, 2, ".", ""));
+
+                    throw new LocalizedException(__("Cart order amount = %1 doesn't match with amount paid = %2", $order->getBaseCurrency()->formatTxt($amount), $rzpOrderAmount));
+                }
+
                 $this->validateSignature($request);
             }
 

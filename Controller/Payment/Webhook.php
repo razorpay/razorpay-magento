@@ -198,8 +198,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             exit;
         }
 
-        $this->cache->save("started", "quote_processing_$quoteId", ["razorpay"], 30);
-
         $amount    = number_format($post['payload']['payment']['entity']['amount']/100, 2, ".", "");
 
         $this->logger->info("Razorpay Webhook processing started for Razorpay payment_id(:$paymentId)");
@@ -246,6 +244,9 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 return;
             }
         }
+
+        //Set cache flag for webhook processing
+        $this->cache->save("started", "quote_processing_$quoteId", ["razorpay"], 30);
 
         $quote = $this->getQuoteObject($post, $quoteId);
 

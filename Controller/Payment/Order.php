@@ -115,15 +115,30 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             }
             else
             {
-                //set the chache to stop webhook processing
-                $this->cache->save("started", "quote_Front_processing_$receipt_id", ["razorpay"], 30);
+                if(empty($receipt_id) === false)
+                {
+                    //set the chache to stop webhook processing
+                    $this->cache->save("started", "quote_Front_processing_$receipt_id", ["razorpay"], 30);
 
-                $this->logger->info("Razorpay front-end order processing started quoteID:" . $receipt_id);
+                    $this->logger->info("Razorpay front-end order processing started quoteID:" . $receipt_id);
 
-                $responseContent = [
-                'success'   => false,
-                'parameters' => []
-                ];
+                    $responseContent = [
+                    'success'   => false,
+                    'parameters' => []
+                    ];
+                }
+                else
+                {
+                    $this->logger->info("Razorpay order already processed with quoteID:" . $this->checkoutSession
+                            ->getLastQuoteId());
+
+                    $responseContent = [
+                        'success'    => true,
+                        'order_id'   => true,
+                        'parameters' => []
+                    ];
+
+                }
             }
 
             $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
@@ -225,6 +240,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                         $code = 200;
 
                         $this->catalogSession->setRazorpayOrderID($order->id);
+                        $this->catalogSession->setRazorpayOrderAmount($amount);
                     }
                 }
                 catch(\Razorpay\Api\Errors\Error $e)
@@ -244,7 +260,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             }
 
             //set the chache for race with webhook
-            $this->cache->save("started", "quote_Front_processing_$receipt_id", ["razorpay"], 30);
+            $this->cache->save("started", "quote_Front_processing_$receipt_id", ["razorpay"], 120);
 
             $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
             $response->setData($responseContent);
@@ -257,6 +273,11 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     public function getOrderID()
     {
         return $this->catalogSession->getRazorpayOrderID();
+    }
+
+    public function getRazorpayOrderAmount()
+    {
+        return $this->catalogSession->getRazorpayOrderAmount();
     }
 
     protected function getMerchantPreferences()
