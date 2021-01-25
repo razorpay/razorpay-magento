@@ -285,6 +285,9 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             }
         }
 
+        //Set cache flag for webhook processing
+        $this->cache->save("started", "quote_processing_$quoteId", ["razorpay"], 30);
+
         $quote = $this->getQuoteObject($post, $quoteId);
 
         //before creating order let wait for 15 sec and re-verify if the quote is active or not
