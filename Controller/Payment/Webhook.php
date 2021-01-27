@@ -230,7 +230,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 exit;
             }
 
-            $webhookWaitTime = $this->config->getConfigData(Config::WEBHOOK_WAIT_TIME);
+            $webhookWaitTime = $this->config->getConfigData(Config::WEBHOOK_WAIT_TIME) ? $this->config->getConfigData(Config::WEBHOOK_WAIT_TIME) : 300;
 
             //ignore webhook call for some time as per config, from first webhook call
             if ((time() - $orderLinkCollection->getWebhookFirstNotifiedAt()) < $webhookWaitTime)

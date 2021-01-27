@@ -17,7 +17,7 @@ class UpgradeSchema implements  UpgradeSchemaInterface
 	{
 		$setup->startSetup();
 
-		if (version_compare($context->getVersion(), '3.0.0', '>'))
+		if ((empty($context->getVersion()) === true) OR version_compare($context->getVersion(), '3.0.0', '>'))
 		{
 			// Get module table
 			$tableName = $setup->getTable('sales_order');
@@ -41,7 +41,7 @@ class UpgradeSchema implements  UpgradeSchemaInterface
 
 
 
-        if (version_compare($context->getVersion(), '3.2.3', '>=')) {
+        if ((empty($context->getVersion()) === true) OR version_compare($context->getVersion(), '3.2.3', '>=')) {
             $table = $setup->getConnection()->newTable($setup->getTable(OrderLink::TABLE_NAME));
 
             $table
