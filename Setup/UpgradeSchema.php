@@ -132,6 +132,13 @@ class UpgradeSchema implements  UpgradeSchemaInterface
                         'default' => 0
                     ]
                 )
+                ->addColumn(
+                    'webhook_first_notified_at',
+                    Table::TYPE_BIGINT,
+                    [
+                        'nullable' => true
+                    ]
+                )
                 ->addIndex(
 			        'quote_id',
 			        ['quote_id', 'rzp_payment_id'],

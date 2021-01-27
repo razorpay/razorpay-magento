@@ -206,26 +206,38 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             if ($orderLink['order_placed'])
             {
                  $this->logger->info(__("Razorpay Webhook: Quote order is inactive for quoteID: $quoteId and Razorpay payment_id(:$paymentId) with Maze OrderID (:%1) ", $orderLink['increment_order_id']));
+
                 return;
+            }
+
+            //set the 1st webhook notification time
+            if ($orderLink['webhook_count'] < 1)
+            {
+                $orderLinkCollection->setWebhookFirstNotifiedAt(time());
             }
 
             $orderLinkCollection->setWebhookCount($orderLink['webhook_count'] + 1)
                                 ->setRzpPaymentId($paymentId)
                                 ->save();
 
+
             // Check if front-end cache flag active
             if (empty($this->cache->load("quote_Front_processing_".$quoteId)) === false)
             {
                 $this->logger->info("Razorpay Webhook: Order processing is active for quoteID: $quoteId and Razorpay payment_id(:$paymentId)");
                 header('Status: 409 Conflict, too early for processing', true, 409);
+
                 exit;
             }
 
-            //ignore first webhook call
-            if ($orderLink['webhook_count'] < 2)
+            $webhookWaitTime = $this->config->getConfigData(Config::WEBHOOK_WAIT_TIME);
+
+            //ignore webhook call for some time as per config, from first webhook call
+            if ((time() - $orderLinkCollection->getWebhookFirstNotifiedAt()) < $webhookWaitTime)
             {
                 $this->logger->info(__("Razorpay Webhook: Order processing is active for quoteID: $quoteId and Razorpay payment_id(:$paymentId) and webhook attempt: %1", ($orderLink['webhook_count'] + 1)));
                 header('Status: 409 Conflict, too early for processing', true, 409);
+
                 exit;
             }
         }
@@ -235,6 +247,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         {
             $this->logger->info("Razorpay Webhook: Order processing is active for quoteID: $quoteId and Razorpay payment_id(:$paymentId)");
             header('Status: 409 Conflict, too early for processing', true, 409);
+
             exit;
         }
 
@@ -251,7 +264,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         if (!$quote->getIsActive())
         {
             $this->logger->info("Razorpay Webhook: Quote order is inactive for quoteID: $quoteId and Razorpay payment_id(:$paymentId)");
-                return;
+
+            return;
         }
 
         //validate amount before placing order
@@ -260,7 +274,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         if ($quoteAmount !== $post['payload']['payment']['entity']['amount'])
         {
             $this->logger->info("Razorpay Webhook: Amount paid doesn't match with store order amount for Razorpay payment_id(:$paymentId)");
-                return;
+
+            return;
         }
 
         # fetch the related sales order and verify the payment ID with rzp payment id
@@ -281,21 +296,19 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             if ($orderRzpPaymentId === $paymentId)
             {
                 $this->logger->info("Razorpay Webhook: Sales Order and payment already exist for Razorpay payment_id(:$paymentId)");
+
                 return;
             }
         }
 
-        //Set cache flag for webhook processing
-        $this->cache->save("started", "quote_processing_$quoteId", ["razorpay"], 30);
-
         $quote = $this->getQuoteObject($post, $quoteId);
 
-        //before creating order let wait for 15 sec and re-verify if the quote is active or not
-        $this->logger->info("Razorpay Webhook: Waiting for 15 sec with quoteID:$quoteId.");
+        //before creating order let wait for 5 sec and re-verify if the quote is active or not
+        $this->logger->info("Razorpay Webhook: Waiting for 5 sec with quoteID:$quoteId.");
 
-        sleep(15);
+        sleep(5);
 
-        $this->logger->info("Razorpay Webhook: Waiting of 15 sec over with quoteID:$quoteId.");
+        $this->logger->info("Razorpay Webhook: Waiting of 5 sec over with quoteID:$quoteId.");
 
         //validate if the quote Order is still active
         $quoteUpdated = $this->quoteRepository->get($quoteId);
@@ -304,7 +317,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         if (!$quoteUpdated->getIsActive())
         {
             $this->logger->info("Razorpay Webhook: Quote order is inactive for quoteID: $quoteId and Razorpay payment_id(:$paymentId)");
-                return;
+
+            return;
         }
 
         //verify Rzp OrderLink status
@@ -320,7 +334,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         {
             if ($orderLink['order_placed'])
             {
-                 $this->logger->info(__("Razorpay Webhook: Quote order is inactive for quoteID: $quoteId and Razorpay payment_id(:$paymentId) with Maze OrderID (:%1) ", $orderLink['increment_order_id']));
+                $this->logger->info(__("Razorpay Webhook: Quote order is inactive for quoteID: $quoteId and Razorpay payment_id(:$paymentId) with Maze OrderID (:%1) ", $orderLink['increment_order_id']));
+
                 return;
             }
         }
