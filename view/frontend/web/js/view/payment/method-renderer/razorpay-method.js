@@ -128,8 +128,23 @@ define(
 
                 //update shipping and billing before order into quotes
                 if(!quote.isVirtual()) {
-                    shippingSaveProcessor.saveShippingInformation();
+                    shippingSaveProcessor.saveShippingInformation().success(
+                        function (response) {
+                            self.createRzpOrder();
+                        }
+                    ).fail(
+                        function (response) {
+                            fullScreenLoader.stopLoader();
+                            self.isPaymentProcessing.reject(response.message);
+                        }
+                    );
+                } else {
+                    self.createRzpOrder();
                 }
+
+            },
+            createRzpOrder: function(){
+                var self = this;
 
                 $.ajax({
                     type: 'POST',
@@ -167,7 +182,6 @@ define(
                     }
                 });
             },
-
             createInputFieldsFromOptions: function (options, form) {
                 var self = this;
 
