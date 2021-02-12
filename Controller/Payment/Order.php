@@ -260,7 +260,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             }
 
             //set the chache for race with webhook
-            $this->cache->save("started", "quote_Front_processing_$receipt_id", ["razorpay"], 120);
+            $this->cache->save("started", "quote_Front_processing_$receipt_id", ["razorpay"], 300);
 
             $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
             $response->setData($responseContent);
