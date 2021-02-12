@@ -279,7 +279,7 @@ define(
                             if(response.order_id){
                                 $(location).attr('href', 'onepage/success?' + Math.random().toString(36).substring(10));
                             }else{
-                                setTimeout(function(){ self.checkRzpOrder(data); }, 1000);
+                                setTimeout(function(){ self.checkRzpOrder(data); }, 1500);
                             }
                         } else {
                             self.placeOrder(data);
