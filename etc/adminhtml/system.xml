@@ -46,6 +46,11 @@
                     <comment>This field has to match the one set in dashboard.razorpay.com/webhooks</comment>
                     <config_path>payment/razorpay/webhook_secret</config_path>
                 </field>
+                <field id="webhook_wait_time" translate="label" type="text" sortOrder="6" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Webhook Wait Time</label>
+                    <comment>**Required (Set the time in seconds, that webhook wait before creating a order from the backend for missed orders. ) **</comment>
+                    <config_path>payment/razorpay/webhook_wait_time</config_path>
+                </field>
                 <field id="order_status" translate="label" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>New Order Status</label>
                     <source_model>Magento\Sales\Model\Config\Source\Order\Status\Processing</source_model>

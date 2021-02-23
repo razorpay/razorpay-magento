@@ -259,6 +259,12 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 }
             }
 
+            //save to razorpay orderLink
+            $orderLnik = $this->_objectManager->create('Razorpay\Magento\Model\OrderLink');
+            $orderLnik->setQuoteId($receipt_id)
+                      ->setRzpOrderId($order->id)
+                      ->save();
+
             //set the chache for race with webhook
             $this->cache->save("started", "quote_Front_processing_$receipt_id", ["razorpay"], 300);
 

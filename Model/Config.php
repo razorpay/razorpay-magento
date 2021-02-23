@@ -15,6 +15,7 @@ class Config
     const KEY_PAYMENT_ACTION = 'payment_action';
     const ENABLE_WEBHOOK = 'enable_webhook';
     const WEBHOOK_SECRET = 'webhook_secret';
+    const WEBHOOK_WAIT_TIME = 'webhook_wait_time';
 
     /**
      * @var string

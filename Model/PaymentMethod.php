@@ -202,6 +202,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
             $request = $this->getPostData();
 
+            $isWebhookCall = false;
+
             if((empty($request) === true) and (isset($_POST['razorpay_signature']) === true))
             {
                 //set request data based on redirect flow
@@ -215,12 +217,17 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             if(empty($request['payload']['payment']['entity']['id']) === false)
             {
                 $payment_id = $request['payload']['payment']['entity']['id'];
+                $rzp_order_id = $request['payload']['order']['entity']['id'];
+
+                $isWebhookCall = true;
                 //validate that request is from webhook only
                 $this->validateWebhookSignature($request);
             }
             else
             {
                 $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
+
+                $rzp_order_id = $this->order->getOrderId();
 
                 //validate RzpOrderamount with quote/order amount before signature
                 $orderAmount = (int) (number_format($amount * 100, 0, ".", ""));
@@ -243,7 +250,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                     ->setShouldCloseParentTransaction(true);
 
             //update the Razorpay payment with corresponding created order ID of this quote ID
-            $this->updatePaymentNote($payment_id, $order);
+            $this->updatePaymentNote($payment_id, $order, $rzp_order_id, $isWebhookCall);
         }
         catch (\Exception $e)
         {
@@ -277,8 +284,10 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      *
      * @param string $razorPayPaymentId
      * @param object $salesOrder
+     * @param object $$rzp_order_id
+     * @param object $$isWebhookCall
      */
-    protected function updatePaymentNote($paymentId, $order)
+    protected function updatePaymentNote($paymentId, $order, $rzpOrderId, $isWebhookCall)
     {
         //update the Razorpay payment with corresponding created order ID of this quote ID
         $this->rzp->payment->fetch($paymentId)->edit(
@@ -289,6 +298,35 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                 )
             )
         );
+
+        //update orderLink
+        $_objectManager  = \Magento\Framework\App\ObjectManager::getInstance();
+
+        $orderLinkCollection = $_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                                                   ->getCollection()
+                                                   ->addFieldToSelect('entity_id')
+                                                   ->addFilter('quote_id', $order->getQuoteId())
+                                                   ->addFilter('rzp_order_id', $rzpOrderId)
+                                                   ->getFirstItem();
+
+        $orderLink = $orderLinkCollection->getData();
+
+        if (empty($orderLink['entity_id']) === false)
+        {
+
+            $orderLinkCollection->setRzpPaymentId($paymentId)
+                                ->setIncrementOrderId($order->getIncrementId());
+
+            if ($isWebhookCall)
+            {
+                $orderLinkCollection->setByWebhook(true)->save();
+            }
+            else
+            {
+                $orderLinkCollection->setByFrontend(true)->save();
+            }
+        }
+
     }
 
     protected function validateSignature($request)
