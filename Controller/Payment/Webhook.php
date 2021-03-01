@@ -78,8 +78,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository,
         \Magento\Framework\App\CacheInterface $cache,
         \Magento\Framework\Event\ManagerInterface $eventManager,
-        \Psr\Log\LoggerInterface $logger,
-        \Razorpay\Magento\Model\LogHandler $handler
+        \Psr\Log\LoggerInterface $logger
     ) 
     {
         parent::__construct(
@@ -95,8 +94,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         $this->api             = new Api($keyId, $keySecret);
         $this->order           = $order;
         $this->logger          = $logger;
-        $this->handler         = $handler;
-        $this->logger->setHandlers ( [$this->handler] );
 
         $this->objectManagement   = \Magento\Framework\App\ObjectManager::getInstance();
         $this->quoteManagement    = $quoteManagement;

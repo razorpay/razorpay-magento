@@ -39,8 +39,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
         \Magento\Framework\App\CacheInterface $cache,
         \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
-        \Psr\Log\LoggerInterface $logger,
-        \Razorpay\Magento\Model\LogHandler $handler
+        \Psr\Log\LoggerInterface $logger
     ) {
         parent::__construct(
             $context,
@@ -57,8 +56,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $this->cache = $cache;
         $this->orderRepository = $orderRepository;
         $this->logger          = $logger;
-        $this->handler         = $handler;
-        $this->logger->setHandlers ( [$this->handler] );
+
         $this->objectManagement   = \Magento\Framework\App\ObjectManager::getInstance();
     }
 
