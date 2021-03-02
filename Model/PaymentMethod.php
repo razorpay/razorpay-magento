@@ -236,7 +236,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                 {
                     $rzpOrderAmount = $order->getOrderCurrency()->formatTxt(number_format($this->order->getRazorpayOrderAmount() / 100, 2, ".", ""));
 
-                    $abcAmount = $order->getGrandTotal();
                     throw new LocalizedException(__("Cart order amount = %1 doesn't match with amount paid = %2", $order->getOrderCurrency()->formatTxt($order->getGrandTotal()), $rzpOrderAmount));
                 }
 
