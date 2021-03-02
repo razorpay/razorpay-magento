@@ -236,6 +236,28 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
                         $this->checkoutSession->setRazorpayOrderID($order->id);
                         $this->checkoutSession->setRazorpayOrderAmount($amount);
+
+                        //save to razorpay orderLink
+                        $orderLinkCollection = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                                                               ->getCollection()
+                                                               ->addFilter('quote_id', $receipt_id)
+                                                               ->getFirstItem();
+
+                        $orderLinkData = $orderLinkCollection->getData();
+
+                        if (empty($orderLinkData['entity_id']) === false)
+                        {
+                            $orderLinkCollection->setRzpOrderId($order->id)
+                                      ->save();
+                        }
+                        else
+                        {
+                            $orderLnik = $this->_objectManager->create('Razorpay\Magento\Model\OrderLink');
+                            $orderLnik->setQuoteId($receipt_id)
+                                      ->setRzpOrderId($order->id)
+                                      ->save();
+                        }
+
                     }
                 }
                 catch(\Razorpay\Api\Errors\Error $e)
@@ -252,27 +274,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                         'parameters' => []
                     ];
                 }
-            }
-
-            //save to razorpay orderLink
-            $orderLinkCollection = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
-                                                   ->getCollection()
-                                                   ->addFilter('quote_id', $receipt_id)
-                                                   ->getFirstItem();
-
-            $orderLinkData = $orderLinkCollection->getData();
-
-            if (empty($orderLinkData['entity_id']) === false)
-            {
-                $orderLinkCollection->setRzpOrderId($order->id)
-                          ->save();
-            }
-            else
-            {
-                $orderLnik = $this->_objectManager->create('Razorpay\Magento\Model\OrderLink');
-                $orderLnik->setQuoteId($receipt_id)
-                          ->setRzpOrderId($order->id)
-                          ->save();
             }
 
             //set the chache for race with webhook
