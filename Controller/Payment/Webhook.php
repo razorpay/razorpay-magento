@@ -55,7 +55,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
      * @param \Magento\Checkout\Model\Session $checkoutSession
      * @param \Magento\Razorpay\Model\CheckoutFactory $checkoutFactory
      * @param \Razorpay\Magento\Model\Config $config
-     * @param \Magento\Catalog\Model\Session $catalogSession
      * @param \Magento\Quote\Model\QuoteRepository $quoteRepository,
      * @param \Magento\Sales\Api\Data\OrderInterface $order
      * @param \Magento\Quote\Model\QuoteManagement $quoteManagement
@@ -70,7 +69,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         \Magento\Checkout\Model\Session $checkoutSession,
         \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
         \Razorpay\Magento\Model\Config $config,
-        \Magento\Catalog\Model\Session $catalogSession,
         \Magento\Quote\Model\QuoteRepository $quoteRepository,
         \Magento\Sales\Api\Data\OrderInterface $order,
         \Magento\Quote\Model\QuoteManagement $quoteManagement,
@@ -98,7 +96,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         $this->objectManagement   = \Magento\Framework\App\ObjectManager::getInstance();
         $this->quoteManagement    = $quoteManagement;
         $this->checkoutFactory    = $checkoutFactory;
-        $this->catalogSession     = $catalogSession;
         $this->quoteRepository    = $quoteRepository;
         $this->storeManagement    = $storeManagement;
         $this->customerRepository = $customerRepository;
@@ -379,6 +376,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         );
 
         $this->logger->info("Razorpay Webhook Processed successfully for Razorpay payment_id(:$paymentId): and quoteID(: $quoteId) and OrderID(: ". $order->getEntityId() .")");
+
+        return;
     }
 
     protected function getQuoteObject($post, $quoteId)

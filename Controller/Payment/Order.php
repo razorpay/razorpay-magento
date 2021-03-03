@@ -27,14 +27,12 @@ class Order extends \Razorpay\Magento\Controller\BaseController
      * @param \Magento\Framework\App\CacheInterface $cache
      * @param \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
      * @param \Psr\Log\LoggerInterface $logger
-     * @param \Magento\Catalog\Model\Session $catalogSession
      */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Checkout\Model\Session $checkoutSession,
         \Razorpay\Magento\Model\Config $config,
-        \Magento\Catalog\Model\Session $catalogSession,
         \Magento\Quote\Api\CartManagementInterface $cartManagement,
         \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
         \Magento\Framework\App\CacheInterface $cache,
@@ -48,7 +46,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             $config
         );
 
-        $this->catalogSession  = $catalogSession;
         $this->config          = $config;
         $this->cartManagement  = $cartManagement;
         $this->customerSession = $customerSession;
@@ -237,8 +234,30 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
                         $code = 200;
 
-                        $this->catalogSession->setRazorpayOrderID($order->id);
-                        $this->catalogSession->setRazorpayOrderAmount($amount);
+                        $this->checkoutSession->setRazorpayOrderID($order->id);
+                        $this->checkoutSession->setRazorpayOrderAmount($amount);
+
+                        //save to razorpay orderLink
+                        $orderLinkCollection = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                                                               ->getCollection()
+                                                               ->addFilter('quote_id', $receipt_id)
+                                                               ->getFirstItem();
+
+                        $orderLinkData = $orderLinkCollection->getData();
+
+                        if (empty($orderLinkData['entity_id']) === false)
+                        {
+                            $orderLinkCollection->setRzpOrderId($order->id)
+                                      ->save();
+                        }
+                        else
+                        {
+                            $orderLnik = $this->_objectManager->create('Razorpay\Magento\Model\OrderLink');
+                            $orderLnik->setQuoteId($receipt_id)
+                                      ->setRzpOrderId($order->id)
+                                      ->save();
+                        }
+
                     }
                 }
                 catch(\Razorpay\Api\Errors\Error $e)
@@ -257,12 +276,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 }
             }
 
-            //save to razorpay orderLink
-            $orderLnik = $this->_objectManager->create('Razorpay\Magento\Model\OrderLink');
-            $orderLnik->setQuoteId($receipt_id)
-                      ->setRzpOrderId($order->id)
-                      ->save();
-
             //set the chache for race with webhook
             $this->cache->save("started", "quote_Front_processing_$receipt_id", ["razorpay"], 300);
 
@@ -276,12 +289,12 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
     public function getOrderID()
     {
-        return $this->catalogSession->getRazorpayOrderID();
+        return $this->checkoutSession->getRazorpayOrderID();
     }
 
     public function getRazorpayOrderAmount()
     {
-        return $this->catalogSession->getRazorpayOrderAmount();
+        return $this->checkoutSession->getRazorpayOrderAmount();
     }
 
     protected function getMerchantPreferences()
