@@ -1,0 +1,14 @@
+type Mutation {
+	setRzpPaymentDetailsOnCart(input: SetRzpPaymentDetailsOnCartInput): SetRzpPaymentDetailsOnCartOutput @resolver(class: "Razorpay\\Magento\\Model\\Resolver\\SetRzpPaymentDetailsOnCart")
+}
+
+input SetRzpPaymentDetailsOnCartInput {
+	cart_id: String!	
+	rzp_payment_id: String!
+	rzp_order_id: String!
+}
+
+type SetRzpPaymentDetailsOnCartOutput {
+    cart: Cart!
+}
+
