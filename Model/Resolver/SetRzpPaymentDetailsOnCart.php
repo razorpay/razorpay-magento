@@ -99,7 +99,7 @@ class SetRzpPaymentDetailsOnCart implements ResolverInterface
 
         try
         {
-            //save to razorpay orderLink            
+            //save to razorpay orderLink
             $orderLinkCollection = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
                                                    ->getCollection()
                                                    ->addFilter('quote_id', $cart->getId())

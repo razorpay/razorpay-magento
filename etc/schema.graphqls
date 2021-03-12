@@ -3,7 +3,7 @@ type Mutation {
 }
 
 input SetRzpPaymentDetailsOnCartInput {
-	cart_id: String!	
+	cart_id: String!
 	rzp_payment_id: String!
 	rzp_order_id: String!
 }
