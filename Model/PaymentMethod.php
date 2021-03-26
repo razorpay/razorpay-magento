@@ -327,22 +327,27 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                         throw new LocalizedException(__("Razorpay Payment details missing."));
                     }
                 }
-
-                $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
-
-                $rzp_order_id = $this->order->getOrderId();
-
-                //validate RzpOrderamount with quote/order amount before signature
-                $orderAmount = (int) (number_format($order->getGrandTotal() * 100, 0, ".", ""));
-
-                if ($orderAmount !== $this->order->getRazorpayOrderAmount())
+                else
                 {
-                    $rzpOrderAmount = $order->getOrderCurrency()->formatTxt(number_format($this->order->getRazorpayOrderAmount() / 100, 2, ".", ""));
+                    // Order processing through front-end
 
-                    throw new LocalizedException(__("Cart order amount = %1 doesn't match with amount paid = %2", $order->getOrderCurrency()->formatTxt($order->getGrandTotal()), $rzpOrderAmount));
+                    $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
+
+                    $rzp_order_id = $this->order->getOrderId();
+
+                    //validate RzpOrderamount with quote/order amount before signature
+                    $orderAmount = (int) (number_format($order->getGrandTotal() * 100, 0, ".", ""));
+
+                    if ($orderAmount !== $this->order->getRazorpayOrderAmount())
+                    {
+                        $rzpOrderAmount = $order->getOrderCurrency()->formatTxt(number_format($this->order->getRazorpayOrderAmount() / 100, 2, ".", ""));
+
+                        $abcAmount = $order->getGrandTotal();
+                        throw new LocalizedException(__("Cart order amount = %1 doesn't match with amount paid = %2", $order->getOrderCurrency()->formatTxt($order->getGrandTotal()), $rzpOrderAmount));
+                    }
+
+                    $this->validateSignature($request);
                 }
-
-                $this->validateSignature($request);
             }
 
             $payment->setStatus(self::STATUS_APPROVED)
