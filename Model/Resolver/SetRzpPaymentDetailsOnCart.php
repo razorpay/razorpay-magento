@@ -1,6 +1,8 @@
 <?php
 
+
 declare(strict_types=1);
+
 
 namespace Razorpay\Magento\Model\Resolver;
 
@@ -34,6 +36,7 @@ class SetRzpPaymentDetailsOnCart implements ResolverInterface
     private $checkCartCheckoutAllowance;
 
     protected $_objectManager;
+
 
 
 
@@ -77,6 +80,11 @@ class SetRzpPaymentDetailsOnCart implements ResolverInterface
         }
         $rzp_order_id = $args['input']['rzp_order_id'];
 
+        if (empty($args['input']['rzp_signature'])) {
+            throw new GraphQlInputException(__('Required parameter "rzp_signature" is missing.'));
+        }
+        $rzp_signature = $args['input']['rzp_signature'];
+
         $storeId = (int)$context->getExtensionAttributes()->getStore()->getId();
         $cart = $this->getCartForUser->execute($maskedCartId, $context->getUserId(), $storeId);
 
@@ -112,6 +120,7 @@ class SetRzpPaymentDetailsOnCart implements ResolverInterface
             {
                 $orderLinkCollection->setRzpPaymentId($rzp_payment_id)
                                     ->setRzpOrderId($rzp_order_id)
+                                    ->setRzpSignature($rzp_signature)
                                     ->save();
             }
             else
@@ -120,6 +129,7 @@ class SetRzpPaymentDetailsOnCart implements ResolverInterface
                 $orderLnik->setQuoteId($cart->getId())
                           ->setRzpPaymentId($rzp_payment_id)
                           ->setRzpOrderId($rzp_order_id)
+                          ->setRzpSignature($rzp_signature)
                           ->save();
             }
 

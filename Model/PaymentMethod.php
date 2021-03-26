@@ -225,17 +225,16 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             }
             else
             {
-                //check for GraphQL
                 if(empty($request['query']) === false)
                 {
 
-                    //update orderLink
                     $_objectManager  = \Magento\Framework\App\ObjectManager::getInstance();
 
-                    $orderLinkCollection = $_objectManager->get('Razorpay\Magento\Model\OrderLink')
-                                                               ->getCollection()
-                                                               ->addFilter('quote_id', $order->getQuoteId())
-                                                               ->getFirstItem();
+                    $orderLinkCollection = $_objectManager
+                                                ->get('Razorpay\Magento\Model\OrderLink')
+                                                ->getCollection()
+                                                ->addFilter('quote_id', $order->getQuoteId())
+                                                ->getFirstItem();
 
                     $orderLink = $orderLinkCollection->getData();
 
@@ -244,9 +243,10 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                         $payment_id = $orderLink['rzp_payment_id'];
 
                         $rzp_order_id = $orderLink['rzp_order_id'];
+                        $rzp_signature = $orderLink['rzp_signature'];
 
                         if((empty($payment_id) === true) and
-                           (emprty($rzp_order_id) === true))
+                           (empty($rzp_order_id) === true))
                         {
                             throw new LocalizedException(__("Razorpay Payment details missing."));
                         }
@@ -302,6 +302,25 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                             throw new LocalizedException(__("Not a valid Razorpay Payments."));
                         }
 
+                        $attributes = array(
+                            'razorpay_payment_id' => $payment_id,
+                            'razorpay_order_id'   => $rzp_order_id,
+                            'razorpay_signature'  => $rzp_signature
+                        );
+
+                        $this->rzp->utility->verifyPaymentSignature($attributes);
+
+                        $payment->setStatus(self::STATUS_APPROVED)
+                                ->setAmountPaid($orderAmount)
+                                ->setLastTransId($payment_id)
+                                ->setTransactionId($payment_id)
+                                ->setIsTransactionClosed(true)
+                                ->setShouldCloseParentTransaction(true);
+
+                        //update the Razorpay payment with corresponding created order ID of this quote ID
+                        $this->updatePaymentNote($payment_id, $order, $rzp_order_id, $isWebhookCall);
+
+                        return $this;
                     }
                     else
                     {

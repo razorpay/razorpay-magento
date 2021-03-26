@@ -1,14 +1,24 @@
 type Mutation {
-	setRzpPaymentDetailsOnCart(input: SetRzpPaymentDetailsOnCartInput): SetRzpPaymentDetailsOnCartOutput @resolver(class: "Razorpay\\Magento\\Model\\Resolver\\SetRzpPaymentDetailsOnCart")
+    createRazorpayOrder (
+		cart_id: String @doc(description: "cart_id to generate Razorpay Order.")
+    ) : RazorpayOrder @resolver( class: "Razorpay\\Magento\\Model\\Resolver\\CreateRazorpayOrder") @doc(description: "Create Razorpay Order.")
+    setRzpPaymentDetailsOnCart(input: SetRzpPaymentDetailsOnCartInput): SetRzpPaymentDetailsOnCartOutput @resolver(class: "Razorpay\\Magento\\Model\\Resolver\\SetRzpPaymentDetailsOnCart")
 }
-
+type RazorpayOrder {
+	success: Boolean!
+	rzp_order: String
+	order_id: String
+	amount: String
+	quote_currency: String
+	quote_amount: String
+	message: String
+}
 input SetRzpPaymentDetailsOnCartInput {
-	cart_id: String!
+	cart_id: String!	
 	rzp_payment_id: String!
 	rzp_order_id: String!
+	rzp_signature: String!
 }
-
 type SetRzpPaymentDetailsOnCartOutput {
     cart: Cart!
 }
-
