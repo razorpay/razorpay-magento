@@ -3,6 +3,7 @@
 namespace Razorpay\Magento\Model;
 
 use \Magento\Framework\App\Config\ScopeConfigInterface;
+use \Magento\Framework\App\Config\Storage\WriterInterface;
 
 class Config
 {
@@ -27,6 +28,8 @@ class Config
      */
     protected $scopeConfig;
 
+    protected $configWriter;
+
     /**
      * @var int
      */
@@ -36,9 +39,11 @@ class Config
      * @param ScopeConfigInterface $scopeConfig
      */
     public function __construct(
-        ScopeConfigInterface $scopeConfig
+        ScopeConfigInterface $scopeConfig,
+        WriterInterface $configWriter
     ) {
         $this->scopeConfig = $scopeConfig;
+        $this->configWriter = $configWriter;
     }
 
     /**
@@ -97,6 +102,24 @@ class Config
 
         $path = 'payment/' . $code . '/' . $field;
         return $this->scopeConfig->getValue($path, \Magento\Store\Model\ScopeInterface::SCOPE_STORE, $storeId);
+    }
+
+    /**
+     * Set information from payment configuration
+     *
+     * @param string $field
+     * @param string $value
+     * @param null|string $storeId
+     *
+     * @return mixed
+     */
+    public function setConfigData($field, $value)
+    {
+        $code = $this->methodCode;
+
+        $path = 'payment/' . $code . '/' . $field;
+
+        return $this->configWriter->save($path, $value);
     }
 
     /**
