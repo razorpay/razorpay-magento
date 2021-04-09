@@ -71,6 +71,7 @@
                     <label>Sort Order</label>
                     <config_path>payment/razorpay/sort_order</config_path>
                 </field>
+                <include path="Razorpay_Magento::subscription/subscription.xml"/>
             </group>
         </section>
     </system>

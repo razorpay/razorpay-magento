@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<include xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_include.xsd">
+<group id="subscriptions" translate="label" type="text" sortOrder="101" showInDefault="1" showInWebsite="1" showInStore="1">
+    <label>Subscriptions via Razorpay</label>
+    <comment>Create and manage subscriptions directly via your Magento Admin to easily add a recurring line of revenue to your business model. &lt;a href="https://razorpay.com/docs/subscriptions/" target="_blank" rel="noopener noreferrer"&gt;Learn More&lt;/a&gt; about Stripe Billing.</comment>
+    <field id="active" translate="label" type="select" sortOrder="102" showInDefault="1" showInWebsite="1" showInStore="1">
+        <label>Enabled</label>
+        <comment><![CDATA[If you do not sell subscriptions, disabling them is recommended.]]></comment>
+        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+        <config_path>payment/razorpay_subscriptions/active</config_path>
+    </field>
+    <field id="additional_info" translate="label" type="select" sortOrder="104" showInDefault="1" showInWebsite="1" showInStore="1">
+        <label>Additional Info</label>
+        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+        <config_path>payment/razorpay_subscriptions/additional_info</config_path>
+        <comment><![CDATA[When a product is added to the cart, subscription details are added to the cart item's info block]]></comment>
+    </field>
+</group>
+</include>
+

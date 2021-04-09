@@ -5,6 +5,7 @@
 	        <module name="Magento_Sales" />
 	        <module name="Magento_Payment" />
 	        <module name="Magento_Config" />
+            <module name="Magento_Catalog" />
 	    </sequence>
 	</module>
 </config>

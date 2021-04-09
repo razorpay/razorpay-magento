@@ -13,6 +13,11 @@
                 <key_secret>Key Secret</key_secret>
                 <webhook_wait_time>300</webhook_wait_time>
             </razorpay>
+            <razorpay_subscriptions>
+                <model>Razorpay\Magento\Model\PaymentMethod</model>
+                <active>0</active>
+                <additional_info>0</additional_info>
+            </razorpay_subscriptions>
         </payment>
     </default>
 </config>
