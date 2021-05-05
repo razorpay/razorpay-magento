@@ -62,20 +62,33 @@ class SetRzpPaymentDetailsOnCart implements ResolverInterface
      */
     public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {
-        if (empty($args['input']['cart_id'])) {
+        if (empty($args['input']['cart_id']))
+        {
             throw new GraphQlInputException(__('Required parameter "cart_id" is missing.'));
         }
+
         $maskedCartId = $args['input']['cart_id'];
 
-        if (empty($args['input']['rzp_payment_id'])) {
+        if (empty($args['input']['rzp_payment_id']))
+        {
             throw new GraphQlInputException(__('Required parameter "rzp_payment_id" is missing.'));
         }
+
         $rzp_payment_id = $args['input']['rzp_payment_id'];
 
-        if (empty($args['input']['rzp_order_id'])) {
+        if (empty($args['input']['rzp_order_id']))
+        {
             throw new GraphQlInputException(__('Required parameter "rzp_order_id" is missing.'));
         }
+
         $rzp_order_id = $args['input']['rzp_order_id'];
+
+        if (empty($args['input']['rzp_signature']))
+        {
+            throw new GraphQlInputException(__('Required parameter "rzp_signature" is missing.'));
+        }
+
+        $rzp_signature = $args['input']['rzp_signature'];
 
         $storeId = (int)$context->getExtensionAttributes()->getStore()->getId();
         $cart = $this->getCartForUser->execute($maskedCartId, $context->getUserId(), $storeId);
@@ -112,6 +125,7 @@ class SetRzpPaymentDetailsOnCart implements ResolverInterface
             {
                 $orderLinkCollection->setRzpPaymentId($rzp_payment_id)
                                     ->setRzpOrderId($rzp_order_id)
+                                    ->setRzpSignature($rzp_signature)
                                     ->save();
             }
             else
@@ -120,6 +134,7 @@ class SetRzpPaymentDetailsOnCart implements ResolverInterface
                 $orderLnik->setQuoteId($cart->getId())
                           ->setRzpPaymentId($rzp_payment_id)
                           ->setRzpOrderId($rzp_order_id)
+                          ->setRzpSignature($rzp_signature)
                           ->save();
             }
 

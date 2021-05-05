@@ -72,6 +72,14 @@ class UpgradeSchema implements  UpgradeSchemaInterface
                 ]
             )
             ->addColumn(
+                'rzp_signature',
+                Table::TYPE_TEXT,
+                225,
+                [
+                    'nullable' => true
+                ]
+            )
+            ->addColumn(
                 'by_webhook',
                 Table::TYPE_BOOLEAN,
                 1,

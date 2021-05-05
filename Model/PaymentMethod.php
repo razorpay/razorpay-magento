@@ -245,11 +245,21 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
                         $rzp_order_id = $orderLink['rzp_order_id'];
 
+                        $rzp_signature = $orderLink['rzp_signature'];
+
                         if((empty($payment_id) === true) and
-                           (emprty($rzp_order_id) === true))
+                           (emprty($rzp_order_id) === true) and
+                           (emprty($rzp_signature) === true))
                         {
                             throw new LocalizedException(__("Razorpay Payment details missing."));
                         }
+
+                        //validate payment signature first
+                        $this->validateSignature([
+                            'razorpay_payment_id' => $payment_id,
+                            'razorpay_order_id'   => $rzp_order_id,
+                            'razorpay_signature'  => $rzp_signature
+                        ]);
 
                         try
                         {
@@ -262,8 +272,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                            throw new LocalizedException(__('Razorpay Error: %1.', $e->getMessage()));
                         }
 
-                        if(($payment_data->order_id === $rzp_order_id) and
-                           ($payment_data->status === 'captured'))
+                        if($payment_data->order_id === $rzp_order_id)
                         {
                             try
                             {
@@ -327,7 +336,11 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                         throw new LocalizedException(__("Cart order amount = %1 doesn't match with amount paid = %2", $order->getOrderCurrency()->formatTxt($order->getGrandTotal()), $rzpOrderAmount));
                     }
 
-                    $this->validateSignature($request);
+                    $this->validateSignature([
+                            'razorpay_payment_id' => $payment_id,
+                            'razorpay_order_id'   => $rzp_order_id,
+                            'razorpay_signature'  => $request['paymentMethod']['additional_data']['rzp_signature']
+                        ]);
                 }
             }
 
@@ -421,9 +434,9 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     protected function validateSignature($request)
     {
         $attributes = array(
-            'razorpay_payment_id' => $request['paymentMethod']['additional_data']['rzp_payment_id'],
-            'razorpay_order_id'   => $this->order->getOrderId(),
-            'razorpay_signature'  => $request['paymentMethod']['additional_data']['rzp_signature'],
+            'razorpay_payment_id' => $request['razorpay_payment_id'],
+            'razorpay_order_id'   => $request['razorpay_order_id'],
+            'razorpay_signature'  => $request['razorpay_signature'],
         );
 
         $this->rzp->utility->verifyPaymentSignature($attributes);
