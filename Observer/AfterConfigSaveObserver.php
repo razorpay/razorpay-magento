@@ -70,6 +70,14 @@ class AfterConfigSaveObserver implements ObserverInterface
 
         $razorpayParams = $this->request->getParam('groups')['razorpay']['fields'];
         
+        if(in_array($_SERVER['SERVER_ADDR'], ["127.0.0.1","::1"]))
+        {
+            $this->config->setConfigData('enable_webhook', 0);
+
+            $this->logger->info("Can't enable/disable webhook on localhost.");
+            return;
+        }
+
         try
         {
             $webhookPresent = $this->getExistingWebhook();
@@ -79,17 +87,7 @@ class AfterConfigSaveObserver implements ObserverInterface
                 $this->disableWebhook();
                 return;
             }
-
-        
-            if(in_array($_SERVER['SERVER_ADDR'], ["127.0.0.1","::1"]))
-            {
-                //disable the webhook in config
-                $this->disableWebhook();
-
-                $this->logger->info("Can't enable webhook on localhost.");
-                return;
-            }
-
+                    
             $events = [];
 
             foreach($razorpayParams['webhook_events']['value'] as $event)
