@@ -45,6 +45,7 @@
                     <label>Webhook Secret</label>
                     <comment>This field has to match the one set in dashboard.razorpay.com/webhooks</comment>
                     <config_path>payment/razorpay/webhook_secret</config_path>
+                    <validate>required-entry</validate>
                     <depends> 
                         <field id="enable_webhook">1</field>
                     </depends>
