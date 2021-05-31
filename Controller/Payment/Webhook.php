@@ -262,16 +262,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             return;
         }
 
-        //validate amount before placing order
-        $quoteAmount = (int) (number_format($quote->getGrandTotal() * 100, 0, ".", ""));
-
-        if ($quoteAmount !== $post['payload']['payment']['entity']['amount'])
-        {
-            $this->logger->info("Razorpay Webhook: Amount paid doesn't match with store order amount for Razorpay payment_id(:$paymentId)");
-
-            return;
-        }
-
         # fetch the related sales order and verify the payment ID with rzp payment id
         # To avoid duplicate order entry for same quote 
         $collection = $this->_objectManager->get('Magento\Sales\Model\Order')

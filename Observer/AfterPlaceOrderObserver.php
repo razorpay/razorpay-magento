@@ -35,11 +35,14 @@ class AfterPlaceOrderObserver implements ObserverInterface
     public function __construct(
         OrderRepositoryInterface $orderRepository,
         \Magento\Checkout\Model\Session $checkoutSession,
-        \Razorpay\Magento\Model\Config $config
+        \Razorpay\Magento\Model\Config $config,
+        \Razorpay\Magento\Model\PaymentMethod $rzpMethod
     ) {
         $this->orderRepository = $orderRepository;
         $this->checkoutSession = $checkoutSession;
         $this->config = $config;
+
+        $this->rzpMethod = $rzpMethod;
     }
 
     /**
@@ -78,6 +81,13 @@ class AfterPlaceOrderObserver implements ObserverInterface
 
         $lastQuoteId = $order->getQuoteId();
         $rzpPaymentId  = $payment->getLastTransId();
+
+        $amount_paid = number_format($this->rzpMethod->getAmountPaid($rzpPaymentId) / 100, 2, ".", "");
+
+        $order->addStatusHistoryComment(
+                    __('Actual Amount Paid of %1.',  $order->getBaseCurrency()->formatTxt($amount_paid))
+                );
+        $order->save();
 
         //update quote 
         $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($lastQuoteId);
