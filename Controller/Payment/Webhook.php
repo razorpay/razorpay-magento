@@ -135,7 +135,9 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
                 try
                 { 
-                    $this->rzp->utility->verifyWebhookSignature(json_encode($post), $_SERVER['HTTP_X_RAZORPAY_SIGNATURE'], $webhookSecret);
+                    $postData = file_get_contents('php://input');
+
+                    $this->rzp->utility->verifyWebhookSignature($postData, $_SERVER['HTTP_X_RAZORPAY_SIGNATURE'], $webhookSecret);
                 }
                 catch (Errors\SignatureVerificationError $e)
                 {
