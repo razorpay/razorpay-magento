@@ -225,21 +225,129 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             }
             else
             {
-                $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
-
-                $rzp_order_id = $this->order->getOrderId();
-
-                //validate RzpOrderamount with quote/order amount before signature
-                $orderAmount = (int) (number_format($order->getGrandTotal() * 100, 0, ".", ""));
-
-                if ($orderAmount !== $this->order->getRazorpayOrderAmount())
+                if(empty($request['query']) === false)
                 {
-                    $rzpOrderAmount = $order->getOrderCurrency()->formatTxt(number_format($this->order->getRazorpayOrderAmount() / 100, 2, ".", ""));
 
-                    throw new LocalizedException(__("Cart order amount = %1 doesn't match with amount paid = %2", $order->getOrderCurrency()->formatTxt($order->getGrandTotal()), $rzpOrderAmount));
+                    $_objectManager  = \Magento\Framework\App\ObjectManager::getInstance();
+
+                    $orderLinkCollection = $_objectManager
+                                                ->get('Razorpay\Magento\Model\OrderLink')
+                                                ->getCollection()
+                                                ->addFilter('quote_id', $order->getQuoteId())
+                                                ->getFirstItem();
+
+                    $orderLink = $orderLinkCollection->getData();
+
+                    if (empty($orderLink['entity_id']) === false)
+                    {
+                        $payment_id = $orderLink['rzp_payment_id'];
+
+                        $rzp_order_id = $orderLink['rzp_order_id'];
+                        $rzp_signature = $orderLink['rzp_signature'];
+
+                        if((empty($payment_id) === true) and
+                           (empty($rzp_order_id) === true))
+                        {
+                            throw new LocalizedException(__("Razorpay Payment details missing."));
+                        }
+
+                        try
+                        {
+                            //fetch the payment from API and validate the amount
+                            $payment_data = $this->rzp->payment->fetch($payment_id);
+                        }
+                        catch(\Razorpay\Api\Errors\Error $e)
+                        {
+                           $this->_logger->critical($e);
+                           throw new LocalizedException(__('Razorpay Error: %1.', $e->getMessage()));
+                        }
+
+                        if(($payment_data->order_id === $rzp_order_id) and
+                           ($payment_data->status === 'captured'))
+                        {
+                            try
+                            {
+                                //fetch order from API
+                                $rzp_order_data = $this->rzp->order->fetch($rzp_order_id);
+                            }
+                            catch(\Razorpay\Api\Errors\Error $e)
+                            {
+                               $this->_logger->critical($e);
+                               throw new LocalizedException(__('Razorpay Error: %1.', $e->getMessage()));
+                            }
+
+                            //verify order receipt
+                            if($rzp_order_data->receipt !== $order->getQuoteId())
+                            {
+                                throw new LocalizedException(__("Not a valid Razorpay Payment"));
+                            }
+
+                            //verify currency
+                            if($payment_data->currency !== $order->getOrderCurrencyCode())
+                            {
+                                throw new LocalizedException(__("Order Currency:(%1) not matched with payment currency:(%2)", $order->getOrderCurrencyCode(), $payment_data->currency));
+                            }
+
+                            $orderAmount = (int) (number_format($order->getGrandTotal() * 100, 0, ".", ""));
+
+                            if($orderAmount !== $payment_data->amount)
+                            {
+                                 $rzpOrderAmount = $order->getOrderCurrency()->formatTxt(number_format($payment_data->amount / 100, 2, ".", ""));
+
+                                throw new LocalizedException(__("Cart order amount = %1 doesn't match with amount paid = %2", $order->getOrderCurrency()->formatTxt($order->getGrandTotal()), $rzpOrderAmount));
+                            }
+                        }
+                        else
+                        {
+                            throw new LocalizedException(__("Not a valid Razorpay Payments."));
+                        }
+
+                        $attributes = array(
+                            'razorpay_payment_id' => $payment_id,
+                            'razorpay_order_id'   => $rzp_order_id,
+                            'razorpay_signature'  => $rzp_signature
+                        );
+
+                        $this->rzp->utility->verifyPaymentSignature($attributes);
+
+                        $payment->setStatus(self::STATUS_APPROVED)
+                                ->setAmountPaid($orderAmount)
+                                ->setLastTransId($payment_id)
+                                ->setTransactionId($payment_id)
+                                ->setIsTransactionClosed(true)
+                                ->setShouldCloseParentTransaction(true);
+
+                        //update the Razorpay payment with corresponding created order ID of this quote ID
+                        $this->updatePaymentNote($payment_id, $order, $rzp_order_id, $isWebhookCall);
+
+                        return $this;
+                    }
+                    else
+                    {
+                        throw new LocalizedException(__("Razorpay Payment details missing."));
+                    }
                 }
+                else
+                {
+                    // Order processing through front-end
 
-                $this->validateSignature($request);
+                    $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
+
+                    $rzp_order_id = $this->order->getOrderId();
+
+                    //validate RzpOrderamount with quote/order amount before signature
+                    $orderAmount = (int) (number_format($order->getGrandTotal() * 100, 0, ".", ""));
+
+                    if ($orderAmount !== $this->order->getRazorpayOrderAmount())
+                    {
+                        $rzpOrderAmount = $order->getOrderCurrency()->formatTxt(number_format($this->order->getRazorpayOrderAmount() / 100, 2, ".", ""));
+
+                        $abcAmount = $order->getGrandTotal();
+                        throw new LocalizedException(__("Cart order amount = %1 doesn't match with amount paid = %2", $order->getOrderCurrency()->formatTxt($order->getGrandTotal()), $rzpOrderAmount));
+                    }
+
+                    $this->validateSignature($request);
+                }
             }
 
             $payment->setStatus(self::STATUS_APPROVED)
