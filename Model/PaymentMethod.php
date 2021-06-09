@@ -296,15 +296,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                             {
                                 throw new LocalizedException(__("Order Currency:(%1) not matched with payment currency:(%2)", $order->getOrderCurrencyCode(), $payment_data->currency));
                             }
-
-                            $orderAmount = (int) (number_format($order->getGrandTotal() * 100, 0, ".", ""));
-
-                            if($orderAmount !== $payment_data->amount)
-                            {
-                                 $rzpOrderAmount = $order->getOrderCurrency()->formatTxt(number_format($payment_data->amount / 100, 2, ".", ""));
-
-                                throw new LocalizedException(__("Cart order amount = %1 doesn't match with amount paid = %2", $order->getOrderCurrency()->formatTxt($order->getGrandTotal()), $rzpOrderAmount));
-                            }
                         }
                         else
                         {
