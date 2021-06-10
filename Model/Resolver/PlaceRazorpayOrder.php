@@ -47,9 +47,6 @@ class PlaceRazorpayOrder implements ResolverInterface
         try
         {
             $storeScope = \Magento\Store\Model\ScopeInterface::SCOPE_STORE;
-            //$key        = $this->scopeConfig->getValue('payment/razorpay/key_id', $storeScope);
-            //$key_secret = $this->scopeConfig->getValue('payment/razorpay/key_secret', $storeScope);
-            //$this->rzp  = new Api($key, $key_secret);
 
             $storeId = (int) $context->getExtensionAttributes()->getStore()->getId();
 
@@ -100,6 +97,7 @@ class PlaceRazorpayOrder implements ResolverInterface
                 if (empty($orderLinkData['entity_id']) === false)
                 {
                     $orderLinkCollection->setRzpOrderId($order->id)
+                                        ->setRzpOrderAmount($amount)
                                         ->save();
                 }
                 else
@@ -107,6 +105,7 @@ class PlaceRazorpayOrder implements ResolverInterface
                     $orderLink = $this->_objectManager->create('Razorpay\Magento\Model\OrderLink');
                     $orderLink->setQuoteId($receipt_id)
                             ->setRzpOrderId($order->id)
+                            ->setRzpOrderAmount($amount)
                             ->save();
                 }
 

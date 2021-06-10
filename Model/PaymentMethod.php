@@ -204,6 +204,9 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
             $isWebhookCall = false;
 
+            //validate RzpOrderamount with quote/order amount before signature
+            $orderAmount = (int) (number_format($order->getGrandTotal() * 100, 0, ".", ""));
+
             if((empty($request) === true) and (isset($_POST['razorpay_signature']) === true))
             {
                 //set request data based on redirect flow
@@ -247,11 +250,20 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
                         $rzp_signature = $orderLink['rzp_signature'];
 
+                        $rzp_order_amount_actual = (int) $orderLink['rzp_order_amount'];
+
                         if((empty($payment_id) === true) and
                            (emprty($rzp_order_id) === true) and
                            (emprty($rzp_signature) === true))
                         {
                             throw new LocalizedException(__("Razorpay Payment details missing."));
+                        }
+
+                        if ($orderAmount !== $rzp_order_amount_actual)
+                        {
+                            $rzpOrderAmount = $order->getOrderCurrency()->formatTxt(number_format($rzp_order_amount_actual / 100, 2, ".", ""));
+
+                            throw new LocalizedException(__("Cart order amount = %1 doesn't match with amount paid = %2", $order->getOrderCurrency()->formatTxt($order->getGrandTotal()), $rzpOrderAmount));
                         }
 
                         //validate payment signature first
@@ -316,14 +328,10 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
                     $rzp_order_id = $this->order->getOrderId();
 
-                    //validate RzpOrderamount with quote/order amount before signature
-                    $orderAmount = (int) (number_format($order->getGrandTotal() * 100, 0, ".", ""));
-
                     if ($orderAmount !== $this->order->getRazorpayOrderAmount())
                     {
                         $rzpOrderAmount = $order->getOrderCurrency()->formatTxt(number_format($this->order->getRazorpayOrderAmount() / 100, 2, ".", ""));
 
-                        $abcAmount = $order->getGrandTotal();
                         throw new LocalizedException(__("Cart order amount = %1 doesn't match with amount paid = %2", $order->getOrderCurrency()->formatTxt($order->getGrandTotal()), $rzpOrderAmount));
                     }
 
