@@ -135,7 +135,9 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
                 try
                 { 
-                    $this->rzp->utility->verifyWebhookSignature(json_encode($post), $_SERVER['HTTP_X_RAZORPAY_SIGNATURE'], $webhookSecret);
+                    $postData = file_get_contents('php://input');
+
+                    $this->rzp->utility->verifyWebhookSignature($postData, $_SERVER['HTTP_X_RAZORPAY_SIGNATURE'], $webhookSecret);
                 }
                 catch (Errors\SignatureVerificationError $e)
                 {
@@ -262,16 +264,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             return;
         }
 
-        //validate amount before placing order
-        $quoteAmount = (int) (number_format($quote->getGrandTotal() * 100, 0, ".", ""));
-
-        if ($quoteAmount !== $post['payload']['payment']['entity']['amount'])
-        {
-            $this->logger->info("Razorpay Webhook: Amount paid doesn't match with store order amount for Razorpay payment_id(:$paymentId)");
-
-            return;
-        }
-
         # fetch the related sales order and verify the payment ID with rzp payment id
         # To avoid duplicate order entry for same quote 
         $collection = $this->_objectManager->get('Magento\Sales\Model\Order')
@@ -297,12 +289,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
         $quote = $this->getQuoteObject($post, $quoteId);
 
-        //before creating order let wait for 5 sec and re-verify if the quote is active or not
-        $this->logger->info("Razorpay Webhook: Waiting for 5 sec with quoteID:$quoteId.");
-
-        sleep(5);
-
-        $this->logger->info("Razorpay Webhook: Waiting of 5 sec over with quoteID:$quoteId.");
+        $this->logger->info("Razorpay Webhook: Order creation started with quoteID:$quoteId.");
 
         //validate if the quote Order is still active
         $quoteUpdated = $this->quoteRepository->get($quoteId);
@@ -338,9 +325,13 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
         $this->cache->save("started", "quote_processing_$quoteId", ["razorpay"], 30);
 
+        $this->logger->info("Razorpay Webhook: Quote submitted for order creation with quoteID:$quoteId.");
+
         $order = $this->quoteManagement->submit($quote);
 
-        $payment = $order->getPayment();        
+        $payment = $order->getPayment();
+
+        $this->logger->info("Razorpay Webhook: Adding payment to order for quoteID:$quoteId.");
 
         $payment->setAmountPaid($amount)
                 ->setLastTransId($paymentId)

@@ -45,11 +45,28 @@
                     <label>Webhook Secret</label>
                     <comment>This field has to match the one set in dashboard.razorpay.com/webhooks</comment>
                     <config_path>payment/razorpay/webhook_secret</config_path>
+                    <validate>required-entry</validate>
+                    <depends> 
+                        <field id="enable_webhook">1</field>
+                    </depends>
+                </field>
+                <field id="webhook_events" translate="label" type="multiselect" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Webhook Events</label>
+                    <source_model>Razorpay\Magento\Model\WebhookEvents</source_model>
+                    <comment>List of Webhook Events that needs to be subscribed.</comment>
+                    <config_path>payment/razorpay/webhook_events</config_path>
+                    <validate>required-entry</validate>
+                    <depends> 
+                        <field id="enable_webhook">1</field>
+                    </depends>
                 </field>
                 <field id="webhook_wait_time" translate="label" type="text" sortOrder="6" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Webhook Wait Time</label>
                     <comment>**Required (Set the time in seconds, that webhook wait before creating a order from the backend for missed orders. ) **</comment>
                     <config_path>payment/razorpay/webhook_wait_time</config_path>
+                    <depends> 
+                        <field id="enable_webhook">1</field>
+                    </depends>
                 </field>
                 <field id="order_status" translate="label" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>New Order Status</label>

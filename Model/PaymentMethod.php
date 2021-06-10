@@ -492,4 +492,16 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         }
         return $this->config->getConfigData($field, $storeId);
     }
+
+    /**
+     * Get the amount paid from RZP
+     *
+     * @param string $paymentId
+     */
+    public function getAmountPaid($paymentId)
+    {
+        $payment = $this->rzp->payment->fetch($paymentId);
+
+        return $payment->amount;
+    }
 }
