@@ -140,6 +140,19 @@ class UpgradeSchema implements  UpgradeSchemaInterface
 
         $setup->getConnection()->createTable($table);
 
+        if (version_compare($context->getVersion(), '3.5.3', '>')) {
+            $setup->getConnection()->addColumn(
+                $setup->getTable(OrderLink::TABLE_NAME),
+                'rzp_signature',
+                [
+                    'nullable' => true,
+                    'type'     => Table::TYPE_TEXT,
+                    'length'   => 255,
+                    'comment'  => 'RZP signature'
+                ]
+            );
+        }
+
         $setup->endSetup();
     }
 }
