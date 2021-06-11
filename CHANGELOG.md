@@ -12,4 +12,17 @@
  
 ### Changed   
 ### Fixed
+
+## [3.5.3] - 2021-06-03 
+
+### Added
+
+- [Actual amount paid in order comments section ( In case of Offer/Fee applied on RZP dashboard.)](https://github.com/razorpay/razorpay-magento/pull/249).
  
+### Changed   
+
+Added label for front-end to fix radio button selection issue.
+
+### Fixed
+
+- [Webhook signature mismatch](https://github.com/razorpay/razorpay-magento/pull/251).
