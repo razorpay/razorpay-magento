@@ -39,6 +39,78 @@ panel (System -> Cache Management).
 
 ### Note: Don't mix composer and zip install.
 
+
+### Working with GraphQL 
+
+Razorpay GraphQL Support added with version 3.6.0 
+
+Order flow for placing Magento Order using Razorpay as payment method with GraphQl
+
+1. set Payment Method on Cart
+```
+mutation {
+  setPaymentMethodOnCart(input: {
+      cart_id: "{{cart_ID}}"
+      payment_method: {
+          code: "razorpay"
+      }
+  }) {
+    cart {
+      selected_payment_method {
+        code
+      }
+    }
+  }
+}
+```
+
+2. Create Razorpay Order ID against the cart 
+```
+mutation {
+  placeRazorpayOrder (
+    cart_id: "{{cartid}}"
+  ){
+    success
+    rzp_order_id
+    order_quote_id
+    amount
+    currency
+    message
+  }
+}
+```
+
+3. Use `rzp_order_id` and other details from step-2 and create from the Frontend/React/using razorpay's checkout.js , complete the payment and obtain razorpay_payment_id & razorpay_signature
+  https://razorpay.com/docs/payment-gateway/web-integration/standard/
+
+4. Save Razorpay Response Details against Cart after payment success with RZP paymentId , orderId and signature 
+```
+mutation {
+  setRzpPaymentDetailsOnCart (
+    input: {
+      cart_id: "{{cart_ID}}"
+      rzp_payment_id: "{{RAZORPAY_PAYMENT_ID}}"
+      rzp_order_id: "{{RAZORPAY_ORDER_ID}}"
+      rzp_signature: "{{RAZORPAY_SIGNATURE}}"
+    }
+  ){
+  cart{
+    id
+  }
+  }
+}
+```
+5. Finally Place Magento Order 
+```
+mutation {
+  placeOrder(input: {cart_id: "{{cart_ID}}"}) {
+    order {
+      order_number
+    }
+  }
+}
+```
+
 ### Support
 
 Visit [https://razorpay.com](https://razorpay.com) for support requests or email contact@razorpay.com.
