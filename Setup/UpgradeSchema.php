@@ -72,6 +72,23 @@ class UpgradeSchema implements  UpgradeSchemaInterface
                 ]
             )
             ->addColumn(
+                'rzp_signature',
+                Table::TYPE_TEXT,
+                225,
+                [
+                    'nullable' => true
+                ]
+            )
+            ->addColumn(
+                'rzp_order_amount',
+                Table::TYPE_INTEGER,
+                20,
+                [
+                    'nullable' => true,
+                    'comment'  => 'RZP order amount'
+                ]
+            )
+            ->addColumn(
                 'by_webhook',
                 Table::TYPE_BOOLEAN,
                 1,
@@ -131,6 +148,30 @@ class UpgradeSchema implements  UpgradeSchemaInterface
             );
 
         $setup->getConnection()->createTable($table);
+
+        if (version_compare($context->getVersion(), '3.5.4', '<')) {
+            $setup->getConnection()->addColumn(
+                $setup->getTable(OrderLink::TABLE_NAME),
+                'rzp_signature',
+                [
+                    'nullable' => true,
+                    'type'     => Table::TYPE_TEXT,
+                    'length'   => 255,
+                    'comment'  => 'RZP signature'
+                ]
+            );
+
+            $setup->getConnection()->addColumn(
+                $setup->getTable(OrderLink::TABLE_NAME),
+                'rzp_order_amount',
+                [
+                    'nullable' => true,
+                    'type'     => Table::TYPE_INTEGER,
+                    'length'   => 20,
+                    'comment'  => 'RZP order amount'
+                ]
+            );
+        }
 
         $setup->endSetup();
     }
