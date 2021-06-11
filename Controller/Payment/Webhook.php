@@ -180,13 +180,13 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         $paymentId = $post['payload']['payment']['entity']['id'];
         $rzpOrderId = $post['payload']['order']['entity']['id'];
 
-        if (isset($post['payload']['payment']['entity']['notes']['merchant_quote_id']) === false)
+        if (isset($post['payload']['order']['entity']['receipt']) === false)
         {
             $this->logger->info("Razorpay Webhook: Quote ID not set for Razorpay payment_id(:$paymentId)");
             return;
         }
 
-        $quoteId   = $post['payload']['payment']['entity']['notes']['merchant_quote_id'];
+        $quoteId   = $post['payload']['order']['entity']['receipt'];
 
 
         $orderLinkCollection = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
