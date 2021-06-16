@@ -164,6 +164,10 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         }
         else
         {
+            //validate shipping and billing
+            $validationSuccess =  true;
+            $code = 200;
+
             if(empty($_POST['email']) === true)
             {
                 $this->logger->info("Email field is required");
@@ -173,9 +177,24 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                     'parameters' => []
                 ];
 
-                $code = 200;
+                $validationSuccess = false;
             }
-            else
+
+            if(!$this->getQuote()->getIsVirtual())
+            {
+                 //validate quote Shipping method
+                if(empty($this->getQuote()->getShippingAddress()->getShippingMethod()) === true)
+                {
+                    $responseContent = [
+                        'message'   => "Shipping method is required",
+                        'parameters' => []
+                    ];
+
+                    $validationSuccess = false;
+                }
+            }
+
+            if($validationSuccess)
             {
                 $amount = (int) (number_format($this->getQuote()->getGrandTotal() * 100, 0, ".", ""));
 
