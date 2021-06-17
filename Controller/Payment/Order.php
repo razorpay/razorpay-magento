@@ -180,8 +180,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 $validationSuccess = false;
             }
 
-            if((empty($this->getQuote()->getBillingAddress()->getCity()) === true) or
-               (empty($this->getQuote()->getBillingAddress()->getPostcode()) === true))
+            if(empty($this->getQuote()->getBillingAddress()->getPostcode()) === true)
             {
                 $responseContent = [
                     'message'   => "Billing Address is required",
@@ -204,8 +203,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                     $validationSuccess = false;
                 }
 
-                if((empty($this->getQuote()->getShippingAddress()->getCity()) === true) or
-                   (empty($this->getQuote()->getShippingAddress()->getPostcode()) === true))
+                if(empty($this->getQuote()->getShippingAddress()->getPostcode()) === true)
                 {
                     $responseContent = [
                         'message'   => "Shipping Address is required",
