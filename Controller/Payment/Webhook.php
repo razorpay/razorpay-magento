@@ -414,6 +414,10 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             $quote->setCustomerIsGuest(true);
         }
 
+        //skip address validation as some time billing/shipping address not set for the quote
+        $quote->getBillingAddress()->setShouldIgnoreValidation(true);
+        $quote->getShippingAddress()->setShouldIgnoreValidation(true);
+
         $quote->setStore($store);
 
         $quote->collectTotals();
