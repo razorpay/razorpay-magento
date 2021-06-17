@@ -450,7 +450,9 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
     {
         $webhookSecret = $this->config->getWebhookSecret();
 
-        $this->rzp->utility->verifyWebhookSignature(json_encode($post), $_SERVER['HTTP_X_RAZORPAY_SIGNATURE'], $webhookSecret);
+        $postData = file_get_contents('php://input');
+
+        $this->rzp->utility->verifyWebhookSignature($postData, $_SERVER['HTTP_X_RAZORPAY_SIGNATURE'], $webhookSecret);
     }
 
     protected function getPostData()
