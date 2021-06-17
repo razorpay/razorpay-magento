@@ -1,7 +1,15 @@
 
 # Change Log
 
+
+## [3.6.0] - 2021-06-17
  
+### Changed
+### Fixed
+- [Signature issue, billing address validation](https://github.com/razorpay/razorpay-magento/pull/254).
+
+ Fixed webhook signature mismatch issue and added validation for shipping/billing address and shipping method for quote, before creating RZP order.
+
 ## [3.6.0] - 2021-06-11
   
 ### Added
