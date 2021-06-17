@@ -180,6 +180,17 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 $validationSuccess = false;
             }
 
+            if((empty($this->getQuote()->getBillingAddress()->getCity()) === true) or
+               (empty($this->getQuote()->getBillingAddress()->getPostcode()) === true))
+            {
+                $responseContent = [
+                    'message'   => "Billing Address is required",
+                    'parameters' => []
+                ];
+
+                $validationSuccess = false;
+            }
+
             if(!$this->getQuote()->getIsVirtual())
             {
                  //validate quote Shipping method
@@ -187,6 +198,17 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 {
                     $responseContent = [
                         'message'   => "Shipping method is required",
+                        'parameters' => []
+                    ];
+
+                    $validationSuccess = false;
+                }
+
+                if((empty($this->getQuote()->getShippingAddress()->getCity()) === true) or
+                   (empty($this->getQuote()->getShippingAddress()->getPostcode()) === true))
+                {
+                    $responseContent = [
+                        'message'   => "Shipping Address is required",
                         'parameters' => []
                     ];
 
