@@ -2,7 +2,15 @@
 # Change Log
 
 
-## [3.6.0] - 2021-06-17
+## [3.6.2] - 2021-06-23
+
+### Changed
+### Fixed
+- [Fixed webhook localhost url validation](https://github.com/razorpay/razorpay-magento/pull/254).
+
+ Fixed webhook localhost url validation.
+
+## [3.6.1] - 2021-06-17
  
 ### Changed
 ### Fixed
