@@ -6,7 +6,7 @@
 
 ### Changed
 ### Fixed
-- [Fixed webhook localhost url validation](https://github.com/razorpay/razorpay-magento/pull/254).
+- [Fixed webhook localhost url validation](https://github.com/razorpay/razorpay-magento/pull/257).
 
  Fixed webhook localhost url validation.
 
