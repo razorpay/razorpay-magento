@@ -39,6 +39,8 @@ panel (System -> Cache Management).
 
 ### Note: Don't mix composer and zip install.
 
+### Note: Make sure "zipcode" must be required field for billing and shipping address.**
+
 
 ### Working with GraphQL 
 
