@@ -1,0 +1,26 @@
+version: 2
+updates:
+- package-ecosystem: docker
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "04:00"
+    timezone: Asia/Calcutta
+  open-pull-requests-limit: 99
+  commit-message:
+    prefix: "[docker]"
+  labels:
+    - "dependencies"
+    - "security"
+- package-ecosystem: composer
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "04:00"
+    timezone: Asia/Calcutta
+  open-pull-requests-limit: 99
+  commit-message:
+    prefix: "[composer]"
+  labels:
+    - "dependencies"
+    - "security"
