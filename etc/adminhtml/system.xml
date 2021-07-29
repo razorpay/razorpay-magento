@@ -84,6 +84,13 @@
                     <can_be_empty>1</can_be_empty>
                     <config_path>payment/razorpay/specificcountry</config_path>
                 </field>
+                <field id="disable_upgrade_notice" translate="label" type="select" sortOrder="52" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Disable Razorpay Upgrade Notice</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <config_path>payment/razorpay/disable_upgrade_notice</config_path>
+                    <validate>required-entry</validate>
+                    <comment>**Required ( It will display the upgrade notification, If Razorpay new release available. ) **</comment>
+                </field>
                 <field id="sort_order" translate="label" type="text" sortOrder="100" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Sort Order</label>
                     <config_path>payment/razorpay/sort_order</config_path>
