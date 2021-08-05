@@ -1,3 +1,8 @@
+type StoreConfig @doc(description: "The type contains information about a store config") {
+    razorpay_key_id: String @doc(description: "Razorpay API Key ID")
+    razorpay_merchant_name_override: String @doc(description: "Razorpay Merchange Name Override")
+}
+
 type Mutation {
 	setRzpPaymentDetailsOnCart(input: SetRzpPaymentDetailsOnCartInput) : SetRzpPaymentDetailsOnCartOutput @resolver(class: "Razorpay\\Magento\\Model\\Resolver\\SetRzpPaymentDetailsOnCart")
 	placeRazorpayOrder (cart_id: String @doc(description: "cart_id to generate Razorpay Order ID.")) : RazorpayOrder @resolver( class: "Razorpay\\Magento\\Model\\Resolver\\PlaceRazorpayOrder") @doc(description: "Place Razorpay Order with cart amount and currency to generate RZP order ID.")
