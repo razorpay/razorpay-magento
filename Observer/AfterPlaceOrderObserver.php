@@ -82,36 +82,40 @@ class AfterPlaceOrderObserver implements ObserverInterface
         $lastQuoteId = $order->getQuoteId();
         $rzpPaymentId  = $payment->getLastTransId();
 
-        $amount_paid = number_format($this->rzpMethod->getAmountPaid($rzpPaymentId) / 100, 2, ".", "");
-
-        $order->addStatusHistoryComment(
-                    __('Actual Amount Paid of %1, with Razorpay Offer/Fee applied.',  $order->getBaseCurrency()->formatTxt($amount_paid))
-                );
-        $order->save();
-
-        //update quote 
-        $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($lastQuoteId);
-        $quote->setIsActive(false)->save();
-        $this->checkoutSession->replaceQuote($quote);
-
-        //update razorpay orderLink
-        $orderLinkCollection = $objectManager->get('Razorpay\Magento\Model\OrderLink')
-                                                   ->getCollection()
-                                                   ->addFieldToSelect('entity_id')
-                                                   ->addFilter('quote_id', $lastQuoteId)
-                                                   ->addFilter('rzp_payment_id', $rzpPaymentId)
-                                                   ->addFilter('increment_order_id', $order->getRealOrderId())
-                                                   ->getFirstItem();
-
-        $orderLink = $orderLinkCollection->getData();
-
-        if (empty($orderLink['entity_id']) === false)
+        if((empty($rzpPaymentId) === false) and substr($rzpPaymentId, 0,4) === 'pay_')
         {
-            $orderLinkCollection->setOrderId($order->getEntityId())
-                                ->setOrderPlaced(true)
-                                ->save();
-        }                
-        
-    }
+            //get razorpay orderLink
+            $orderLinkCollection = $objectManager->get('Razorpay\Magento\Model\OrderLink')
+                                                       ->getCollection()
+                                                       ->addFieldToSelect('entity_id')
+                                                       ->addFieldToSelect('order_placed')
+                                                       ->addFilter('quote_id', $lastQuoteId)
+                                                       ->addFilter('rzp_payment_id', $rzpPaymentId)
+                                                       ->addFilter('increment_order_id', $order->getRealOrderId())
+                                                       ->getFirstItem();
 
+            $orderLink = $orderLinkCollection->getData();
+
+            if (empty($orderLink['entity_id']) === false and !$orderLink['order_placed'])
+            {
+
+                $amount_paid = number_format($this->rzpMethod->getAmountPaid($rzpPaymentId) / 100, 2, ".", "");
+
+                $order->addStatusHistoryComment(
+                            __('Actual Amount Paid of %1, with Razorpay Offer/Fee applied.',  $order->getBaseCurrency()->formatTxt($amount_paid))
+                        );
+                $order->save();
+
+                //update quote
+                $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($lastQuoteId);
+                $quote->setIsActive(false)->save();
+                $this->checkoutSession->replaceQuote($quote);
+
+                //update razorpay orderLink
+                $orderLinkCollection->setOrderId($order->getEntityId())
+                                    ->setOrderPlaced(true)
+                                    ->save();
+            }
+        }
+    }
 }
