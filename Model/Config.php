@@ -17,6 +17,7 @@ class Config
     const ENABLE_WEBHOOK = 'enable_webhook';
     const WEBHOOK_SECRET = 'webhook_secret';
     const WEBHOOK_WAIT_TIME = 'webhook_wait_time';
+    const DISABLE_UPGRADE_NOTICE = 'disable_upgrade_notice';
 
     /**
      * @var string
