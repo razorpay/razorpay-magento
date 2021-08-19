@@ -10,7 +10,6 @@ use Magento\Framework\App\CsrfAwareActionInterface;
 use Magento\Framework\App\Request\InvalidRequestException;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\DataObject;
-use Razorpay\Subscription\Helper\Subscription;
 use Razorpay\Subscription\Helper\SubscriptionWebhook;
 
 class Webhook extends \Razorpay\Magento\Controller\BaseController
@@ -78,7 +77,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository,
         \Magento\Framework\App\CacheInterface $cache,
         \Magento\Framework\Event\ManagerInterface $eventManager,
-        \Magento\Quote\Model\QuoteFactory $quoteFactory,
         \Psr\Log\LoggerInterface $logger
     )
     {
@@ -104,7 +102,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         $this->customerRepository = $customerRepository;
         $this->eventManager       = $eventManager;
         $this->cache = $cache;
-        $this->quoteFactory = $quoteFactory;
     }
 
     /**
@@ -164,7 +161,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                         return $this->orderPaid($post);
 
                     case 'subscription.charged':
-                        $subscriptionWebhook = new SubscriptionWebhook($this->config,$this->logger, $this->quoteRepository, $this->order, $this->storeManagement, $this->cache, $this->quoteManagement, $this->quoteFactory);
+                        $subscriptionWebhook = new SubscriptionWebhook($this->config,$this->logger, $this->quoteRepository, $this->order, $this->storeManagement, $this->cache, $this->quoteManagement);
                         return $subscriptionWebhook->processSubscriptionCharged($post);
 
                     default:
