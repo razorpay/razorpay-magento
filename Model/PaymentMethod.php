@@ -472,6 +472,50 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      */
     public function refund(InfoInterface $payment, $amount)
     {
+        $order = $payment->getOrder();
+
+        $creditmemo = $this->request->getPost('creditmemo');
+
+        $reason = (!empty($creditmemo['comment_text'])) ? $creditmemo['comment_text'] : 'Refunded by site admin';
+
+        $refundId = $payment->getTransactionId();
+
+        $paymentId = substr($refundId, 0, -7);
+
+        try
+        {
+            $data = array(
+                'amount'    =>  (int) round($amount * 100),
+                'receipt'   =>  $order->getIncrementId(),
+                'notes'     =>  array(
+                    'reason'                =>  $reason,
+                    'order_id'              =>  $order->getIncrementId(),
+                    'refund_from_website'   =>  true,
+                    'source'                =>  'Magento',
+                )
+            );
+
+            $refund = $this->rzp->payment
+                                ->fetch( $paymentId )
+                                ->refund( $data );
+
+            $payment->setAmountPaid($amount)
+                    ->setLastTransId($refund->id)
+                    ->setTransactionId($refund->id)
+                    ->setIsTransactionClosed(true)
+                    ->setShouldCloseParentTransaction(true);
+        }
+        catch(\Razorpay\Api\Errors\Error $e)
+        {
+            $this->_logger->critical($e);
+            throw new LocalizedException(__('Razorpay Error: %1.', $e->getMessage()));
+        }
+        catch(\Exception $e)
+        {
+            $this->_logger->critical($e);
+            throw new LocalizedException(__('Razorpay Error: %1.', $e->getMessage()));
+        }
+                
         return $this;
     }
 
