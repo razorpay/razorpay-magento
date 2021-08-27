@@ -188,36 +188,58 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
         $quoteId   = $post['payload']['order']['entity']['receipt'];
 
-
-        $orderLinkCollection = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
-                                                   ->getCollection()
-                                                   ->addFilter('quote_id', $quoteId)
-                                                   ->addFilter('rzp_order_id', $rzpOrderId)
-                                                   ->getFirstItem();
-
-        $orderLink = $orderLinkCollection->getData();
-
-        if (empty($orderLink['entity_id']) === false)
+        try
         {
-            if ($orderLink['order_placed'])
-            {
-                 $this->logger->info(__("Razorpay Webhook: Quote order is inactive for quoteID: $quoteId and Razorpay payment_id(:$paymentId) with Maze OrderID (:%1) ", $orderLink['increment_order_id']));
+            $orderLinkCollection = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                                                       ->getCollection()
+                                                       ->addFilter('quote_id', $quoteId)
+                                                       ->addFilter('rzp_order_id', $rzpOrderId)
+                                                       ->getFirstItem();
 
-                return;
+            $orderLink = $orderLinkCollection->getData();
+
+            if (empty($orderLink['entity_id']) === false)
+            {
+                if ($orderLink['order_placed'])
+                {
+                     $this->logger->info(__("Razorpay Webhook: Quote order is inactive for quoteID: $quoteId and Razorpay payment_id(:$paymentId) with Maze OrderID (:%1) ", $orderLink['increment_order_id']));
+
+                    return;
+                }
+
+                //set the 1st webhook notification time
+                if ($orderLink['webhook_count'] < 1)
+                {
+                    $orderLinkCollection->setWebhookFirstNotifiedAt(time());
+                }
+
+                $orderLinkCollection->setWebhookCount($orderLink['webhook_count'] + 1)
+                                    ->setRzpPaymentId($paymentId)
+                                    ->save();
+
+
+                // Check if front-end cache flag active
+                if (empty($this->cache->load("quote_Front_processing_".$quoteId)) === false)
+                {
+                    $this->logger->info("Razorpay Webhook: Order processing is active for quoteID: $quoteId and Razorpay payment_id(:$paymentId)");
+                    header('Status: 409 Conflict, too early for processing', true, 409);
+
+                    exit;
+                }
+
+                $webhookWaitTime = $this->config->getConfigData(Config::WEBHOOK_WAIT_TIME) ? $this->config->getConfigData(Config::WEBHOOK_WAIT_TIME) : 300;
+
+                //ignore webhook call for some time as per config, from first webhook call
+                if ((time() - $orderLinkCollection->getWebhookFirstNotifiedAt()) < $webhookWaitTime)
+                {
+                    $this->logger->info(__("Razorpay Webhook: Order processing is active for quoteID: $quoteId and Razorpay payment_id(:$paymentId) and webhook attempt: %1", ($orderLink['webhook_count'] + 1)));
+                    header('Status: 409 Conflict, too early for processing', true, 409);
+
+                    exit;
+                }
             }
 
-            //set the 1st webhook notification time
-            if ($orderLink['webhook_count'] < 1)
-            {
-                $orderLinkCollection->setWebhookFirstNotifiedAt(time());
-            }
-
-            $orderLinkCollection->setWebhookCount($orderLink['webhook_count'] + 1)
-                                ->setRzpPaymentId($paymentId)
-                                ->save();
-
-
-            // Check if front-end cache flag active
+             // Check if front-end cache flag active
             if (empty($this->cache->load("quote_Front_processing_".$quoteId)) === false)
             {
                 $this->logger->info("Razorpay Webhook: Order processing is active for quoteID: $quoteId and Razorpay payment_id(:$paymentId)");
@@ -226,205 +248,197 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 exit;
             }
 
-            $webhookWaitTime = $this->config->getConfigData(Config::WEBHOOK_WAIT_TIME) ? $this->config->getConfigData(Config::WEBHOOK_WAIT_TIME) : 300;
+            $amount    = number_format($post['payload']['payment']['entity']['amount']/100, 2, ".", "");
 
-            //ignore webhook call for some time as per config, from first webhook call
-            if ((time() - $orderLinkCollection->getWebhookFirstNotifiedAt()) < $webhookWaitTime)
+            $this->logger->info("Razorpay Webhook processing started for Razorpay payment_id(:$paymentId)");
+
+            $payment_created_time = $post['payload']['payment']['entity']['created_at'];
+
+            //validate if the quote Order is still active
+            $quote = $this->quoteRepository->get($quoteId);
+
+            //exit if quote is not active
+            if (!$quote->getIsActive())
             {
-                $this->logger->info(__("Razorpay Webhook: Order processing is active for quoteID: $quoteId and Razorpay payment_id(:$paymentId) and webhook attempt: %1", ($orderLink['webhook_count'] + 1)));
-                header('Status: 409 Conflict, too early for processing', true, 409);
-
-                exit;
-            }
-        }
-
-         // Check if front-end cache flag active
-        if (empty($this->cache->load("quote_Front_processing_".$quoteId)) === false)
-        {
-            $this->logger->info("Razorpay Webhook: Order processing is active for quoteID: $quoteId and Razorpay payment_id(:$paymentId)");
-            header('Status: 409 Conflict, too early for processing', true, 409);
-
-            exit;
-        }
-
-        $amount    = number_format($post['payload']['payment']['entity']['amount']/100, 2, ".", "");
-
-        $this->logger->info("Razorpay Webhook processing started for Razorpay payment_id(:$paymentId)");
-
-        $payment_created_time = $post['payload']['payment']['entity']['created_at'];
-
-        //validate if the quote Order is still active
-        $quote = $this->quoteRepository->get($quoteId);
-
-        //exit if quote is not active
-        if (!$quote->getIsActive())
-        {
-            $this->logger->info("Razorpay Webhook: Quote order is inactive for quoteID: $quoteId and Razorpay payment_id(:$paymentId)");
-
-            return;
-        }
-
-        # fetch the related sales order and verify the payment ID with rzp payment id
-        # To avoid duplicate order entry for same quote 
-        $collection = $this->_objectManager->get('Magento\Sales\Model\Order')
-                                           ->getCollection()
-                                           ->addFieldToSelect('entity_id')
-                                           ->addFilter('quote_id', $quoteId)
-                                           ->getFirstItem();
-        
-        $salesOrder = $collection->getData();
-        
-        if (empty($salesOrder['entity_id']) === false)
-        {
-            $order = $this->order->load($salesOrder['entity_id']);
-            $orderRzpPaymentId = $order->getPayment()->getLastTransId();
-
-            if ($orderRzpPaymentId === $paymentId)
-            {
-                $this->logger->info("Razorpay Webhook: Sales Order and payment already exist for Razorpay payment_id(:$paymentId)");
+                $this->logger->info("Razorpay Webhook: Quote order is inactive for quoteID: $quoteId and Razorpay payment_id(:$paymentId)");
 
                 return;
             }
-        }
 
-        $quote = $this->getQuoteObject($post, $quoteId);
+            # fetch the related sales order and verify the payment ID with rzp payment id
+            # To avoid duplicate order entry for same quote
+            $collection = $this->_objectManager->get('Magento\Sales\Model\Order')
+                                               ->getCollection()
+                                               ->addFieldToSelect('entity_id')
+                                               ->addFilter('quote_id', $quoteId)
+                                               ->getFirstItem();
 
-        $this->logger->info("Razorpay Webhook: Order creation started with quoteID:$quoteId.");
+            $salesOrder = $collection->getData();
 
-        //validate if the quote Order is still active
-        $quoteUpdated = $this->quoteRepository->get($quoteId);
-
-        //exit if quote is not active
-        if (!$quoteUpdated->getIsActive())
-        {
-            $this->logger->info("Razorpay Webhook: Quote order is inactive for quoteID: $quoteId and Razorpay payment_id(:$paymentId)");
-
-            return;
-        }
-
-        //verify Rzp OrderLink status
-        $orderLinkCollection = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
-                                                   ->getCollection()
-                                                   ->addFilter('quote_id', $quoteId)
-                                                   ->addFilter('rzp_order_id', $rzpOrderId)
-                                                   ->getFirstItem();
-
-        $orderLink = $orderLinkCollection->getData();
-
-        if (empty($orderLink['entity_id']) === false)
-        {
-            if ($orderLink['order_placed'])
+            if (empty($salesOrder['entity_id']) === false)
             {
-                $this->logger->info(__("Razorpay Webhook: Quote order is inactive for quoteID: $quoteId and Razorpay payment_id(:$paymentId) with Maze OrderID (:%1) ", $orderLink['increment_order_id']));
+                $order = $this->order->load($salesOrder['entity_id']);
+                $orderRzpPaymentId = $order->getPayment()->getLastTransId();
+
+                if ($orderRzpPaymentId === $paymentId)
+                {
+                    $this->logger->info("Razorpay Webhook: Sales Order and payment already exist for Razorpay payment_id(:$paymentId)");
+
+                    return;
+                }
+            }
+
+            $quote = $this->getQuoteObject($post, $quoteId);
+
+            $this->logger->info("Razorpay Webhook: Order creation started with quoteID:$quoteId.");
+
+            //validate if the quote Order is still active
+            $quoteUpdated = $this->quoteRepository->get($quoteId);
+
+            //exit if quote is not active
+            if (!$quoteUpdated->getIsActive())
+            {
+                $this->logger->info("Razorpay Webhook: Quote order is inactive for quoteID: $quoteId and Razorpay payment_id(:$paymentId)");
 
                 return;
             }
+
+            //verify Rzp OrderLink status
+            $orderLinkCollection = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                                                       ->getCollection()
+                                                       ->addFilter('quote_id', $quoteId)
+                                                       ->addFilter('rzp_order_id', $rzpOrderId)
+                                                       ->getFirstItem();
+
+            $orderLink = $orderLinkCollection->getData();
+
+            if (empty($orderLink['entity_id']) === false)
+            {
+                if ($orderLink['order_placed'])
+                {
+                    $this->logger->info(__("Razorpay Webhook: Quote order is inactive for quoteID: $quoteId and Razorpay payment_id(:$paymentId) with Maze OrderID (:%1) ", $orderLink['increment_order_id']));
+
+                    return;
+                }
+            }
+
+            //Now start processing the new order creation through webhook
+
+            $this->cache->save("started", "quote_processing_$quoteId", ["razorpay"], 30);
+
+            $this->logger->info("Razorpay Webhook: Quote submitted for order creation with quoteID:$quoteId.");
+
+            $order = $this->quoteManagement->submit($quote);
+
+            $payment = $order->getPayment();
+
+            $this->logger->info("Razorpay Webhook: Adding payment to order for quoteID:$quoteId.");
+
+            $payment->setAmountPaid($amount)
+                    ->setLastTransId($paymentId)
+                    ->setTransactionId($paymentId)
+                    ->setIsTransactionClosed(true)
+                    ->setShouldCloseParentTransaction(true);
+
+            //set razorpay webhook fields
+            $order->setByRazorpayWebhook(1);
+
+            $order->save();
+
+            //disable the quote
+            $quote->setIsActive(0)->save();
+
+            //dispatch the "razorpay_webhook_order_placed_after" event
+            $eventData = [
+                            'raorpay_payment_id' => $paymentId,
+                            'magento_quote_id' => $quoteId,
+                            'magento_order_id' => $order->getEntityId(),
+                            'amount_captured' => $post['payload']['payment']['entity']['amount']
+                         ];
+
+            $transport = new DataObject($eventData);
+
+            $this->eventManager->dispatch(
+                'razorpay_webhook_order_placed_after',
+                [
+                    'context'   => 'razorpay_webhook_order',
+                    'payment'   => $paymentId,
+                    'transport' => $transport
+                ]
+            );
+
+            $this->logger->info("Razorpay Webhook Processed successfully for Razorpay payment_id(:$paymentId): and quoteID(: $quoteId) and OrderID(: ". $order->getEntityId() .")");
+            return;
         }
-
-        //Now start processing the new order creation through webhook
-
-        $this->cache->save("started", "quote_processing_$quoteId", ["razorpay"], 30);
-
-        $this->logger->info("Razorpay Webhook: Quote submitted for order creation with quoteID:$quoteId.");
-
-        $order = $this->quoteManagement->submit($quote);
-
-        $payment = $order->getPayment();
-
-        $this->logger->info("Razorpay Webhook: Adding payment to order for quoteID:$quoteId.");
-
-        $payment->setAmountPaid($amount)
-                ->setLastTransId($paymentId)
-                ->setTransactionId($paymentId)
-                ->setIsTransactionClosed(true)
-                ->setShouldCloseParentTransaction(true);
-
-        //set razorpay webhook fields
-        $order->setByRazorpayWebhook(1);
-
-        $order->save();
-
-        //disable the quote
-        $quote->setIsActive(0)->save();
-
-        //dispatch the "razorpay_webhook_order_placed_after" event
-        $eventData = [
-                        'raorpay_payment_id' => $paymentId,
-                        'magento_quote_id' => $quoteId,
-                        'magento_order_id' => $order->getEntityId(),
-                        'amount_captured' => $post['payload']['payment']['entity']['amount']
-                     ];
-
-        $transport = new DataObject($eventData);
-
-        $this->eventManager->dispatch(
-            'razorpay_webhook_order_placed_after',
-            [
-                'context'   => 'razorpay_webhook_order',
-                'payment'   => $paymentId,
-                'transport' => $transport
-            ]
-        );
-
-        $this->logger->info("Razorpay Webhook Processed successfully for Razorpay payment_id(:$paymentId): and quoteID(: $quoteId) and OrderID(: ". $order->getEntityId() .")");
-
-        return;
-    }
+        catch (\Exception $e)
+        {
+            $this->logger->critical("Razorpay Webhook: Quote submitted for order creation with quoteID:$quoteId failed with error: ". $e->getMessage());
+            return;
+        }
+   }
 
     protected function getQuoteObject($post, $quoteId)
     {
-        $quote = $this->quoteRepository->get($quoteId);
-
-        $firstName = $quote->getBillingAddress()->getFirstname() ?? 'null';
-        $lastName  = $quote->getBillingAddress()->getLastname() ?? 'null';
-        $email     = $quote->getBillingAddress()->getEmail() ?? $post['payload']['payment']['entity']['email'];
-
-        $quote->getPayment()->setMethod(PaymentMethod::METHOD_CODE);
-
-        $store = $quote->getStore();
-
-        if(empty($store) === true)
+        try
         {
-            $store = $this->storeManagement->getStore();
+            $quote = $this->quoteRepository->get($quoteId);
+
+            $firstName = $quote->getBillingAddress()->getFirstname() ?? 'null';
+            $lastName  = $quote->getBillingAddress()->getLastname() ?? 'null';
+            $email     = $quote->getBillingAddress()->getEmail() ?? $post['payload']['payment']['entity']['email'];
+
+            $quote->getPayment()->setMethod(PaymentMethod::METHOD_CODE);
+
+            $store = $quote->getStore();
+
+            if(empty($store) === true)
+            {
+                $store = $this->storeManagement->getStore();
+            }
+
+            $websiteId = $store->getWebsiteId();
+
+            $customer = $this->objectManagement->create('Magento\Customer\Model\Customer');
+
+            $customer->setWebsiteId($websiteId);
+
+            //get customer from quote , otherwise from payment email
+            $customer = $customer->loadByEmail($email);
+
+            //if quote billing address doesn't contains address, set it as customer default billing address
+            if ((empty($quote->getBillingAddress()->getFirstname()) === true) and
+                (empty($customer->getEntityId()) === false))
+            {
+                $quote->getBillingAddress()->setCustomerAddressId($customer->getDefaultBillingAddress()['id']);
+            }
+
+            //If need to insert new customer as guest
+            if ((empty($customer->getEntityId()) === true) or
+                (empty($quote->getBillingAddress()->getCustomerId()) === true))
+            {
+                $quote->setCustomerFirstname($firstName);
+                $quote->setCustomerLastname($lastName);
+                $quote->setCustomerEmail($email);
+                $quote->setCustomerIsGuest(true);
+            }
+
+            //skip address validation as some time billing/shipping address not set for the quote
+            $quote->getBillingAddress()->setShouldIgnoreValidation(true);
+            $quote->getShippingAddress()->setShouldIgnoreValidation(true);
+
+            $quote->setStore($store);
+
+            $quote->collectTotals();
+
+            $quote->save();
+
+            return $quote;
         }
-
-        $websiteId = $store->getWebsiteId();
-
-        $customer = $this->objectManagement->create('Magento\Customer\Model\Customer');
-        
-        $customer->setWebsiteId($websiteId);
-
-        //get customer from quote , otherwise from payment email
-        $customer = $customer->loadByEmail($email);
-        
-        //if quote billing address doesn't contains address, set it as customer default billing address
-        if ((empty($quote->getBillingAddress()->getFirstname()) === true) and
-            (empty($customer->getEntityId()) === false))
-        {   
-            $quote->getBillingAddress()->setCustomerAddressId($customer->getDefaultBillingAddress()['id']);
-        }
-
-        //If need to insert new customer as guest
-        if ((empty($customer->getEntityId()) === true) or
-            (empty($quote->getBillingAddress()->getCustomerId()) === true))
+        catch (\Exception $e)
         {
-            $quote->setCustomerFirstname($firstName);
-            $quote->setCustomerLastname($lastName);
-            $quote->setCustomerEmail($email);
-            $quote->setCustomerIsGuest(true);
+            $this->logger->critical("Razorpay Webhook: Unable to update/get quote with quoteID:$quoteId, failed with error: ". $e->getMessage());
+            return;
         }
-
-        //skip address validation as some time billing/shipping address not set for the quote
-        $quote->getBillingAddress()->setShouldIgnoreValidation(true);
-        $quote->getShippingAddress()->setShouldIgnoreValidation(true);
-
-        $quote->setStore($store);
-
-        $quote->collectTotals();
-
-        $quote->save();
-
-        return $quote;
     }
 
     /**
