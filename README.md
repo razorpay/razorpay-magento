@@ -116,3 +116,7 @@ mutation {
 ### Support
 
 Visit [https://razorpay.com](https://razorpay.com) for support requests or email contact@razorpay.com.
+
+### DISCLAIMER
+
+In no event shall Razorpay.com/Razorpay be liable for any claim, damages or other liability, whether in an action of contract, tort or otherwise, arising from the information or code provided or the use of the information or code provided. This disclaimer of liability refers to any technical issue or damage caused by the use or non-use of the information or code provided or by the use of incorrect or incomplete information or code provided.
