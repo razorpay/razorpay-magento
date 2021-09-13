@@ -1,6 +1,13 @@
 
 # Change Log
 
+## [3.6.3] - 2021-07-12
+
+### Changed
+### Fixed
+- [Fixed to avoid api calls in observer (In case order gets updated again by other modules)](https://github.com/razorpay/razorpay-magento/pull/269).
+- [Added latest release upgrade notification](https://github.com/razorpay/razorpay-magento/pull/264).
+- [Additional Config support for magento GraphQL](https://github.com/razorpay/razorpay-magento/pull/268).
 
 ## [3.6.2] - 2021-06-23
 
