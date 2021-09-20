@@ -1,6 +1,14 @@
 
 # Change Log
 
+## [3.6.4] - 2021-09-20
+
+### Changed
+### Fixed
+- [Fixed to validate order amount in webhook)](https://github.com/razorpay/razorpay-magento/pull/275).
+- [Fixed paymentId validation](https://github.com/razorpay/razorpay-magento/pull/276).
+- [Added refund through invoice credit memo](https://github.com/razorpay/razorpay-magento/pull/272).
+
 ## [3.6.3] - 2021-07-12
 
 ### Changed
