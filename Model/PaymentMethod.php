@@ -220,7 +220,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             if(empty($request['payload']['payment']['entity']['id']) === false)
             {
                 $payment_id = $request['payload']['payment']['entity']['id'];
-                $rzp_order_id = $request['payload']['order']['entity']['id'];
+                $rzp_order_id = $request['payload']['payment']['entity']['order_id'];
 
                 $isWebhookCall = true;
                 //validate that request is from webhook only
@@ -362,7 +362,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             {
                 $error = "Razorpay paymentId missing for payment verification.";
 
-                $this->_logger->critical($e);
+                $this->_logger->critical($error);
                 throw new LocalizedException(__('Razorpay Error: %1.', $error));
             }
 

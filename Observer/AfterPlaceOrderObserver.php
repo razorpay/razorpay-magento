@@ -101,8 +101,13 @@ class AfterPlaceOrderObserver implements ObserverInterface
 
                 $amount_paid = number_format($this->rzpMethod->getAmountPaid($rzpPaymentId) / 100, 2, ".", "");
 
+                //get the payment action
+                $payment_action = $this->config->getPaymentAction();
+
+                $authOrCapture = ($payment_action === 'authorize') ? "Authroized" : "Captured";
+
                 $order->addStatusHistoryComment(
-                            __('Actual Amount Paid of %1, with Razorpay Offer/Fee applied.',  $order->getBaseCurrency()->formatTxt($amount_paid))
+                            __('Actual Amount %1 of %2, with Razorpay Offer/Fee applied.', $authOrCapture, $order->getBaseCurrency()->formatTxt($amount_paid))
                         );
                 $order->save();
 
