@@ -99,15 +99,15 @@ class AfterPlaceOrderObserver implements ObserverInterface
             if (empty($orderLink['entity_id']) === false and !$orderLink['order_placed'])
             {
 
-                $amount_paid = number_format($this->rzpMethod->getAmountPaid($rzpPaymentId) / 100, 2, ".", "");
+                $amountPaid = number_format($this->rzpMethod->getAmountPaid($rzpPaymentId) / 100, 2, ".", "");
 
                 //get the payment action
-                $payment_action = $this->config->getPaymentAction();
+                $paymentAction = $this->config->getPaymentAction();
 
-                $authOrCapture = ($payment_action === 'authorize') ? "Authroized" : "Captured";
+                $authOrCapture = ($paymentAction === 'authorize') ? "Authroized" : "Captured";
 
                 $order->addStatusHistoryComment(
-                            __('Actual Amount %1 of %2, with Razorpay Offer/Fee applied.', $authOrCapture, $order->getBaseCurrency()->formatTxt($amount_paid))
+                            __('Actual Amount %1 of %2, with Razorpay Offer/Fee applied.', $authOrCapture, $order->getBaseCurrency()->formatTxt($amountPaid))
                         );
                 $order->save();
 

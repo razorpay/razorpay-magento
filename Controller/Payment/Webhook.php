@@ -179,6 +179,12 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     {
         $this->logger->info("Razorpay Webhook Payment Authorized processing Started.");
 
+        if($this->config->getPaymentAction() !== 'authorize')
+        {
+            $this->logger->info("Razorpay Webhook: Not consuming this event, as Payment action is not set to Authorize for payment_id(:$paymentId)");
+            return;
+        }
+
         $paymentId  = $post['payload']['payment']['entity']['id'];
         $rzpOrderId = $post['payload']['payment']['entity']['order_id'];
 
@@ -257,7 +263,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 exit;
             }
 
-            $amount    = number_format($post['payload']['payment']['entity']['amount']/100, 2, ".", "");
+            $amount = number_format($post['payload']['payment']['entity']['amount']/100, 2, ".", "");
 
             $this->logger->info("Razorpay Webhook processing started for Razorpay payment_id(:$paymentId) and quoteId(:$quoteId)");
 
@@ -402,6 +408,12 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     {
         $paymentId = $post['payload']['payment']['entity']['id'];
         $rzpOrderId = $post['payload']['order']['entity']['id'];
+
+        if($this->config->getPaymentAction() !== 'authorize_capture')
+        {
+            $this->logger->info("Razorpay Webhook: Not consuming this event, as Payment action is not set to 'Authorize and Capture' for payment_id(:$paymentId)");
+            return;
+        }
 
         if (isset($post['payload']['order']['entity']['receipt']) === false)
         {
