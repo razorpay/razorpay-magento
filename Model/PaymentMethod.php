@@ -253,8 +253,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                         $rzp_order_amount_actual = (int) $orderLink['rzp_order_amount'];
 
                         if((empty($payment_id) === true) and
-                           (emprty($rzp_order_id) === true) and
-                           (emprty($rzp_signature) === true))
+                           (empty($rzp_order_id) === true) and
+                           (empty($rzp_signature) === true))
                         {
                             throw new LocalizedException(__("Razorpay Payment details missing."));
                         }
