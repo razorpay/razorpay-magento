@@ -529,12 +529,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
         $refundId = $payment->getTransactionId();
 
-        $invoice = $order->getInvoiceCollection()->getAllIds();
-        //$baseAmount = $invoice->getBaseGrandTotal();
-
-file_put_contents('aaa.log', $refundId . print_r($invoice,1));
         $paymentId = substr($refundId, 0, -7);
-die;
+
         try
         {
             $data = array(
