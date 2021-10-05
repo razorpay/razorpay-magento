@@ -179,13 +179,14 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     {
         $this->logger->info("Razorpay Webhook Payment Authorized processing Started.");
 
+        $paymentId  = $post['payload']['payment']['entity']['id'];
+
         if($this->config->getPaymentAction() !== 'authorize')
         {
             $this->logger->info("Razorpay Webhook: Not consuming this event, as Payment action is not set to Authorize for payment_id(:$paymentId)");
             return;
         }
 
-        $paymentId  = $post['payload']['payment']['entity']['id'];
         $rzpOrderId = $post['payload']['payment']['entity']['order_id'];
 
         try
