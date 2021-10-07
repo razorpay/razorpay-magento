@@ -1,6 +1,13 @@
 
 # Change Log
 
+## [3.7.0] - 2021-10-07
+
+### Changed
+### Fixed
+- [Added Cron, to create missing webhook orders](https://github.com/razorpay/razorpay-magento/pull/284).
+- [Added `payment.authorize` webhook event](https://github.com/razorpay/razorpay-magento/pull/284).
+
 ## [3.6.4] - 2021-09-20
 
 ### Changed
