@@ -287,13 +287,15 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                         if (empty($orderLinkData['entity_id']) === false)
                         {
                             $orderLinkCollection->setRzpOrderId($order->id)
-                                      ->save();
+                                                ->setRzpOrderAmount($amount)
+                                                ->save();
                         }
                         else
                         {
                             $orderLnik = $this->_objectManager->create('Razorpay\Magento\Model\OrderLink');
                             $orderLnik->setQuoteId($receipt_id)
                                       ->setRzpOrderId($order->id)
+                                      ->setRzpOrderAmount($amount)
                                       ->save();
                         }
 

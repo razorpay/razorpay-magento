@@ -131,6 +131,33 @@ class UpgradeSchema implements  UpgradeSchemaInterface
                     'nullable' => true
                 ]
             )
+            ->addColumn(
+                'amount_paid',
+                Table::TYPE_INTEGER,
+                20,
+                [
+                    'nullable' => true,
+                    'comment'  => 'Actual paid amount'
+                ]
+            )
+            ->addColumn(
+                'email',
+                Table::TYPE_TEXT,
+                255,
+                [
+                    'nullable' => true,
+                    'comment'  => 'payment email'
+                ]
+            )
+            ->addColumn(
+                'contact',
+                Table::TYPE_TEXT,
+                25,
+                [
+                    'nullable' => true,
+                    'comment'  => 'payment contact'
+                ]
+            )
             ->addIndex(
                 'quote_id',
                 ['quote_id', 'rzp_payment_id'],
@@ -169,6 +196,41 @@ class UpgradeSchema implements  UpgradeSchemaInterface
                     'type'     => Table::TYPE_INTEGER,
                     'length'   => 20,
                     'comment'  => 'RZP order amount'
+                ]
+            );
+        }
+
+        if (version_compare($context->getVersion(), '3.6.5', '<')) {
+            $setup->getConnection()->addColumn(
+                $setup->getTable(OrderLink::TABLE_NAME),
+                'amount_paid',
+                [
+                    'nullable' => true,
+                    'type'     => Table::TYPE_INTEGER,
+                    'length'   => 20,
+                    'comment'  => 'Actual paid amount'
+                ]
+            );
+
+            $setup->getConnection()->addColumn(
+                $setup->getTable(OrderLink::TABLE_NAME),
+                'email',
+                [
+                    'nullable' => true,
+                    'type'     => Table::TYPE_TEXT,
+                    'length'   => 255,
+                    'comment'  => 'payment email'
+                ]
+            );
+
+            $setup->getConnection()->addColumn(
+                $setup->getTable(OrderLink::TABLE_NAME),
+                'contact',
+                [
+                    'nullable' => true,
+                    'type'     => Table::TYPE_TEXT,
+                    'length'   => 25,
+                    'comment'  => 'payment contact'
                 ]
             );
         }

@@ -217,6 +217,39 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                 ];
             }
 
+            if((empty($request) === true) and (count($_POST) === 0))
+            {
+                //webhook cron call
+                //update orderLink
+                $_objectManager  = \Magento\Framework\App\ObjectManager::getInstance();
+
+                $orderLinkCollection = $_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                                                           ->getCollection()
+                                                           ->addFilter('quote_id', $order->getQuoteId())
+                                                           ->getFirstItem();
+
+                $orderLink = $orderLinkCollection->getData();
+
+                $isWebhookCall = true;
+
+                if (empty($orderLink['entity_id']) === false)
+                {
+                    $payment_id = $orderLink['rzp_payment_id'];
+
+                    $rzp_order_id = $orderLink['rzp_order_id'];
+
+                    $rzpOrderAmount = $orderLink['rzp_order_amount'];
+
+                    //set request data based on records in DB
+                    $request['paymentMethod']['additional_data'] = [
+                        'rzp_payment_id' => $payment_id,
+                        'rzp_order_id' => $orderLink['rzp_order_id'],
+                        'rzp_signature' => $orderLink['rzp_signature']
+                    ];
+                }
+
+            }
+
             if(empty($request['payload']['payment']['entity']['id']) === false)
             {
                 $payment_id = $request['payload']['payment']['entity']['id'];
@@ -327,11 +360,13 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                     {
                         $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
 
-                        $rzp_order_id = $this->order->getOrderId();
+                        $rzp_order_id = ($isWebhookCall) ? $request['paymentMethod']['additional_data']['rzp_order_id'] : $this->order->getOrderId();
 
-                        if ($orderAmount !== $this->order->getRazorpayOrderAmount())
+                        $rzpOrderAmount = ($isWebhookCall) ? (int) $rzpOrderAmount : $this->order->getRazorpayOrderAmount();
+
+                        if ($orderAmount !== $rzpOrderAmount)
                         {
-                            $rzpOrderAmount = $order->getOrderCurrency()->formatTxt(number_format($this->order->getRazorpayOrderAmount() / 100, 2, ".", ""));
+                            $rzpOrderAmount = $order->getOrderCurrency()->formatTxt(number_format($rzpOrderAmount / 100, 2, ".", ""));
 
                             throw new LocalizedException(__("Cart order amount = %1 doesn't match with amount paid = %2", $order->getOrderCurrency()->formatTxt($order->getGrandTotal()), $rzpOrderAmount));
                         }
@@ -362,7 +397,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             {
                 $error = "Razorpay paymentId missing for payment verification.";
 
-                $this->_logger->critical($e);
+                $this->_logger->critical($error);
                 throw new LocalizedException(__('Razorpay Error: %1.', $error));
             }
 

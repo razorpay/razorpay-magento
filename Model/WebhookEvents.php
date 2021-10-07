@@ -16,6 +16,10 @@ class WebhookEvents implements ArrayInterface
                 'value' => "order.paid",
                 'label' => __('order.paid'),
             ],
+            [
+                'value' => "payment.authorized",
+                'label' => __('payment.authorized'),
+            ],
         ];
     }
 }
