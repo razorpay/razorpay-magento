@@ -12,8 +12,9 @@ class WebhookUrl extends \Magento\Config\Block\System\Config\Form\Field
     {
 
         $baseUrl = $this->_storeManager->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_WEB);
-        $copyButton = "<div class='rzp-webhook-to-clipboard'
-                                           style='background-color: #337ab7; color: white; border: none;cursor: pointer; padding: 2px 4px; text-decoration: none;display: inline-block;'>Copy Url</div>
+
+        $copyButton = "<sapn class='rzp-webhook-to-clipboard'
+                                           style='background-color: #337ab7; color: white; border: none;cursor: pointer; padding: 2px 4px; text-decoration: none;display: inline-block;'>Copy Url</span>
 						<script type='text/javascript'>
 						//<![CDATA[
 						require([
@@ -21,7 +22,7 @@ class WebhookUrl extends \Magento\Config\Block\System\Config\Form\Field
 						], function ($) {
 							'use strict';
 						    $(function() {
-						        $('.rzp-webhook-to-clipboard').click(function() { 
+						        $('.rzp-webhook-to-clipboard').click(function() {
 						            var temp = $('<input>');
 									$('body').append(temp);
 									temp.val($('.rzp-webhook-url').text()).select();
@@ -29,13 +30,25 @@ class WebhookUrl extends \Magento\Config\Block\System\Config\Form\Field
 									temp.remove();
 						            $('.rzp-webhook-to-clipboard').text('Copied to clipboard');
 						        });
+
+						        $('.rzp-webhook-to-clipboard-cron').click(function() {
+						            var temp = $('<input>');
+									$('body').append(temp);
+									temp.val($('.rzp-webhook-cron-url').text()).select();
+									document.execCommand('copy');
+									temp.remove();
+						            $('.rzp-webhook-to-clipboard-cron').text('Copied to clipboard');
+						        });
 						    });
 						});
 						//]]>
 						</script>
 						";
 
-        $element->setComment("*Please use below url for webhook* <span style='width:300px;font-weight: bold;' class='rzp-webhook-url' >" . $baseUrl . "razorpay/payment/webhook</span>" . $copyButton );
+		$copyCronButton = "<span class='rzp-webhook-to-clipboard-cron'
+                                           style='background-color: #337ab7; color: white; border: none;cursor: pointer; padding: 2px 4px; text-decoration: none;display: inline-block;'>Copy Url</span>";
+
+        $element->setComment("*Please use below url for webhook* <span style='width:300px;font-weight: bold;' class='rzp-webhook-url' >" . $baseUrl . "razorpay/payment/webhook</span><br/>" . $copyButton . "<br/>*Please use below url to <b>set cron-job for 5 mins intervals</b> to process missing order* <span style='width:300px;font-weight: bold;' class='rzp-webhook-cron-url' >" . $baseUrl . "razorpay/payment/WebhookOrderCron</span><br/>" . $copyCronButton );
                 
         return $element->getElementHtml();
 
