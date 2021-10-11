@@ -37,6 +37,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
         \Magento\Framework\App\CacheInterface $cache,
         \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
+        \Magento\Quote\Model\QuoteRepository $quoteRepository,
         \Psr\Log\LoggerInterface $logger
     ) {
         parent::__construct(
@@ -52,6 +53,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $this->checkoutFactory = $checkoutFactory;
         $this->cache = $cache;
         $this->orderRepository = $orderRepository;
+        $this->quoteRepository = $quoteRepository;
         $this->logger          = $logger;
 
         $this->objectManagement   = \Magento\Framework\App\ObjectManager::getInstance();
@@ -145,21 +147,34 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
         if(isset($_POST['razorpay_payment_id']))
         {
-            $this->getQuote()->getPayment()->setMethod(PaymentMethod::METHOD_CODE);
+            if(isset($_GET['order_id']) and
+               (empty($_GET['order_id']) === false))
+            {
+                try
+                {
+                    $quote = $this->quoteRepository->get($_GET['order_id']);
 
-            try
-            {
-                if(!$this->customerSession->isLoggedIn()) {
-                    $this->getQuote()->setCheckoutMethod($this->cartManagement::METHOD_GUEST);
-                    $this->getQuote()->setCustomerEmail($this->customerSession->getCustomerEmailAddress());
+                    $quote->getPayment()->setMethod(PaymentMethod::METHOD_CODE);
+
+                    if(!$this->customerSession->isLoggedIn())
+                    {
+                        $this->logger->info('Razorpay front-end: Customer not logged-in' . $this->customerSession->getCustomerEmailAddress());
+                        $quote->setCheckoutMethod($this->cartManagement::METHOD_GUEST);
+                        $quote->setCustomerEmail($this->customerSession->getCustomerEmailAddress());
+                    }
+                    $this->cartManagement->placeOrder($quote->getId());
+                    return $this->_redirect('checkout/onepage/success');
                 }
-                $this->cartManagement->placeOrder($this->getQuote()->getId());
-                return $this->_redirect('checkout/onepage/success');
+                catch(\Exception $e)
+                {
+                    $this->logger->critical(__('Razorpay front-end:' . $e->getMessage()));
+                    $this->messageManager->addError(__($e->getMessage()));
+                    return $this->_redirect('checkout/cart');
+                }
             }
-            catch(\Exception $e)
+            else
             {
-                $this->messageManager->addError(__($e->getMessage()));
-                return $this->_redirect('checkout/cart');
+                $this->logger->critical(__('Razorpay front-end: Quote ID missing on callback from RZP.' ));
             }
         }
         else

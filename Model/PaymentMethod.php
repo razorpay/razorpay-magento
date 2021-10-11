@@ -207,6 +207,15 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             //validate RzpOrderamount with quote/order amount before signature
             $orderAmount = (int) (number_format($order->getGrandTotal() * 100, 0, ".", ""));
 
+            $_objectManager  = \Magento\Framework\App\ObjectManager::getInstance();
+
+            $orderLinkCollection = $_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                                                     ->getCollection()
+                                                    ->addFilter('quote_id', $order->getQuoteId())
+                                                    ->getFirstItem();
+
+            $orderLink = $orderLinkCollection->getData();
+
             if((empty($request) === true) and (isset($_POST['razorpay_signature']) === true))
             {
                 //set request data based on redirect flow
@@ -221,15 +230,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             {
                 //webhook cron call
                 //update orderLink
-                $_objectManager  = \Magento\Framework\App\ObjectManager::getInstance();
-
-                $orderLinkCollection = $_objectManager->get('Razorpay\Magento\Model\OrderLink')
-                                                           ->getCollection()
-                                                           ->addFilter('quote_id', $order->getQuoteId())
-                                                           ->getFirstItem();
-
-                $orderLink = $orderLinkCollection->getData();
-
                 $isWebhookCall = true;
 
                 if (empty($orderLink['entity_id']) === false)
@@ -266,15 +266,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                 {
 
                     //update orderLink
-                    $_objectManager  = \Magento\Framework\App\ObjectManager::getInstance();
-
-                    $orderLinkCollection = $_objectManager->get('Razorpay\Magento\Model\OrderLink')
-                                                               ->getCollection()
-                                                               ->addFilter('quote_id', $order->getQuoteId())
-                                                               ->getFirstItem();
-
-                    $orderLink = $orderLinkCollection->getData();
-
                     if (empty($orderLink['entity_id']) === false)
                     {
                         $payment_id = $orderLink['rzp_payment_id'];
@@ -355,14 +346,20 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                 }
                 else
                 {
+                    if (empty($orderLink['entity_id']) === false)
+                    {
+                        $rzpOrderAmount = $orderLink['rzp_order_amount'];
+                        $rzp_order_id = $orderLink['rzp_order_id'];
+                    }
+
                     // Order processing through front-end
                     if(empty($request['paymentMethod']['additional_data']['rzp_payment_id']) === false)
                     {
                         $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
 
-                        $rzp_order_id = ($isWebhookCall) ? $request['paymentMethod']['additional_data']['rzp_order_id'] : $this->order->getOrderId();
+                        $rzp_order_id = $rzp_order_id;
 
-                        $rzpOrderAmount = ($isWebhookCall) ? (int) $rzpOrderAmount : $this->order->getRazorpayOrderAmount();
+                        $rzpOrderAmount = (int) $rzpOrderAmount;
 
                         if ($orderAmount !== $rzpOrderAmount)
                         {

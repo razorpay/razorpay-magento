@@ -236,7 +236,7 @@ define(
                         contact: this.user.contact,
                         email: this.user.email
                     },
-                    callback_url: url.build('razorpay/payment/order'),
+                    callback_url: url.build('razorpay/payment/order?order_id=' + data.order_id),
                     cancel_url  : url.build('checkout/cart'),
                     _: {
                         integration: 'magento',
@@ -325,7 +325,7 @@ define(
                         contact: this.user.contact,
                         email: this.user.email
                     },
-                    callback_url: url.build('razorpay/payment/order'),
+                    callback_url: url.build('razorpay/payment/order?order_id=' + data.order_id),
                     _: {
                         integration: 'magento',
                         integration_version: data.module_version,
