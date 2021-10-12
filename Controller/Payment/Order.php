@@ -6,6 +6,7 @@ use Razorpay\Api\Api;
 use Razorpay\Magento\Model\PaymentMethod;
 use Magento\Framework\Controller\ResultFactory;
 
+
 class Order extends \Razorpay\Magento\Controller\BaseController
 {
     protected $quote;
@@ -58,6 +59,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
         $this->objectManagement   = \Magento\Framework\App\ObjectManager::getInstance();
     }
+
 
     public function execute()
     {
@@ -152,29 +154,52 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             {
                 try
                 {
+                    $this->logger->info('Razorpay front-end callback: processing started quoteID:' . $_GET['order_id']);
+
                     $quote = $this->quoteRepository->get($_GET['order_id']);
+
+                    $orderLinkCollection = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                                                               ->getCollection()
+                                                               ->addFilter('quote_id', $quote->getId())
+                                                               ->getFirstItem();
+
+                    $orderLinkData = $orderLinkCollection->getData();
+
+                    if (empty($orderLinkData['entity_id']) === false)
+                    {
+                        $customerEmail = $orderLinkData['email'];
+                    }
+
 
                     $quote->getPayment()->setMethod(PaymentMethod::METHOD_CODE);
 
                     if(!$this->customerSession->isLoggedIn())
                     {
-                        $this->logger->info('Razorpay front-end: Customer not logged-in' . $this->customerSession->getCustomerEmailAddress());
+                        $this->logger->info('Razorpay front-end callback: Customer not logged-in quoteID:' . $quote->getId());
+
                         $quote->setCheckoutMethod($this->cartManagement::METHOD_GUEST);
-                        $quote->setCustomerEmail($this->customerSession->getCustomerEmailAddress());
+
+                        $quote->setCustomerEmail($customerEmail);
                     }
+
                     $this->cartManagement->placeOrder($quote->getId());
+
+                    $this->logger->info('Razorpay front-end callback: processing completed quoteID:' . $quote->getId());
+
                     return $this->_redirect('checkout/onepage/success');
                 }
                 catch(\Exception $e)
                 {
-                    $this->logger->critical(__('Razorpay front-end:' . $e->getMessage()));
+                    $this->logger->critical(__('Razorpay front-end callback:' . $e->getMessage()));
+
                     $this->messageManager->addError(__($e->getMessage()));
+
                     return $this->_redirect('checkout/cart');
                 }
             }
             else
             {
-                $this->logger->critical(__('Razorpay front-end: Quote ID missing on callback from RZP.' ));
+                $this->logger->critical(__('Razorpay front-end callback: Quote ID missing on callback from RZP.' ));
             }
         }
         else
@@ -303,6 +328,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                         {
                             $orderLinkCollection->setRzpOrderId($order->id)
                                                 ->setRzpOrderAmount($amount)
+                                                ->setEmail($_POST['email'])
                                                 ->save();
                         }
                         else
@@ -311,6 +337,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                             $orderLnik->setQuoteId($receipt_id)
                                       ->setRzpOrderId($order->id)
                                       ->setRzpOrderAmount($amount)
+                                      ->setEmail($_POST['email'])
                                       ->save();
                         }
 
