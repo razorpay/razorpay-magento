@@ -6,7 +6,6 @@ use Razorpay\Api\Api;
 use Razorpay\Magento\Model\PaymentMethod;
 use Magento\Framework\Controller\ResultFactory;
 
-
 class Order extends \Razorpay\Magento\Controller\BaseController
 {
     protected $quote;
