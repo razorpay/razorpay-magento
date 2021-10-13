@@ -27,6 +27,12 @@
 	    </arguments>
 	</virtualType>
 
+	<type name="Razorpay\Magento\Controller\Payment\Callback">
+	    <arguments>
+	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
+	    </arguments>
+	</type>
+
 	<type name="Razorpay\Magento\Controller\Payment\Order">
 	    <arguments>
 	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
