@@ -236,7 +236,7 @@ define(
                         contact: this.user.contact,
                         email: this.user.email
                     },
-                    callback_url: url.build('razorpay/payment/order?order_id=' + data.order_id),
+                    callback_url: url.build('razorpay/payment/callback?order_id=' + data.order_id),
                     cancel_url  : url.build('checkout/cart'),
                     _: {
                         integration: 'magento',
@@ -279,6 +279,7 @@ define(
                             if(response.order_id){
                                 $(location).attr('href', 'onepage/success?' + Math.random().toString(36).substring(10));
                             }else{
+                                fullScreenLoader.startLoader();
                                 setTimeout(function(){ self.checkRzpOrder(data); }, 1500);
                             }
                         } else {
@@ -308,6 +309,7 @@ define(
                     amount: data.amount,
                     handler: function (data) {
                         self.rzp_response = data;
+                        fullScreenLoader.startLoader();
                         self.checkRzpOrder(data);
                      },
                     order_id: data.rzp_order,
@@ -325,7 +327,7 @@ define(
                         contact: this.user.contact,
                         email: this.user.email
                     },
-                    callback_url: url.build('razorpay/payment/order?order_id=' + data.order_id),
+                    callback_url: url.build('razorpay/payment/callback?order_id=' + data.order_id),
                     _: {
                         integration: 'magento',
                         integration_version: data.module_version,
