@@ -189,7 +189,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
 
             if (empty($orderLinkData['entity_id']) === false)
             {
-                $email = $email ?? $orderLinkData['email'];
+                $email = $orderLinkData['email'] ?? $email;
             }
 
             //get customer from quote , otherwise from payment email
