@@ -57,7 +57,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $this->objectManagement   = \Magento\Framework\App\ObjectManager::getInstance();
     }
 
-
     public function execute()
     {
         $receipt_id = $this->getQuote()->getId();
@@ -143,8 +142,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
             return $response;
         }
-
-
 
         //validate shipping and billing
         $validationSuccess =  true;
