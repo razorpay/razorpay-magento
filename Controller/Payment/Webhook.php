@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace Razorpay\Magento\Controller\Payment;
 
@@ -116,8 +116,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             return;
         }
 
-        $this->logger->info("Razorpay Webhook processing started.");
-
         if (($this->config->isWebhookEnabled() === true) &&
             (empty($post['event']) === false))
         {
@@ -190,40 +188,76 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             }
         }
 
-        $paymentId = $post['payload']['payment']['entity']['id'];
-        $rzpOrderId = $post['payload']['order']['entity']['id'];
+        $this->logger->info("Razorpay Webhook Event(" . $post['event'] . ")  processing Started.");
 
-        if (isset($post['payload']['order']['entity']['receipt']) === false)
+        $paymentId  = $post['payload']['payment']['entity']['id'];
+        $rzpOrderId = $post['payload']['payment']['entity']['order_id'];
+
+        try
         {
-            $this->logger->info("Razorpay Webhook: Quote ID not set for Razorpay payment_id(:$paymentId)");
-            return;
-        }
-
-        $quoteId   = $post['payload']['order']['entity']['receipt'];
-
-
-        $orderLinkCollection = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
-                                                   ->getCollection()
-                                                   ->addFilter('quote_id', $quoteId)
-                                                   ->addFilter('rzp_order_id', $rzpOrderId)
-                                                   ->getFirstItem();
-
-        $orderLink = $orderLinkCollection->getData();
-
-        if (empty($orderLink['entity_id']) === false)
-        {
-            if ($orderLink['order_placed'])
+            if($post['event'] === 'payment.authorized')
             {
-                 $this->logger->info(__("Razorpay Webhook: Quote order is inactive for quoteID: $quoteId and Razorpay payment_id(:$paymentId) with Maze OrderID (:%1) ", $orderLink['increment_order_id']));
+                $rzpOrder = $this->getRzpOrder($rzpOrderId);
 
+                $quoteId = $rzpOrder->receipt;
+
+                $rzpOrderAmount = $rzpOrder->amount;
+
+                $amountPaid     = $post['payload']['payment']['entity']['amount'];
+            }
+            else
+            {
+                $amountPaid     = $post['payload']['order']['entity']['amount_paid'];
+
+                $rzpOrderAmount = $post['payload']['order']['entity']['amount'];
+
+                $quoteId   = $post['payload']['order']['entity']['receipt'];
+            }
+
+            if (isset($quoteId) === false)
+            {
+                $this->logger->info("Razorpay Webhook: Quote ID not set for Razorpay payment_id(:$paymentId)");
                 return;
             }
 
-            //set the 1st webhook notification time
-            if ($orderLink['webhook_count'] < 1)
+            $email   = $post['payload']['payment']['entity']['email'];
+            $contact = $post['payload']['payment']['entity']['contact'];
+        }
+        catch(\Razorpay\Api\Errors\Error $e)
+        {
+            $this->logger->critical("Razorpay Webhook: fetching RZP order data(id:$rzpOrderId) PaymentId:(:paymentId) failed with error: ". $e->getMessage());
+            return;
+        }
+        catch(\Exception $e)
+        {
+            $this->logger->critical("Razorpay Webhook: fetching RZP order data(id:$rzpOrderId) PaymentId:(:paymentId) failed with error: ". $e->getMessage());
+            return;
+        }
+
+        try
+        {
+            $orderLinkCollection = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                                                       ->getCollection()
+                                                       ->addFilter('quote_id', $quoteId)
+                                                       ->addFilter('rzp_order_id', $rzpOrderId)
+                                                       ->getFirstItem();
+
+            $orderLink = $orderLinkCollection->getData();
+
+            if (empty($orderLink['entity_id']) === false)
             {
-                $orderLinkCollection->setWebhookFirstNotifiedAt(time());
-            }
+                if ($orderLink['order_placed'])
+                {
+                     $this->logger->info(__("Razorpay Webhook: Quote order is inactive for quoteID: $quoteId and Razorpay payment_id(:$paymentId) with Maze OrderID (:%1) ", $orderLink['increment_order_id']));
+
+                    return;
+                }
+
+                //set the 1st webhook notification time
+                if ($orderLink['webhook_count'] < 1)
+                {
+                    $orderLinkCollection->setWebhookFirstNotifiedAt(time());
+                }
 
                 $paymentSignature = hash_hmac('sha256', $rzpOrderId . "|" . $paymentId, $this->config->getConfigData(Config::KEY_PRIVATE_KEY));
 
