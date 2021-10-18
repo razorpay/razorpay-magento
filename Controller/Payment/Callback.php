@@ -109,7 +109,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
 
                     $order = $this->quoteManagement->submit($quote);
 
-                    $this->logger->critical(__('Razorpay front-end callback: order Id- ' . $order->getId()));
+                    $this->logger->info(__('Razorpay front-end callback: order Id- ' . $order->getId()));
                     
                     $this->checkoutSession->setLastSuccessQuoteId($quote->getId())
                                           ->setLastQuoteId($quote->getId())
@@ -128,6 +128,8 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                 }
                 catch(\Exception $e)
                 {
+                    $quote->setIsActive(1)->setReservedOrderId(null)->save();
+
                     $this->logger->critical(__('Razorpay front-end callback: ' . $e->getMessage()));
                     
                     $this->messageManager->addError(__($e->getMessage()));
