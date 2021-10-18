@@ -11,9 +11,10 @@ define(
         'Magento_Checkout/js/action/place-order',
         'Magento_Checkout/js/model/full-screen-loader',
         'Magento_Ui/js/model/messageList',
-        'Magento_Checkout/js/model/shipping-save-processor'
+        'Magento_Checkout/js/model/shipping-save-processor',
+        'Magento_Customer/js/customer-data',
     ],
-    function (Component, quote, $, ko, additionalValidators, setPaymentInformationAction, url, customer, placeOrderAction, fullScreenLoader, messageList, shippingSaveProcessor) {
+    function (Component, quote, $, ko, additionalValidators, setPaymentInformationAction, url, customer, placeOrderAction, fullScreenLoader, messageList, shippingSaveProcessor, customerData) {
         'use strict';
 
         return Component.extend({
@@ -258,6 +259,8 @@ define(
 
                 document.body.appendChild(form);
 
+                customerData.invalidate(['cart']);
+
                 form.submit();
             },
 
@@ -342,6 +345,8 @@ define(
                 }
 
                 this.rzp = new Razorpay(options);
+
+                customerData.invalidate(['cart']);
 
                 this.rzp.open();
             },
