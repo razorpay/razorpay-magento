@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Cron:etc/crontab.xsd">
+    <group id="razorpay">
+        <job name="razorpay_webhook_order_create" instance="Razorpay\Magento\Cron\WebhookOrderCron" method="execute">
+            <schedule>*/3 * * * *</schedule>
+        </job>
+     </group>
+</config>
