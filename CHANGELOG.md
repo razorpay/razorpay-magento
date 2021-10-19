@@ -1,6 +1,13 @@
 
 # Change Log
 
+## [3.7.1] - 2021-10-20
+
+### Changed
+### Fixed
+- [Fixed issue, related with quote ID missing in the callback url](https://github.com/razorpay/razorpay-magento/pull/288).
+- [Added webhook order cron under `razorpay` group](https://github.com/razorpay/razorpay-magento/pull/289).
+
 ## [3.7.0] - 2021-10-07
 
 ### Changed
