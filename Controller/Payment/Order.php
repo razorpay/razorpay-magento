@@ -143,189 +143,170 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             return $response;
         }
 
-        if(isset($_POST['razorpay_payment_id']))
+        //validate shipping and billing
+        $validationSuccess =  true;
+        $code = 200;
+
+        if(empty($_POST['email']) === true)
         {
-            $this->getQuote()->getPayment()->setMethod(PaymentMethod::METHOD_CODE);
+            $this->logger->info("Email field is required");
+
+            $responseContent = [
+                'message'   => "Email field is required",
+                'parameters' => []
+            ];
+
+            $validationSuccess = false;
+        }
+
+        if(empty($this->getQuote()->getBillingAddress()->getPostcode()) === true)
+        {
+            $responseContent = [
+                'message'   => "Billing Address is required",
+                'parameters' => []
+            ];
+
+            $validationSuccess = false;
+        }
+
+        if(!$this->getQuote()->getIsVirtual())
+        {
+             //validate quote Shipping method
+            if(empty($this->getQuote()->getShippingAddress()->getShippingMethod()) === true)
+            {
+                $responseContent = [
+                    'message'   => "Shipping method is required",
+                    'parameters' => []
+                ];
+
+                $validationSuccess = false;
+            }
+
+            if(empty($this->getQuote()->getShippingAddress()->getPostcode()) === true)
+            {
+                $responseContent = [
+                    'message'   => "Shipping Address is required",
+                    'parameters' => []
+                ];
+
+                $validationSuccess = false;
+            }
+        }
+
+        if($validationSuccess)
+        {
+            $amount = (int) (number_format($this->getQuote()->getGrandTotal() * 100, 0, ".", ""));
+
+            $payment_action = $this->config->getPaymentAction();
+
+            $maze_version = $this->_objectManager->get('Magento\Framework\App\ProductMetadataInterface')->getVersion();
+            $module_version =  $this->_objectManager->get('Magento\Framework\Module\ModuleList')->getOne('Razorpay_Magento')['setup_version'];
+
+            $this->customerSession->setCustomerEmailAddress($_POST['email']);
+
+            if ($payment_action === 'authorize')
+            {
+                $payment_capture = 0;
+            }
+            else
+            {
+                $payment_capture = 1;
+            }
+
+            $code = 400;
 
             try
             {
-                if(!$this->customerSession->isLoggedIn()) {
-                    $this->getQuote()->setCheckoutMethod($this->cartManagement::METHOD_GUEST);
-                    $this->getQuote()->setCustomerEmail($this->customerSession->getCustomerEmailAddress());
+                $order = $this->rzp->order->create([
+                    'amount' => $amount,
+                    'receipt' => $receipt_id,
+                    'currency' => $this->getQuote()->getQuoteCurrencyCode(),
+                    'payment_capture' => $payment_capture,
+                    'app_offer' => ($this->getDiscount() > 0) ? 1 : 0
+                ]);
+
+                $responseContent = [
+                    'message'   => 'Unable to create your order. Please contact support.',
+                    'parameters' => []
+                ];
+
+                if (null !== $order && !empty($order->id))
+                {
+                    $is_hosted = false;
+
+                    $merchantPreferences    = $this->getMerchantPreferences();
+
+                    $responseContent = [
+                        'success'           => true,
+                        'rzp_order'         => $order->id,
+                        'order_id'          => $receipt_id,
+                        'amount'            => $order->amount,
+                        'quote_currency'    => $this->getQuote()->getQuoteCurrencyCode(),
+                        'quote_amount'      => number_format($this->getQuote()->getGrandTotal(), 2, ".", ""),
+                        'maze_version'      => $maze_version,
+                        'module_version'    => $module_version,
+                        'is_hosted'         => $merchantPreferences['is_hosted'],
+                        'image'             => $merchantPreferences['image'],
+                        'embedded_url'      => $merchantPreferences['embedded_url'],
+                    ];
+
+                    $code = 200;
+
+                    $this->checkoutSession->setRazorpayOrderID($order->id);
+                    $this->checkoutSession->setRazorpayOrderAmount($amount);
+
+                    //save to razorpay orderLink
+                    $orderLinkCollection = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                                                           ->getCollection()
+                                                           ->addFilter('quote_id', $receipt_id)
+                                                           ->getFirstItem();
+
+                    $orderLinkData = $orderLinkCollection->getData();
+
+                    if (empty($orderLinkData['entity_id']) === false)
+                    {
+                        $orderLinkCollection->setRzpOrderId($order->id)
+                                            ->setRzpOrderAmount($amount)
+                                            ->setEmail($_POST['email'])
+                                            ->save();
+                    }
+                    else
+                    {
+                        $orderLnik = $this->_objectManager->create('Razorpay\Magento\Model\OrderLink');
+                        $orderLnik->setQuoteId($receipt_id)
+                                  ->setRzpOrderId($order->id)
+                                  ->setRzpOrderAmount($amount)
+                                  ->setEmail($_POST['email'])
+                                  ->save();
+                    }
+
                 }
-                $this->cartManagement->placeOrder($this->getQuote()->getId());
-                return $this->_redirect('checkout/onepage/success');
+            }
+            catch(\Razorpay\Api\Errors\Error $e)
+            {
+                $responseContent = [
+                    'message'   => $e->getMessage(),
+                    'parameters' => []
+                ];
             }
             catch(\Exception $e)
             {
-                $this->messageManager->addError(__($e->getMessage()));
-                return $this->_redirect('checkout/cart');
-            }
-        }
-        else
-        {
-            //validate shipping and billing
-            $validationSuccess =  true;
-            $code = 200;
-
-            if(empty($_POST['email']) === true)
-            {
-                $this->logger->info("Email field is required");
-
                 $responseContent = [
-                    'message'   => "Email field is required",
+                    'message'   => $e->getMessage(),
                     'parameters' => []
                 ];
-
-                $validationSuccess = false;
             }
-
-            if(empty($this->getQuote()->getBillingAddress()->getPostcode()) === true)
-            {
-                $responseContent = [
-                    'message'   => "Billing Address is required",
-                    'parameters' => []
-                ];
-
-                $validationSuccess = false;
-            }
-
-            if(!$this->getQuote()->getIsVirtual())
-            {
-                 //validate quote Shipping method
-                if(empty($this->getQuote()->getShippingAddress()->getShippingMethod()) === true)
-                {
-                    $responseContent = [
-                        'message'   => "Shipping method is required",
-                        'parameters' => []
-                    ];
-
-                    $validationSuccess = false;
-                }
-
-                if(empty($this->getQuote()->getShippingAddress()->getPostcode()) === true)
-                {
-                    $responseContent = [
-                        'message'   => "Shipping Address is required",
-                        'parameters' => []
-                    ];
-
-                    $validationSuccess = false;
-                }
-            }
-
-            if($validationSuccess)
-            {
-                $amount = (int) (number_format($this->getQuote()->getGrandTotal() * 100, 0, ".", ""));
-
-                $payment_action = $this->config->getPaymentAction();
-
-                $maze_version = $this->_objectManager->get('Magento\Framework\App\ProductMetadataInterface')->getVersion();
-                $module_version =  $this->_objectManager->get('Magento\Framework\Module\ModuleList')->getOne('Razorpay_Magento')['setup_version'];
-
-                $this->customerSession->setCustomerEmailAddress($_POST['email']);
-
-                if ($payment_action === 'authorize')
-                {
-                    $payment_capture = 0;
-                }
-                else
-                {
-                    $payment_capture = 1;
-                }
-
-                $code = 400;
-
-                try
-                {
-                    $order = $this->rzp->order->create([
-                        'amount' => $amount,
-                        'receipt' => $receipt_id,
-                        'currency' => $this->getQuote()->getQuoteCurrencyCode(),
-                        'payment_capture' => $payment_capture,
-                        'app_offer' => ($this->getDiscount() > 0) ? 1 : 0
-                    ]);
-
-                    $responseContent = [
-                        'message'   => 'Unable to create your order. Please contact support.',
-                        'parameters' => []
-                    ];
-
-                    if (null !== $order && !empty($order->id))
-                    {
-                        $is_hosted = false;
-
-                        $merchantPreferences    = $this->getMerchantPreferences();
-
-                        $responseContent = [
-                            'success'           => true,
-                            'rzp_order'         => $order->id,
-                            'order_id'          => $receipt_id,
-                            'amount'            => $order->amount,
-                            'quote_currency'    => $this->getQuote()->getQuoteCurrencyCode(),
-                            'quote_amount'      => number_format($this->getQuote()->getGrandTotal(), 2, ".", ""),
-                            'maze_version'      => $maze_version,
-                            'module_version'    => $module_version,
-                            'is_hosted'         => $merchantPreferences['is_hosted'],
-                            'image'             => $merchantPreferences['image'],
-                            'embedded_url'      => $merchantPreferences['embedded_url'],
-                        ];
-
-                        $code = 200;
-
-                        $this->checkoutSession->setRazorpayOrderID($order->id);
-                        $this->checkoutSession->setRazorpayOrderAmount($amount);
-
-                        //save to razorpay orderLink
-                        $orderLinkCollection = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
-                                                               ->getCollection()
-                                                               ->addFilter('quote_id', $receipt_id)
-                                                               ->getFirstItem();
-
-                        $orderLinkData = $orderLinkCollection->getData();
-
-                        if (empty($orderLinkData['entity_id']) === false)
-                        {
-                            $orderLinkCollection->setRzpOrderId($order->id)
-                                                ->setRzpOrderAmount($amount)
-                                                ->save();
-                        }
-                        else
-                        {
-                            $orderLnik = $this->_objectManager->create('Razorpay\Magento\Model\OrderLink');
-                            $orderLnik->setQuoteId($receipt_id)
-                                      ->setRzpOrderId($order->id)
-                                      ->setRzpOrderAmount($amount)
-                                      ->save();
-                        }
-
-                    }
-                }
-                catch(\Razorpay\Api\Errors\Error $e)
-                {
-                    $responseContent = [
-                        'message'   => $e->getMessage(),
-                        'parameters' => []
-                    ];
-                }
-                catch(\Exception $e)
-                {
-                    $responseContent = [
-                        'message'   => $e->getMessage(),
-                        'parameters' => []
-                    ];
-                }
-            }
-
-            //set the chache for race with webhook
-            $this->cache->save("started", "quote_Front_processing_$receipt_id", ["razorpay"], 300);
-
-            $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
-            $response->setData($responseContent);
-            $response->setHttpResponseCode($code);
-
-            return $response;
         }
+
+        //set the chache for race with webhook
+        $this->cache->save("started", "quote_Front_processing_$receipt_id", ["razorpay"], 300);
+
+        $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
+        $response->setData($responseContent);
+        $response->setHttpResponseCode($code);
+
+        return $response;
+
     }
 
     public function getOrderID()

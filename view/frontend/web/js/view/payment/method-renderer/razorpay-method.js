@@ -11,9 +11,10 @@ define(
         'Magento_Checkout/js/action/place-order',
         'Magento_Checkout/js/model/full-screen-loader',
         'Magento_Ui/js/model/messageList',
-        'Magento_Checkout/js/model/shipping-save-processor'
+        'Magento_Checkout/js/model/shipping-save-processor',
+        'Magento_Customer/js/customer-data',
     ],
-    function (Component, quote, $, ko, additionalValidators, setPaymentInformationAction, url, customer, placeOrderAction, fullScreenLoader, messageList, shippingSaveProcessor) {
+    function (Component, quote, $, ko, additionalValidators, setPaymentInformationAction, url, customer, placeOrderAction, fullScreenLoader, messageList, shippingSaveProcessor, customerData) {
         'use strict';
 
         return Component.extend({
@@ -236,7 +237,7 @@ define(
                         contact: this.user.contact,
                         email: this.user.email
                     },
-                    callback_url: url.build('razorpay/payment/order'),
+                    callback_url: url.build('razorpay/payment/callback?order_id=' + data.order_id),
                     cancel_url  : url.build('checkout/cart'),
                     _: {
                         integration: 'magento',
@@ -257,6 +258,8 @@ define(
                 self.createInputFieldsFromOptions(options, form);
 
                 document.body.appendChild(form);
+
+                customerData.invalidate(['cart']);
 
                 form.submit();
             },
@@ -279,6 +282,7 @@ define(
                             if(response.order_id){
                                 $(location).attr('href', 'onepage/success?' + Math.random().toString(36).substring(10));
                             }else{
+                                fullScreenLoader.startLoader();
                                 setTimeout(function(){ self.checkRzpOrder(data); }, 1500);
                             }
                         } else {
@@ -308,6 +312,7 @@ define(
                     amount: data.amount,
                     handler: function (data) {
                         self.rzp_response = data;
+                        fullScreenLoader.startLoader();
                         self.checkRzpOrder(data);
                      },
                     order_id: data.rzp_order,
@@ -325,7 +330,7 @@ define(
                         contact: this.user.contact,
                         email: this.user.email
                     },
-                    callback_url: url.build('razorpay/payment/order'),
+                    callback_url: url.build('razorpay/payment/callback?order_id=' + data.order_id),
                     _: {
                         integration: 'magento',
                         integration_version: data.module_version,
@@ -340,6 +345,8 @@ define(
                 }
 
                 this.rzp = new Razorpay(options);
+
+                customerData.invalidate(['cart']);
 
                 this.rzp.open();
             },

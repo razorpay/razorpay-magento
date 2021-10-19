@@ -3,4 +3,12 @@
     <event name="sales_order_save_after">
         <observer name="razorpay_payment_gateway_after_place_order" instance="Razorpay\Magento\Observer\AfterPlaceOrderObserver"/>
     </event>
+
+    <event name="checkout_submit_before">
+        <observer name="razorpay_payment_ignore_billing_address_validation" instance="Razorpay\Magento\Observer\IgnoreBillingAddressValidation" />
+    </event>
+
+    <event name="sales_model_service_quote_submit_before">
+        <observer name="razorpay_payment_ignore_billing_address_validation" instance="Razorpay\Magento\Observer\IgnoreBillingAddressValidation" />
+    </event>
 </config>

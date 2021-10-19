@@ -8,9 +8,10 @@ use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order\Payment;
 use Razorpay\Magento\Model\PaymentMethod;
 use Magento\Framework\Exception\LocalizedException;
+
 /**
  * Class AfterPlaceOrderObserver
- * @package PayU\PaymentGateway\Observer
+ * @package Razorpay\Magento\Observer
  */
 class AfterPlaceOrderObserver implements ObserverInterface
 {
@@ -114,6 +115,7 @@ class AfterPlaceOrderObserver implements ObserverInterface
 
                 //update quote
                 $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($lastQuoteId);
+
                 $quote->setIsActive(false)->save();
 
                 $this->checkoutSession->replaceQuote($quote);
