@@ -41,7 +41,13 @@ panel (System -> Cache Management).
 
 ### Note: Make sure "zipcode" must be required field for billing and shipping address.**
 
+### Setting up the cron to process missing orders
 
+Razopray webhook cron is added under "razorpay" group, and can be run manually like below:
+
+```
+bin/magento cron:run --group="razorpay"
+```
 ### Working with GraphQL 
 
 Razorpay GraphQL Support added with version 3.6.0 
