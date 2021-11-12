@@ -217,13 +217,42 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
             try
             {
-                $order = $this->rzp->order->create([
-                    'amount' => $amount,
-                    'receipt' => $receipt_id,
-                    'currency' => $this->getQuote()->getQuoteCurrencyCode(),
-                    'payment_capture' => $payment_capture,
-                    'app_offer' => ($this->getDiscount() > 0) ? 1 : 0
-                ]);
+                //save to razorpay orderLink
+                $orderLinkCollection = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                                                       ->getCollection()
+                                                       ->addFilter('quote_id', $receipt_id)
+                                                       ->getFirstItem();
+
+                $orderLinkData = $orderLinkCollection->getData();
+
+                $createNewOrder = true;
+
+                if (empty($orderLinkData['entity_id']) === false)
+                {
+                    if (((int) $orderLinkData['rzp_order_amount'] === $amount)  and (isset($orderLinkData['rzp_order_id']) === true))
+                    {
+                        $createNewOrder = false;
+
+                    }
+                }
+
+                if ($createNewOrder)
+                {
+                    $order = $this->rzp->order->create([
+                        'amount' => $amount,
+                        'receipt' => $receipt_id,
+                        'currency' => $this->getQuote()->getQuoteCurrencyCode(),
+                        'payment_capture' => $payment_capture,
+                        'app_offer' => ($this->getDiscount() > 0) ? 1 : 0
+                    ]);
+                }
+                else
+                {
+                    if (isset($orderLinkData['rzp_order_id']) === true)
+                    {
+                        $order = $this->rzp->order->fetch($orderLinkData['rzp_order_id']);
+                    }
+                }
 
                 $responseContent = [
                     'message'   => 'Unable to create your order. Please contact support.',
@@ -254,14 +283,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
                     $this->checkoutSession->setRazorpayOrderID($order->id);
                     $this->checkoutSession->setRazorpayOrderAmount($amount);
-
-                    //save to razorpay orderLink
-                    $orderLinkCollection = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
-                                                           ->getCollection()
-                                                           ->addFilter('quote_id', $receipt_id)
-                                                           ->getFirstItem();
-
-                    $orderLinkData = $orderLinkCollection->getData();
 
                     if (empty($orderLinkData['entity_id']) === false)
                     {
