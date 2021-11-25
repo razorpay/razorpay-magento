@@ -51,6 +51,8 @@ define(
                 return this.razorpayDataFrameLoaded;
             },
 
+            paymetClosed: false,
+
             handleError: function (error) {
                 if (_.isObject(error)) {
                     this.messageContainer.addErrorMessage(error);
@@ -126,6 +128,8 @@ define(
 
             getRzpOrderId: function () {
                 var self = this;
+
+                this.handleError("Please don't initiate new payment if already done once. Check with site Admin.");
 
                 //update shipping and billing before order into quotes
                 if(!quote.isVirtual()) {
@@ -267,6 +271,8 @@ define(
             checkRzpOrder: function (data) {
                 var self = this;
 
+                if(self.paymetClosed) return;
+
                 $.ajax({
                     type: 'POST',
                     url: url.build('razorpay/payment/order?' + Math.random().toString(36).substring(10)),
@@ -279,12 +285,7 @@ define(
                     success: function (response) {
                         //fullScreenLoader.stopLoader();
                         if (response.success) {
-                            if(response.order_id){
-                                $(location).attr('href', 'onepage/success?' + Math.random().toString(36).substring(10));
-                            }else{
-                                fullScreenLoader.startLoader();
-                                setTimeout(function(){ self.checkRzpOrder(data); }, 1500);
-                            }
+                            setTimeout(function(){ self.checkRzpOrder(data); }, 3000);
                         } else {
                             self.placeOrder(data);
                         }
@@ -313,12 +314,14 @@ define(
                     handler: function (data) {
                         self.rzp_response = data;
                         fullScreenLoader.startLoader();
-                        self.checkRzpOrder(data);
+                        self.placeOrder(data);
                      },
                     order_id: data.rzp_order,
                     modal: {
                         ondismiss: function() {
+                            self.paymetClosed = true;
                             self.isPaymentProcessing.reject("Payment Closed");
+                            fullScreenLoader.stopLoader();
                         }
                     },
                     notes: {
@@ -349,6 +352,8 @@ define(
                 customerData.invalidate(['cart']);
 
                 this.rzp.open();
+
+                this.checkRzpOrder(data);
             },
 
             getData: function() {

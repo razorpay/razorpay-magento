@@ -18,7 +18,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
     protected $orderRepository;
 
-    protected $logger;
+    public $logger;
     /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
@@ -69,70 +69,31 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
         if (isset($_POST['order_check']))
         {
-            if (empty($this->cache->load("quote_processing_".$receipt_id)) === false)
-            {
-                $responseContent = [
+            $responseContent = [
                 'success'   => true,
                 'order_id'  => false,
                 'parameters' => []
-                ];
+            ];
 
-                # fetch the related sales order and verify the payment ID with rzp payment id
-                # To avoid duplicate order entry for same quote
-                $collection = $this->_objectManager->get('Magento\Sales\Model\Order')
-                                                   ->getCollection()
-                                                   ->addFieldToSelect('entity_id')
-                                                   ->addFilter('quote_id', $receipt_id)
-                                                   ->getFirstItem();
+            # fetch the related sales order and verify the payment ID with rzp payment id
+            # To avoid duplicate order entry for same quote
+            $orderLinkCollection = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                                                 ->getCollection()
+                                                ->addFilter('quote_id', $receipt_id)
+                                                ->getFirstItem();
 
-                $salesOrder = $collection->getData();
+            $orderLink = $orderLinkCollection->getData();
 
-                if (empty($salesOrder['entity_id']) === false)
-                {
-                    $this->logger->info("Razorpay inside order already processed with webhook quoteID:" . $receipt_id
-                                    ." and OrderID:".$salesOrder['entity_id']);
-
-                    $this->checkoutSession
-                            ->setLastQuoteId($this->getQuote()->getId())
-                            ->setLastSuccessQuoteId($this->getQuote()->getId())
-                            ->clearHelperData();
-
-                    $order = $this->orderRepository->get($salesOrder['entity_id']);
-
-                    if ($order) {
-                        $this->checkoutSession->setLastOrderId($order->getId())
-                                           ->setLastRealOrderId($order->getIncrementId())
-                                           ->setLastOrderStatus($order->getStatus());
-                    }
-
-                    $responseContent['order_id'] = true;
-                }
-            }
-            else
+            if (empty($orderLink['entity_id']) === false)
             {
-                if(empty($receipt_id) === false)
+                $this->logger->info("Razorpay-frontend: Inside payment already notified with webhook for quoteID:" . $receipt_id);
+
+                if (isset($orderLink['rzp_signature']) === true)
                 {
-                    //set the chache to stop webhook processing
-                    $this->cache->save("started", "quote_Front_processing_$receipt_id", ["razorpay"], 30);
-
-                    $this->logger->info("Razorpay front-end order processing started quoteID:" . $receipt_id);
-
                     $responseContent = [
-                    'success'   => false,
-                    'parameters' => []
-                    ];
-                }
-                else
-                {
-                    $this->logger->info("Razorpay order already processed with quoteID:" . $this->checkoutSession
-                            ->getLastQuoteId());
-
-                    $responseContent = [
-                        'success'    => true,
-                        'order_id'   => true,
+                        'success'   => false,
                         'parameters' => []
                     ];
-
                 }
             }
 

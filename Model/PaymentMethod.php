@@ -287,6 +287,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                         {
                             $rzpOrderAmount = $order->getOrderCurrency()->formatTxt(number_format($rzp_order_amount_actual / 100, 2, ".", ""));
 
+                            $this->order->logger->critical(__("Cart order amount = %1 doesn't match with amount paid = %2", $order->getOrderCurrency()->formatTxt($order->getGrandTotal()), $rzpOrderAmount));
                             throw new LocalizedException(__("Cart order amount = %1 doesn't match with amount paid = %2", $order->getOrderCurrency()->formatTxt($order->getGrandTotal()), $rzpOrderAmount));
                         }
 
@@ -305,6 +306,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                         catch(\Razorpay\Api\Errors\Error $e)
                         {
                            $this->_logger->critical($e);
+                           $this->order->logger->critical(__('Razorpay Error: %1.', $e->getMessage()));
                            throw new LocalizedException(__('Razorpay Error: %1.', $e->getMessage()));
                         }
 
@@ -318,6 +320,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                             catch(\Razorpay\Api\Errors\Error $e)
                             {
                                $this->_logger->critical($e);
+                               $this->order->logger->critical(__('Razorpay Error: %1.', $e->getMessage()));
                                throw new LocalizedException(__('Razorpay Error: %1.', $e->getMessage()));
                             }
 
@@ -353,17 +356,21 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                     }
 
                     // Order processing through front-end
-                    if(empty($request['paymentMethod']['additional_data']['rzp_payment_id']) === false)
+                    if(empty($request['paymentMethod']['additional_data']) === false)
                     {
-                        $payment_id = $request['paymentMethod']['additional_data']['rzp_payment_id'];
+                        $payment_id = (empty($request['paymentMethod']['additional_data']['rzp_payment_id']) === false) ? $request['paymentMethod']['additional_data']['rzp_payment_id'] : $orderLink['rzp_payment_id'];
 
                         $rzp_order_id = $rzp_order_id;
 
                         $rzpOrderAmount = (int) $rzpOrderAmount;
 
+                        $rzpSignature = (empty($request['paymentMethod']['additional_data']['rzp_signature']) === false) ? $request['paymentMethod']['additional_data']['rzp_signature'] : $orderLink['rzp_signature'];
+
                         if ($orderAmount !== $rzpOrderAmount)
                         {
                             $rzpOrderAmount = $order->getOrderCurrency()->formatTxt(number_format($rzpOrderAmount / 100, 2, ".", ""));
+
+                            $this->order->logger->critical(__("Cart order amount = %1 doesn't match with amount paid = %2", $order->getOrderCurrency()->formatTxt($order->getGrandTotal()), $rzpOrderAmount));
 
                             throw new LocalizedException(__("Cart order amount = %1 doesn't match with amount paid = %2", $order->getOrderCurrency()->formatTxt($order->getGrandTotal()), $rzpOrderAmount));
                         }
@@ -371,7 +378,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                         $this->validateSignature([
                             'razorpay_payment_id' => $payment_id,
                             'razorpay_order_id'   => $rzp_order_id,
-                            'razorpay_signature'  => $request['paymentMethod']['additional_data']['rzp_signature']
+                            'razorpay_signature'  => $rzpSignature
                         ]);
                     }
                 }
@@ -395,6 +402,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                 $error = "Razorpay paymentId missing for payment verification.";
 
                 $this->_logger->critical($error);
+                $this->order->logger->critical($error);
                 throw new LocalizedException(__('Razorpay Error: %1.', $error));
             }
 
@@ -402,6 +410,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         catch (\Exception $e)
         {
             $this->_logger->critical($e);
+            $this->order->logger->critical($e->getMessage());
             throw new LocalizedException(__('Razorpay Error: %1.', $e->getMessage()));
         }
 
