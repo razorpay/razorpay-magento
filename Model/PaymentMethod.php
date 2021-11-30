@@ -365,7 +365,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                         {
                             $rzpOrderAmount = $order->getOrderCurrency()->formatTxt(number_format($rzpOrderAmount / 100, 2, ".", ""));
 
-                            throw new LocalizedException(__("Cart order amount = %1 doesn't match with amount paid = %2", $order->getOrderCurrency()->formatTxt($order->getGrandTotal()), $rzpOrderAmount));
+                            $this->_logger->critical(__("Cart order amount = %1 doesn't match with amount paid = %2", $order->getOrderCurrency()->formatTxt($order->getGrandTotal()), $rzpOrderAmount));
                         }
 
                         $this->validateSignature([
