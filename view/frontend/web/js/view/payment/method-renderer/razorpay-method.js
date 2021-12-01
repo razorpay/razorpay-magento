@@ -314,6 +314,7 @@ define(
                         self.rzp_response = data;
                         fullScreenLoader.startLoader();
                         self.checkRzpOrder(data);
+                        fullScreenLoader.stopLoader();
                      },
                     order_id: data.rzp_order,
                     modal: {

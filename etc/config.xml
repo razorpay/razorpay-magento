@@ -12,6 +12,7 @@
                 <key_id>Key ID</key_id>
                 <key_secret>Key Secret</key_secret>
                 <webhook_wait_time>300</webhook_wait_time>
+                <skip_amount_mismatch_order>1</skip_amount_mismatch_order>
             </razorpay>
         </payment>
     </default>
