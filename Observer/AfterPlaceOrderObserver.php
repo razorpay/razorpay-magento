@@ -90,6 +90,7 @@ class AfterPlaceOrderObserver implements ObserverInterface
                                                        ->getCollection()
                                                        ->addFieldToSelect('entity_id')
                                                        ->addFieldToSelect('order_placed')
+                                                       ->addFieldToSelect('rzp_order_amount')
                                                        ->addFilter('quote_id', $lastQuoteId)
                                                        ->addFilter('rzp_payment_id', $rzpPaymentId)
                                                        ->addFilter('increment_order_id', $order->getRealOrderId())
@@ -111,10 +112,20 @@ class AfterPlaceOrderObserver implements ObserverInterface
                             __('Actual Amount %1 of %2, with Razorpay Offer/Fee applied.', $authOrCapture, $order->getBaseCurrency()->formatTxt($amountPaid))
                         );
 
-                $order->save();
-
                 //update quote
                 $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($lastQuoteId);
+
+                 //validate amount before placing order
+                $quoteAmount    = (int) (number_format($quote->getGrandTotal() * 100, 0, ".", ""));
+                $rzpOrderAmount = (int) (number_format($orderLink['rzp_order_amount'], 0, ".", ""));
+
+                if ($quoteAmount !== $rzpOrderAmount)
+                {
+                    $order->setState('processing')
+                          ->setStatus('payment_review');
+                }
+
+                $order->save();
 
                 $quote->setIsActive(false)->save();
 

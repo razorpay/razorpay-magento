@@ -18,6 +18,7 @@ class Config
     const WEBHOOK_SECRET = 'webhook_secret';
     const WEBHOOK_WAIT_TIME = 'webhook_wait_time';
     const DISABLE_UPGRADE_NOTICE = 'disable_upgrade_notice';
+    const SKIP_AMOUNT_MISMATCH_ORDER = 'skip_amount_mismatch_order';
 
     /**
      * @var string
@@ -73,6 +74,11 @@ class Config
     public function getPaymentAction()
     {
         return $this->getConfigData(self::KEY_PAYMENT_ACTION);
+    }
+
+    public function isSkipOrderEnabled()
+    {
+        return (bool) (int) $this->getConfigData(self::SKIP_AMOUNT_MISMATCH_ORDER, $this->storeId);
     }
 
     /**
