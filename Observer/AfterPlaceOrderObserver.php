@@ -90,6 +90,7 @@ class AfterPlaceOrderObserver implements ObserverInterface
                                                        ->getCollection()
                                                        ->addFieldToSelect('entity_id')
                                                        ->addFieldToSelect('order_placed')
+                                                       ->addFieldToSelect('rzp_order_amount')
                                                        ->addFilter('quote_id', $lastQuoteId)
                                                        ->addFilter('rzp_payment_id', $rzpPaymentId)
                                                        ->addFilter('increment_order_id', $order->getRealOrderId())
