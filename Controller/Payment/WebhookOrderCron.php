@@ -193,7 +193,10 @@ class WebhookOrderCron extends \Razorpay\Magento\Controller\BaseController
             {
                 $this->logger->critical("Razorpay Webhook Cron: Amount processed for payment doesn't match with store order amount for Razorpay payment_id(:$paymentId) and quote (:$quoteId)");
 
-                //return;
+                if ($this->config->isSkipOrderEnabled() === true)
+                {
+                    return;
+                }
             }
 
             # fetch the related sales order and verify the payment ID with rzp payment id

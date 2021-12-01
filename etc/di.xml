@@ -51,6 +51,12 @@
 	    </arguments>
 	</type>
 
+	<type name="Razorpay\Magento\Cron\WebhookOrderCron">
+	    <arguments>
+	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
+	    </arguments>
+	</type>
+
 	<type name="Razorpay\Magento\Observer\AfterConfigSaveObserver">
 	    <arguments>
 	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
