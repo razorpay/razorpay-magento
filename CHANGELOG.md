@@ -1,6 +1,13 @@
 
 # Change Log
 
+## [3.7.2] - 2021-12-06
+
+### Changed
+### Fixed
+- [Fixed issue, related with new RZP order ID generation for same quote and cart amount](https://github.com/razorpay/razorpay-magento/pull/292).
+- [Added, Change order status to `Payment Review` in case of amount mismatch (By using setting configs)](https://github.com/razorpay/razorpay-magento/pull/296).
+
 ## [3.7.1] - 2021-10-20
 
 ### Changed
