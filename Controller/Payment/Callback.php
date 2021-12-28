@@ -107,21 +107,32 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                         $quote->setCheckoutMethod($this->cartManagement::METHOD_GUEST);
                     }
 
-                    $order = $this->quoteManagement->submit($quote);
-
-                    $this->logger->info(__('Razorpay front-end callback: order Id- ' . $order->getId()));
-                    
-                    $this->checkoutSession->setLastSuccessQuoteId($quote->getId())
-                                          ->setLastQuoteId($quote->getId())
-                                          ->clearHelperData();
-
-                    if(empty($order) === false)
+                    if($quote->getIsActive())
                     {
-                        $this->checkoutSession->setLastOrderId($order->getId())
-                                              ->setLastRealOrderId($order->getIncrementId())
-                                              ->setLastOrderStatus($order->getStatus());
+                        $order = $this->quoteManagement->submit($quote);
+
+                        $this->logger->info(__('Razorpay front-end callback: order Id- ' . $order->getId()));
+
+                        $this->checkoutSession->setLastSuccessQuoteId($quote->getId())
+                                              ->setLastQuoteId($quote->getId())
+                                              ->clearHelperData();
+
+                        if(empty($order) === false)
+                        {
+                            $quote->setIsActive(false)->save();
+
+                            $this->checkoutSession->replaceQuote($quote);
+
+                            $this->checkoutSession->setLastOrderId($order->getId())
+                                                  ->setLastRealOrderId($order->getIncrementId())
+                                                  ->setLastOrderStatus($order->getStatus());
+                        }
                     }
-                    
+                    else
+                    {
+                        $this->logger->info("Razorpay front-end callback: Quote order is inactive for quoteID: $quoteId");
+                    }
+
                     return $this->_redirect('checkout/onepage/success');
 
                     exit;
