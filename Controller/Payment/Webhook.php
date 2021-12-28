@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace Razorpay\Magento\Controller\Payment;
 
@@ -10,6 +10,7 @@ use Magento\Framework\App\CsrfAwareActionInterface;
 use Magento\Framework\App\Request\InvalidRequestException;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\DataObject;
+use Razorpay\Subscription\Helper\SubscriptionWebhook;
 
 class Webhook extends \Razorpay\Magento\Controller\BaseController
 {
@@ -77,7 +78,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         \Magento\Framework\App\CacheInterface $cache,
         \Magento\Framework\Event\ManagerInterface $eventManager,
         \Psr\Log\LoggerInterface $logger
-    ) 
+    )
     {
         parent::__construct(
             $context,
@@ -107,15 +108,15 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
      * Processes the incoming webhook
      */
     public function execute()
-    {       
-        $post = $this->getPostData(); 
+    {
+        $post = $this->getPostData();
 
         if (json_last_error() !== 0)
         {
             return;
         }
 
-        if (($this->config->isWebhookEnabled() === true) && 
+        if (($this->config->isWebhookEnabled() === true) &&
             (empty($post['event']) === false))
         {
             if (isset($_SERVER['HTTP_X_RAZORPAY_SIGNATURE']) === true)
@@ -123,16 +124,16 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 $webhookSecret = $this->config->getWebhookSecret();
 
                 //
-                // To accept webhooks, the merchant must configure 
+                // To accept webhooks, the merchant must configure
                 // it on the magento backend by setting the secret
-                // 
+                //
                 if (empty($webhookSecret) === true)
                 {
                     return;
                 }
 
                 try
-                { 
+                {
                     $postData = file_get_contents('php://input');
 
                     $this->rzp->utility->verifyWebhookSignature($postData, $_SERVER['HTTP_X_RAZORPAY_SIGNATURE'], $webhookSecret);
@@ -140,14 +141,14 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 catch (Errors\SignatureVerificationError $e)
                 {
                     $this->logger->warning(
-                        $e->getMessage(), 
+                        $e->getMessage(),
                         [
                             'data'  => $post,
                             'event' => 'razorpay.magento.signature.verify_failed'
                         ]);
 
                     //Set the validation error in response
-                    header('Status: 400 Signature Verification failed', true, 400);    
+                    header('Status: 400 Signature Verification failed', true, 400);
                     exit;
                 }
 
@@ -155,7 +156,13 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 {
                     case 'payment.authorized':
                     case 'order.paid':
-                        return $this->orderPaid($post);    
+                        return $this->orderPaid($post);
+
+                    case 'subscription.charged':
+                        if(class_exists(SubscriptionWebhook::class)) {
+                            $subscriptionWebhook = new SubscriptionWebhook($this->logger);
+                            return $subscriptionWebhook->processSubscriptionCharged($post);
+                        }
 
                     default:
                         return;
@@ -168,11 +175,21 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
     /**
      * Order Paid webhook
-     * 
+     *
      * @param array $post
      */
     protected function orderPaid(array $post)
     {
+        // Do not process if order is subscription type
+        if (isset($post['payload']['payment']['entity']['invoice_id']) === true) {
+            $rzpInvoiceId = $post['payload']['payment']['entity']['invoice_id'];
+            $invoice = $this->rzp->invoice->fetch($rzpInvoiceId);
+            if(isset($invoice->subscription_id)){
+                $this->logger->info("Razorpay Webhook: Order is a subscription type, hence exiting from webhook since it is handled separately");
+                return;
+            }
+        }
+
         $this->logger->info("Razorpay Webhook Event(" . $post['event'] . ")  processing Started.");
 
         $paymentId  = $post['payload']['payment']['entity']['id'];
