@@ -163,6 +163,24 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                             $subscriptionWebhook = new SubscriptionWebhook($this->logger);
                             return $subscriptionWebhook->processSubscriptionCharged($post);
                         }
+                    
+                    case 'subscription.pause':
+                        if(class_exists(SubscriptionWebhook::class)) {
+                            $subscriptionWebhook = new SubscriptionWebhook($this->logger);
+                            return $subscriptionWebhook->processSubscriptionAction($post);
+                        }
+                    
+                    case 'subscription.resumed':
+                        if(class_exists(SubscriptionWebhook::class)) {
+                            $subscriptionWebhook = new SubscriptionWebhook($this->logger);
+                            return $subscriptionWebhook->processSubscriptionAction($post);
+                        }
+                        
+                    case 'subscription.cancelled':
+                        if(class_exists(SubscriptionWebhook::class)) {
+                            $subscriptionWebhook = new SubscriptionWebhook($this->logger);
+                            return $subscriptionWebhook->processSubscriptionAction($post);
+                        }     
 
                     default:
                         return;
