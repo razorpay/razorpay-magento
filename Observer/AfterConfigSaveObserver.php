@@ -71,67 +71,68 @@ class AfterConfigSaveObserver implements ObserverInterface
 
         $domain_ip = gethostbyname($domain);
 
-        if (!filter_var($domain_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE))
+        if(isset($razorpayParams['enable_webhook']) === true)
         {
-            $this->config->setConfigData('enable_webhook', 0);
-
-            $this->logger->info("Can't enable/disable webhook on $domain or private ip($domain_ip).");
-            return;
-        }
-
-        try
-        {
-            $webhookPresent = $this->getExistingWebhook();
-
-            if(empty($razorpayParams['enable_webhook']['value']) === true)
+            if (!filter_var($domain_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE))
             {
-                $this->disableWebhook();
+                $this->config->setConfigData('enable_webhook', 0);
+
+                $this->logger->info("Can't enable/disable webhook on $domain or private ip($domain_ip).");
                 return;
             }
-                    
-            $events = [];
 
-            foreach($razorpayParams['webhook_events']['value'] as $event)
+            try
             {
-                $events[$event] = true;   
-            }            
+                $webhookPresent = $this->getExistingWebhook();
 
-            if(empty($this->webhookId) === false)
-            {
-                $webhook = $this->rzp->webhook->edit([
-                    "url" => $this->webhookUrl,
-                    "events" => $events,
-                    "secret" => $razorpayParams['webhook_secret']['value'],
-                    "active" => true,
-                ], $this->webhookId);
+                if(empty($razorpayParams['enable_webhook']['value']) === true)
+                {
+                    $this->disableWebhook();
+                    return;
+                }
 
-                $this->logger->info("Razorpay Webhook Updated by Admin.");
+                $events = [];
+
+                foreach($razorpayParams['webhook_events']['value'] as $event)
+                {
+                    $events[$event] = true;
+                }
+
+                if(empty($this->webhookId) === false)
+                {
+                    $webhook = $this->rzp->webhook->edit([
+                        "url" => $this->webhookUrl,
+                        "events" => $events,
+                        "secret" => $razorpayParams['webhook_secret']['value'],
+                        "active" => true,
+                    ], $this->webhookId);
+
+                    $this->logger->info("Razorpay Webhook Updated by Admin.");
+                }
+                else
+                {
+                    $webhook = $this->rzp->webhook->create([
+                        "url" => $this->webhookUrl,
+                        "events" => $events,
+                        "secret" => $razorpayParams['webhook_secret']['value'],
+                        "active" => true,
+                    ]);
+
+                    $this->logger->info("Razorpay Webhook Created by Admin");
+                }
             }
-            else
+            catch(\Razorpay\Api\Errors\Error $e)
             {
-                $webhook = $this->rzp->webhook->create([
-                    "url" => $this->webhookUrl,
-                    "events" => $events,
-                    "secret" => $razorpayParams['webhook_secret']['value'],
-                    "active" => true,
-                ]);
-
-                $this->logger->info("Razorpay Webhook Created by Admin");
+                $this->logger->info($e->getMessage());
+                //in case of error disable the webhook config
+                $this->disableWebhook();
             }
-            
-        }
-        catch(\Razorpay\Api\Errors\Error $e)
-        {
-            
-            $this->logger->info($e->getMessage());
-            //in case of error disable the webhook config
-            $this->disableWebhook();
-        }
-        catch(\Exception $e)
-        {            
-            $this->logger->info($e->getMessage());
+            catch(\Exception $e)
+            {
+                $this->logger->info($e->getMessage());
 
-            $this->disableWebhook();
+                $this->disableWebhook();
+            }
         }
         
         return;

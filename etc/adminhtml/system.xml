@@ -34,13 +34,13 @@
                     <comment>**Required (Enter test key secret for testing)**</comment>
                     <config_path>payment/razorpay/key_secret</config_path>
                 </field>
-                <field id="skip_amount_mismatch_order" translate="label" type="select" sortOrder="2" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="skip_amount_mismatch_order" translate="label" type="select" sortOrder="2" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Skip Amount Mismatch Order Creation</label>
                     <comment>** Don't Create Order in case of amount mismatch with Razorpay and cart total. Otherwise Order gets created with "Payment Review" Status. **</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <config_path>payment/razorpay/skip_amount_mismatch_order</config_path>
                 </field>
-                <field id="enable_webhook" translate="label" type="select" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="enable_webhook" translate="label" type="select" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Webhook Enabled</label>
                     <comment>** {{base_url}} Copy the Webhook Url from below **</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
@@ -90,7 +90,7 @@
                     <can_be_empty>1</can_be_empty>
                     <config_path>payment/razorpay/specificcountry</config_path>
                 </field>
-                <field id="disable_upgrade_notice" translate="label" type="select" sortOrder="52" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="disable_upgrade_notice" translate="label" type="select" sortOrder="52" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Disable Razorpay Upgrade Notice</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <config_path>payment/razorpay/disable_upgrade_notice</config_path>
