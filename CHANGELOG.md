@@ -1,6 +1,15 @@
 
 # Change Log
 
+
+## [3.7.3] - 2021-01-07
+
+### Changed
+- [Added, support for subscription webhook events](https://github.com/razorpay/razorpay-magento/pull/300).
+### Fixed
+- [Fixed issue, Webhook gets disabled in case of mutistore site](https://github.com/razorpay/razorpay-magento/pull/301).
+- [Fixed issue, Verify the active quote, before placing order in callback](https://github.com/razorpay/razorpay-magento/pull/299).
+
 ## [3.7.2] - 2021-12-06
 
 ### Changed
