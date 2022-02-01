@@ -257,8 +257,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         $paymentId      = $post['payload']['payment']['entity']['id'];
         $rzpOrderId     = $post['payload']['payment']['entity']['order_id'];
         $amountPaid     = $post['payload']['payment']['entity']['amount'];
-        $email          = $post['payload']['payment']['entity']['email'];
-        $contact        = $post['payload']['payment']['entity']['contact'];
         try {
             $rzpOrder       = $this->getRzpOrder($rzpOrderId);
             $quoteId        = $rzpOrder->receipt;
@@ -336,12 +334,9 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     {
         $this->logger->info("Razorpay Webhook Event(" . $post['event'] . ")  processing Started.");
         $paymentId      = $post['payload']['payment']['entity']['id'];
-        $rzpOrderId     = $post['payload']['payment']['entity']['order_id'];
         $amountPaid     = $post['payload']['order']['entity']['amount_paid'];
         $rzpOrderAmount = $post['payload']['order']['entity']['amount'];
         $quoteId        = $post['payload']['order']['entity']['receipt'];
-        $email          = $post['payload']['payment']['entity']['email'];
-        $contact        = $post['payload']['payment']['entity']['contact'];
         if (isset($quoteId) === false) {
             $this->logger->info("Razorpay Webhook: Quote ID not set for Razorpay payment_id(:$paymentId)");
             return;
