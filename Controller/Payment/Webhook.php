@@ -306,11 +306,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                             )
                         );
                         $order->save();
-                        //update quote
-                        $quote = $this->objectManagement->get('Magento\Quote\Model\Quote')
-                            ->load($order->getQuoteId());
-                        $quote->setIsActive(false)->save();
-                        $this->checkoutSession->replaceQuote($quote);
                     } else {
                         $this->logger->info("Razorpay Webhook: Sales Order and payment "
                             . "already exist for Razorpay payment_id(:$paymentId)");
