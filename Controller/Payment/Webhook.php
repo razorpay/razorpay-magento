@@ -259,9 +259,9 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         $amountPaid     = $post['payload']['payment']['entity']['amount'];
         try {
             $rzpOrder       = $this->getRzpOrder($rzpOrderId);
-            $quoteId        = $rzpOrder->receipt;
+            $orderId        = $rzpOrder->receipt;
             $rzpOrderAmount = $rzpOrder->amount;
-            if (isset($quoteId) === false) {
+            if (isset($orderId) === false) {
                 $this->logger->info("Razorpay Webhook: Quote ID not set for Razorpay payment_id(:$paymentId)");
                 return;
             }
@@ -280,11 +280,11 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             $collection = $this->objectManagement->get('Magento\Sales\Model\Order')
             ->getCollection()
             ->addFieldToSelect('entity_id')
-            ->addFilter('increment_id', $quoteId)
+            ->addFilter('increment_id', $orderId)
             ->getFirstItem();
             $salesOrder = $collection->getData();
             if (isset($salesOrder['entity_id']) && empty($salesOrder['entity_id']) === false) {
-                $this->logger->info("Razorpay inside order already processed with webhook quoteID:" . $quoteId
+                $this->logger->info("Razorpay inside order already processed with webhook orderID:" . $orderId
                                     ." and OrderID:".$salesOrder['entity_id']);
                 $order = $this->order->load($salesOrder['entity_id']);
                 if ($order) {
@@ -314,8 +314,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 }
             }
         } catch (\Exception $e) {
-            $this->logger->info("Razorpay Webhook payment.authorized exeption, quoteID:" . $quoteId
-                                    ." and OrderID:".$salesOrder['entity_id']
+            $this->logger->info("Razorpay Webhook payment.authorized exeption, orderID:" . $orderId
+                                    ." and entity_id:".$salesOrder['entity_id']
                                     ." Message:" . $e->getMessage());
         }
     }
@@ -331,8 +331,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         $paymentId      = $post['payload']['payment']['entity']['id'];
         $amountPaid     = $post['payload']['order']['entity']['amount_paid'];
         $rzpOrderAmount = $post['payload']['order']['entity']['amount'];
-        $quoteId        = $post['payload']['order']['entity']['receipt'];
-        if (isset($quoteId) === false) {
+        $orderId        = $post['payload']['order']['entity']['receipt'];
+        if (isset($orderId) === false) {
             $this->logger->info("Razorpay Webhook: Quote ID not set for Razorpay payment_id(:$paymentId)");
             return;
         }
@@ -340,12 +340,12 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             $collection = $this->objectManagement->get('Magento\Sales\Model\Order')
             ->getCollection()
             ->addFieldToSelect('entity_id')
-            ->addFilter('increment_id', $quoteId)
+            ->addFilter('increment_id', $orderId)
             ->getFirstItem();
             $salesOrder = $collection->getData();
             if (isset($salesOrder['entity_id']) && empty($salesOrder['entity_id']) === false) {
-                $this->logger->info("Razorpay inside order already processed with webhook quoteID:" . $quoteId
-                                    ." and OrderID:".$salesOrder['entity_id']);
+                $this->logger->info("Razorpay inside order already processed with webhook orderID:" . $orderId
+                                    ." and entity_id:".$salesOrder['entity_id']);
                 $order = $this->order->load($salesOrder['entity_id']);
                 if ($order) {
                     $amountPaid = number_format($rzpOrderAmount / 100, 2, ".", "");
@@ -393,8 +393,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 }
             }
         } catch (\Exception $e) {
-            $this->logger->info("Razorpay Webhook order.paid exeption, quoteID:" . $quoteId
-                                    ." and OrderID:".$salesOrder['entity_id']
+            $this->logger->info("Razorpay Webhook order.paid exeption, orderID:" . $orderId
+                                    ." and entity_id:".$salesOrder['entity_id']
                                     ." Message:" . $e->getMessage());
         }
     }
