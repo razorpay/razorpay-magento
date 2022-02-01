@@ -11,7 +11,6 @@ use Magento\Framework\App\Request\InvalidRequestException;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\DataObject;
 use Magento\Framework\Controller\ResultFactory;
-use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
 
 /**
@@ -42,36 +41,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     protected $objectManagement;
 
     /**
-     * @var \Magento\Quote\Model\QuoteManagement
-     */
-    protected $quoteManagement;
-
-    /**
-     * @var \Razorpay\Magento\Model\CheckoutFactory
-     */
-    protected $checkoutFactory;
-
-    /**
-     * @var \Magento\Quote\Model\QuoteRepository
-     */
-    protected $quoteRepository;
-
-    /**
-     * @var \Magento\Store\Model\StoreManagerInterface
-     */
-    protected $storeManagement;
-
-    /**
-     * @var \Magento\Customer\Api\CustomerRepositoryInterface
-     */
-    protected $customerRepository;
-
-    /**
-     * @var \Magento\Framework\Event\ManagerInterface
-     */
-    protected $eventManager;
-
-    /**
      * @var \Magento\Sales\Model\Service\InvoiceService
      */
     protected $invoiceService;
@@ -82,16 +51,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     protected $transaction;
 
     /**
-     * @var \Magento\Catalog\Model\Session
-     */
-    protected $catalogSession;
-
-    /**
-     * @var OrderRepositoryInterface
-     */
-    protected $orderRepository;
-
-    /**
      * @var \Magento\Sales\Model\Order\Email\Sender\InvoiceSender
      */
     protected $invoiceSender;
@@ -100,11 +59,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
      * @var \Magento\Sales\Model\Order\Email\Sender\OrderSender
      */
     protected $orderSender;
-
-    /**
-     * @var \Magento\Framework\App\CacheInterface
-     */
-    protected $cache;
 
     /**
      * @var STATUS_PROCESSING
@@ -118,19 +72,10 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
      * @param \Razorpay\Magento\Model\Config $config
      * @param \Magento\Sales\Api\Data\OrderInterface $order
      * @param \Psr\Log\LoggerInterface $logger
-     * @param \Magento\Quote\Model\QuoteManagement $quoteManagement
-     * @param \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory
-     * @param \Magento\Quote\Model\QuoteRepository $quoteRepository
-     * @param \Magento\Store\Model\StoreManagerInterface $storeManagement
-     * @param \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository
-     * @param \Magento\Framework\Event\ManagerInterface $eventManager
      * @param \Magento\Sales\Model\Service\InvoiceService $invoiceService
      * @param \Magento\Framework\DB\Transaction $transaction
-     * @param \Magento\Catalog\Model\Session $catalogSession
-     * @param OrderRepositoryInterface $orderRepository
      * @param \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender
      * @param \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender
-     * @param \Magento\Framework\App\CacheInterface $cache
      */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
@@ -139,19 +84,10 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         \Razorpay\Magento\Model\Config $config,
         \Magento\Sales\Api\Data\OrderInterface $order,
         \Psr\Log\LoggerInterface $logger,
-        \Magento\Quote\Model\QuoteManagement $quoteManagement,
-        \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
-        \Magento\Quote\Model\QuoteRepository $quoteRepository,
-        \Magento\Store\Model\StoreManagerInterface $storeManagement,
-        \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository,
-        \Magento\Framework\Event\ManagerInterface $eventManager,
         \Magento\Sales\Model\Service\InvoiceService $invoiceService,
         \Magento\Framework\DB\Transaction $transaction,
-        \Magento\Catalog\Model\Session $catalogSession,
-        OrderRepositoryInterface $orderRepository,
         \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender,
-        \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
-        \Magento\Framework\App\CacheInterface $cache
+        \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender
     ) {
         parent::__construct(
             $context,
@@ -166,19 +102,10 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         $this->order              = $order;
         $this->logger             = $logger;
         $this->objectManagement   = \Magento\Framework\App\ObjectManager::getInstance();
-        $this->quoteManagement    = $quoteManagement;
-        $this->checkoutFactory    = $checkoutFactory;
-        $this->quoteRepository    = $quoteRepository;
-        $this->storeManagement    = $storeManagement;
-        $this->customerRepository = $customerRepository;
-        $this->eventManager       = $eventManager;
         $this->invoiceService     = $invoiceService;
         $this->transaction        = $transaction;
-        $this->catalogSession     = $catalogSession;
-        $this->orderRepository    = $orderRepository;
         $this->invoiceSender      = $invoiceSender;
         $this->orderSender        = $orderSender;
-        $this->cache              = $cache;
     }
 
     /**
