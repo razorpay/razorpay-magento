@@ -157,15 +157,30 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
 
             $payment->setParentTransactionId($payment->getTransactionId());
 
-            $payment->addTransactionCommentsToOrder(
-                "$paymentId",
-                (new CaptureCommand())->execute(
-                    $payment,
-                    $order->getGrandTotal(),
-                    $order
-                ),
-                ""
-            );
+            if ($this->config->getPaymentAction()  === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE)
+            {
+                $payment->addTransactionCommentsToOrder(
+                    "$paymentId",
+                    (new CaptureCommand())->execute(
+                        $payment,
+                        $order->getGrandTotal(),
+                        $order
+                    ),
+                    ""
+                );
+            }
+            else
+            {
+                $payment->addTransactionCommentsToOrder(
+                    "$paymentId",
+                    (new AuthorizeCommand())->execute(
+                        $payment,
+                        $order->getGrandTotal(),
+                        $order
+                    ),
+                    ""
+                );
+            }
 
             $transaction = $payment->addTransaction(\Magento\Sales\Model\Order\Payment\Transaction::TYPE_AUTH, null, true, "");
             $transaction->setIsClosed(true);
