@@ -114,27 +114,40 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     public function execute()
     {
         $this->logger->info("Razorpay Webhook processing started.");
+        
         $post = $this->getPostData();
-        if (json_last_error() !== 0) {
+        
+        if (json_last_error() !== 0)
+        {
             return;
         }
+        
         $razorpaySignature = isset($_SERVER['HTTP_X_RAZORPAY_SIGNATURE']) ? $_SERVER['HTTP_X_RAZORPAY_SIGNATURE'] : '';
+
         if (($this->config->isWebhookEnabled() === true) &&
-            (isset($post['event']) && empty($post['event']) === false)) {
-            if (!empty($razorpaySignature) === true) {
+            (isset($post['event']) && empty($post['event']) === false))
+        {
+            if (!empty($razorpaySignature) === true)
+            {
                 $webhookSecret = $this->config->getWebhookSecret();
                 // To accept webhooks, the merchant must configure it on the magento backend by setting the secret.
-                if (empty($webhookSecret) === true) {
+                if (empty($webhookSecret) === true)
+                {
                     return;
                 }
-                try {
+
+                try
+                {
                     $postData = file_get_contents('php://input');
+
                     $this->rzp->utility->verifyWebhookSignature(
                         $postData,
                         $razorpaySignature,
                         $webhookSecret
                     );
-                } catch (Errors\SignatureVerificationError $e) {
+                }
+                catch (Errors\SignatureVerificationError $e)
+                {
                     $this->logger->warning(
                         $e->getMessage(),
                         [
@@ -145,31 +158,16 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                     header('Status: 400 Signature Verification failed', true, 400);
                     exit;
                 }
-                switch ($post['event']) {
+                switch ($post['event'])
+                {
                     case 'payment.authorized':
+                        return $this->authorize($post);
                     case 'order.paid':
-                        return $this->orderPaid($post);
+                        $this->orderPaid($post);
                     default:
                         return;
                 }
             }
-        }
-    }
-
-    /**
-     * Order Paid webhook
-     *
-     * @param array $post
-     */
-    protected function orderPaid(array $post)
-    {
-        if ($this->config->getPaymentAction() === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE
-          && $post['event'] === 'payment.authorized') {
-            $this->authorize($post);
-        }
-        if ($this->config->getPaymentAction() === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE
-          && $post['event'] === 'order.paid') {
-            $this->authorizeCapture($post);
         }
     }
 
@@ -181,27 +179,37 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     protected function authorize(array $post)
     {
         $this->logger->info("Razorpay Webhook Event(" . $post['event'] . ") processing Started.");
+        
         $paymentId      = $post['payload']['payment']['entity']['id'];
         $rzpOrderId     = $post['payload']['payment']['entity']['order_id'];
         $amountPaid     = $post['payload']['payment']['entity']['amount'];
-        try {
+        
+        try
+        {
             $rzpOrder       = $this->getRzpOrder($rzpOrderId);
             $orderId        = $rzpOrder->receipt;
             $rzpOrderAmount = $rzpOrder->amount;
-            if (isset($orderId) === false) {
+
+            if (isset($orderId) === false)
+            {
                 $this->logger->info("Razorpay Webhook: Quote ID not set for Razorpay payment_id(:$paymentId)");
                 return;
             }
-        } catch (\Razorpay\Api\Errors\Error $e) {
+        }
+        catch (\Razorpay\Api\Errors\Error $e)
+        {
             $this->logger->critical("Razorpay Webhook: fetching RZP order data(id:$rzpOrderId) "
                                 . "PaymentId:(:$paymentId) failed with error: ". $e->getMessage());
             return;
-        } catch (\Exception $e) {
+        }catch (\Exception $e)
+        {
             $this->logger->critical("Razorpay Webhook: fetching RZP order data(id:$rzpOrderId) "
                                 . "PaymentId:(:$paymentId) failed with error: ". $e->getMessage());
             return;
         }
-        try {
+
+        try
+        {
             # fetch the related sales order and verify the payment ID with rzp payment id
             # To avoid duplicate order entry for same quote
             $collection = $this->objectManagement->get('Magento\Sales\Model\Order')
@@ -209,22 +217,33 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             ->addFieldToSelect('entity_id')
             ->addFilter('increment_id', $orderId)
             ->getFirstItem();
+
             $salesOrder = $collection->getData();
-            if (isset($salesOrder['entity_id']) && empty($salesOrder['entity_id']) === false) {
+
+            if (isset($salesOrder['entity_id']) && empty($salesOrder['entity_id']) === false)
+            {
                 $this->logger->info("Razorpay inside order already processed with webhook orderID:" . $orderId
                                     ." and OrderID:".$salesOrder['entity_id']);
+
                 $order = $this->order->load($salesOrder['entity_id']);
-                if ($order) {
-                    if ($order->getStatus() === 'pending') {
+
+                if ($order)
+                {
+                    if ($order->getStatus() === 'pending')
+                    {
                         $this->checkoutSession
                             ->setLastQuoteId($order->getQuoteId())
                             ->setLastSuccessQuoteId($order->getQuoteId())
                             ->clearHelperData();
+
                         $this->checkoutSession->setLastOrderId($order->getId())
                                 ->setLastRealOrderId($order->getIncrementId())
                                 ->setLastOrderStatus($order->getStatus());
+
                         $amountPaid = number_format($rzpOrderAmount / 100, 2, ".", "");
+
                         $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
+
                         $order->addStatusHistoryComment(
                             __(
                                 'Actual Amount %1 of %2, with Razorpay Offer/Fee applied.',
@@ -232,15 +251,20 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                                 $order->getBaseCurrency()->formatTxt($amountPaid)
                             )
                         );
+
                         $order->save();
-                    } else {
+                    }
+                    else
+                    {
                         $this->logger->info("Razorpay Webhook: Sales Order and payment "
                             . "already exist for Razorpay payment_id(:$paymentId)");
                         return;
                     }
                 }
             }
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e)
+        {
             $this->logger->info("Razorpay Webhook payment.authorized exeption, orderID:" . $orderId
                                     ." and entity_id:".$salesOrder['entity_id']
                                     ." Message:" . $e->getMessage());
@@ -252,41 +276,57 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
      *
      * @param array $post
      */
-    protected function authorizeCapture(array $post)
+    protected function orderPaid(array $post)
     {
         $this->logger->info("Razorpay Webhook Event(" . $post['event'] . ")  processing Started.");
+        
         $paymentId      = $post['payload']['payment']['entity']['id'];
         $amountPaid     = $post['payload']['order']['entity']['amount_paid'];
         $rzpOrderAmount = $post['payload']['order']['entity']['amount'];
         $orderId        = $post['payload']['order']['entity']['receipt'];
-        if (isset($orderId) === false) {
-            $this->logger->info("Razorpay Webhook: Quote ID not set for Razorpay payment_id(:$paymentId)");
+        
+        if (isset($orderId) === false)
+        {
+            $this->logger->info("Razorpay Webhook: Order ID not set for Razorpay payment_id(:$paymentId)");
             return;
         }
-        try {
+
+        try
+        {
             $collection = $this->objectManagement->get('Magento\Sales\Model\Order')
             ->getCollection()
             ->addFieldToSelect('entity_id')
             ->addFilter('increment_id', $orderId)
             ->getFirstItem();
+            
             $salesOrder = $collection->getData();
-            if (isset($salesOrder['entity_id']) && empty($salesOrder['entity_id']) === false) {
+            
+            if (isset($salesOrder['entity_id']) && empty($salesOrder['entity_id']) === false)
+            {
                 $this->logger->info("Razorpay inside order already processed with webhook orderID:" . $orderId
                                     ." and entity_id:".$salesOrder['entity_id']);
+                
                 $order = $this->order->load($salesOrder['entity_id']);
-                if ($order) {
+                
+                if ($order)
+                {
                     $amountPaid = number_format($rzpOrderAmount / 100, 2, ".", "");
-                    if ($order->getStatus() === 'pending') {
+                    
+                    if ($order->getStatus() === 'pending')
+                    {
                         $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
-                        $order->addStatusHistoryComment(
-                            __(
-                                '%1 amount of %2 online. Transaction ID: "' . $paymentId . '"',
-                                "Captured",
-                                $order->getBaseCurrency()->formatTxt($amountPaid)
-                            )
-                        );
                     }
-                    if ($order->canInvoice() && $this->config->canAutoGenerateInvoice()) {
+
+                    $order->addStatusHistoryComment(
+                        __(
+                            '%1 amount of %2 online. Transaction ID: "' . $paymentId . '"',
+                            "Captured",
+                            $order->getBaseCurrency()->formatTxt($amountPaid)
+                        )
+                    );
+
+                    if ($order->canInvoice() && $this->config->canAutoGenerateInvoice())
+                    {
                         $invoice = $this->invoiceService->prepareInvoice($order);
                         $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
                         $invoice->setTransactionId($paymentId);
@@ -300,26 +340,37 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                         $transactionSave->save();
 
                         $this->invoiceSender->send($invoice);
+
                         //send notification code
                         $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
+
                         $order->addStatusHistoryComment(
                             __('Notified customer about invoice #%1.', $invoice->getId())
                         )->setIsCustomerNotified(true);
+
                         //send Order email, after successfull payment
-                        try {
+                        try
+                        {
                             $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
                             $this->orderSender->send($order);
                             $this->checkoutSession->unsRazorpayMailSentOnSuccess();
-                        } catch (\Magento\Framework\Exception\MailException $exception) {
+                        }
+                        catch (\Magento\Framework\Exception\MailException $exception)
+                        {
                             $this->logger->critical($e);
-                        } catch (\Exception $e) {
+                        }
+                        catch (\Exception $e)
+                        {
                             $this->logger->critical($e);
                         }
                     }
+
                     $order->save();
                 }
             }
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e)
+        {
             $this->logger->info("Razorpay Webhook order.paid exeption, orderID:" . $orderId
                                     ." and entity_id:".$salesOrder['entity_id']
                                     ." Message:" . $e->getMessage());
@@ -333,14 +384,19 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
      */
     public function getRzpOrder($orderId)
     {
-        try {
+        try
+        {
             $order = $this->api->order->fetch($orderId);
             return $order;
-        } catch (\Razorpay\Api\Errors\Error $e) {
+        }
+        catch (\Razorpay\Api\Errors\Error $e)
+        {
             $this->logger->critical("Razorpay Webhook: fetching RZP order "
                 . "data(id:$orderIdorderId) failed with error: ". $e->getMessage());
             return;
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e)
+        {
             $this->logger->critical("Razorpay Webhook: fetching RZP order "
                 . "data(id:$orderId) failed with error: ". $e->getMessage());
             return;
@@ -355,9 +411,12 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     protected function getPostData() : array
     {
         $request = file_get_contents('php://input');
-        if (!isset($request) || empty($request)) {
+        
+        if (!isset($request) || empty($request))
+        {
             $request = "{}";
         }
+        
         return json_decode($request, true);
     }
 }
