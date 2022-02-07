@@ -12,6 +12,7 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Controller\ResultFactory;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
+use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
 use Psr\Log\LoggerInterface as Logger;
 
 class Validate extends \Razorpay\Magento\Controller\BaseController implements CsrfAwareActionInterface
