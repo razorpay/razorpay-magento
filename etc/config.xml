@@ -11,6 +11,7 @@
                 <order_status>processing</order_status>
                 <key_id>Key ID</key_id>
                 <key_secret>Key Secret</key_secret>
+                <enable_webhook>0</enable_webhook>
             </razorpay>
         </payment>
     </default>

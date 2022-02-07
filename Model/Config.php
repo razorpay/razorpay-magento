@@ -15,6 +15,8 @@ class Config
     const KEY_PAYMENT_ACTION = 'rzp_payment_action';
     const KEY_AUTO_INVOICE = 'auto_invoice';
     const KEY_NEW_ORDER_STATUS = 'order_status';
+    const ENABLE_WEBHOOK = 'enable_webhook';
+    const WEBHOOK_SECRET = 'webhook_secret';
 
     /**
      * @var string
@@ -51,6 +53,16 @@ class Config
     public function getKeyId()
     {
         return $this->getConfigData(self::KEY_PUBLIC_KEY);
+    }
+
+    public function isWebhookEnabled()
+    {
+        return (bool) (int) $this->getConfigData(self::ENABLE_WEBHOOK, $this->storeId);
+    }
+
+    public function getWebhookSecret()
+    {
+        return $this->getConfigData(self::WEBHOOK_SECRET);
     }
     
     public function getPaymentAction()
