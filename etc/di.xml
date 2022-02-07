@@ -10,4 +10,8 @@
     <type name="Magento\Sales\Model\Order\Email\Container\OrderIdentity">
         <plugin name="change_is_enable_method" type="Razorpay\Magento\Plugin\Sales\Order\Email\Container\OrderIdentityPlugin" disabled="false"/>
     </type>
+
+    <type name="Magento\Framework\App\Request\CsrfValidator">
+        <plugin name="csrf_validator_skip" type="Razorpay\Magento\Plugin\CsrfValidatorSkip" />
+    </type>
 </config>
