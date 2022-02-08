@@ -44,19 +44,29 @@
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <config_path>payment/razorpay/auto_invoice</config_path>
                 </field>
-                <field id="enable_webhook" translate="label" type="select" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="enable_webhook" translate="label" type="select" sortOrder="5" showInDefault="1" showInWebsite="0" showInStore="0">
                     <label>Webhook Enabled</label>
                     <comment>** {{base_url}} Copy the Webhook Url from below **</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <frontend_model>Razorpay\Magento\Model\WebhookUrl</frontend_model>
                     <config_path>payment/razorpay/enable_webhook</config_path>
                 </field>
-                <field id="webhook_secret" translate="label" type="text" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="webhook_secret" translate="label" type="text" sortOrder="5" showInDefault="1" showInWebsite="0" showInStore="0">
                     <label>Webhook Secret</label>
                     <comment>This field has to match the one set in dashboard.razorpay.com/webhooks</comment>
                     <config_path>payment/razorpay/webhook_secret</config_path>
                     <validate>required-entry</validate>
                     <depends>
+                        <field id="enable_webhook">1</field>
+                    </depends>
+                </field>
+                <field id="webhook_events" translate="label" type="multiselect" sortOrder="5" showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Webhook Events</label>
+                    <source_model>Razorpay\Magento\Model\WebhookEvents</source_model>
+                    <comment>List of Webhook Events that needs to be subscribed.</comment>
+                    <config_path>payment/razorpay/webhook_events</config_path>
+                    <validate>required-entry</validate>
+                    <depends> 
                         <field id="enable_webhook">1</field>
                     </depends>
                 </field>

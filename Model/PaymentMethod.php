@@ -157,11 +157,19 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $this->key_id = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
         $this->key_secret = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
 
-        $this->rzp = new Api($this->key_id, $this->key_secret);
+        $this->rzp = $this->rzp = $this->setAndGetRzpApiInstance();
 
         $this->order = $order;
 
         $this->rzp->setHeader('User-Agent', 'Razorpay/'. $this->getChannel());
+    }
+
+    public function setAndGetRzpApiInstance()
+    {
+        $apiInstance = new Api($this->key_id, $this->key_secret);
+        $apiInstance->setHeader('User-Agent', 'Razorpay/'. $this->getChannel());
+
+        return $apiInstance;
     }
 
     /**
