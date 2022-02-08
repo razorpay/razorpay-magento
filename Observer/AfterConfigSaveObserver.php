@@ -2,7 +2,6 @@
 
 namespace Razorpay\Magento\Observer;
 
-use Razorpay\Api\Api;
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
 use Magento\Sales\Model\Order\Payment;
@@ -39,6 +38,7 @@ class AfterConfigSaveObserver implements ObserverInterface
         RequestInterface $request, 
         WriterInterface $configWriter,
         \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Razorpay\Magento\Model\PaymentMethod $paymentMethod,
         \Psr\Log\LoggerInterface $logger
     ) {
         $this->config = $config;
@@ -52,7 +52,9 @@ class AfterConfigSaveObserver implements ObserverInterface
         $this->key_id = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
         $this->key_secret = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
 
-        $this->rzp = new Api($this->key_id, $this->key_secret);
+        $this->paymentMethod = $paymentMethod;
+
+        $this->rzp = $this->paymentMethod->setAndGetRzpApiInstance();
 
         $this->webhookUrl = $this->_storeManager->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_WEB) . 'razorpay/payment/webhook';
 
@@ -150,7 +152,7 @@ class AfterConfigSaveObserver implements ObserverInterface
         try
         {       
             //fetch all the webhooks 
-            $webhooks = $this->rzp->webhook->all();   
+            $webhooks = $this->rzp->webhook->all();
             
             if(($webhooks->count) > 0 and (empty($this->webhookUrl) === false))
             {
