@@ -12,12 +12,18 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     protected $checkoutSession;
 
     protected $_currency = PaymentMethod::CURRENCY;
+
+    protected $logger;
+
+    protected $handler;
     /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession
      * @param \Magento\Razorpay\Model\CheckoutFactory $checkoutFactory
      * @param \Magento\Razorpay\Model\Config\Payment $razorpayConfig
+     * @param \Psr\Log\LoggerInterface $logger
+     * @param \Razorpay\Magento\Model\LogHandler $handler
      */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
@@ -25,7 +31,9 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Magento\Checkout\Model\Session $checkoutSession,
         \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
         \Razorpay\Magento\Model\Config $config,
-        \Magento\Catalog\Model\Session $catalogSession
+        \Magento\Catalog\Model\Session $catalogSession,
+        \Psr\Log\LoggerInterface $logger,
+        \Razorpay\Magento\Model\LogHandler $handler
     ) {
         parent::__construct(
             $context,
@@ -35,8 +43,11 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         );
 
         $this->checkoutFactory = $checkoutFactory;
-        $this->catalogSession = $catalogSession;
-        $this->config = $config;
+        $this->catalogSession  = $catalogSession;
+        $this->config          = $config;
+        $this->logger          = $logger;
+        $this->handler         = $handler;
+        $this->logger->setHandlers ( [$this->handler] );
     }
 
     public function execute()
@@ -75,6 +86,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
         try
         {
+            $this->logger->info("Razorpay Order: create order started with quoteID:" . $receipt_id
+                                    ." and amount:".$amount);
             $order = $this->rzp->order->create([
                 'amount' => $amount,
                 'receipt' => $receipt_id,
@@ -89,6 +102,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
             if (null !== $order && !empty($order->id))
             {
+                $this->logger->info("Razorpay Order: order created with rzp_order:" . $order->id);
                 $responseContent = [
                     'success'           => true,
                     'rzp_order'         => $order->id,
@@ -111,6 +125,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 'message'   => $e->getMessage(),
                 'parameters' => []
             ];
+            $this->logger->info("Razorpay Order: Error message:" . $e->getMessage());
         }
         catch(\Exception $e)
         {
@@ -118,6 +133,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 'message'   => $e->getMessage(),
                 'parameters' => []
             ];
+            $this->logger->info("Razorpay Order: Error message:" . $e->getMessage());
         }
 
         $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
