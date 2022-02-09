@@ -157,7 +157,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 }
                 catch (Errors\SignatureVerificationError $e)
                 {
-                    $this->logger->warning(
+                    $this->logger->info(
                         $e->getMessage(),
                         [
                             'data'  => $post,
@@ -208,12 +208,12 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         }
         catch (\Razorpay\Api\Errors\Error $e)
         {
-            $this->logger->critical("Razorpay Webhook: fetching RZP order data(id:$rzpOrderId) "
+            $this->logger->info("Razorpay Webhook: fetching RZP order data(id:$rzpOrderId) "
                                 . "PaymentId:(:$paymentId) failed with error: ". $e->getMessage());
             return;
         }catch (\Exception $e)
         {
-            $this->logger->critical("Razorpay Webhook: fetching RZP order data(id:$rzpOrderId) "
+            $this->logger->info("Razorpay Webhook: fetching RZP order data(id:$rzpOrderId) "
                                 . "PaymentId:(:$paymentId) failed with error: ". $e->getMessage());
             return;
         }
@@ -367,11 +367,11 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                         }
                         catch (\Magento\Framework\Exception\MailException $exception)
                         {
-                            $this->logger->critical($e);
+                            $this->logger->info($e);
                         }
                         catch (\Exception $e)
                         {
-                            $this->logger->critical($e);
+                            $this->logger->info($e);
                         }
                     }
 
@@ -401,13 +401,13 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         }
         catch (\Razorpay\Api\Errors\Error $e)
         {
-            $this->logger->critical("Razorpay Webhook: fetching RZP order "
+            $this->logger->info("Razorpay Webhook: fetching RZP order "
                 . "data(id:$orderIdorderId) failed with error: ". $e->getMessage());
             return;
         }
         catch (\Exception $e)
         {
-            $this->logger->critical("Razorpay Webhook: fetching RZP order "
+            $this->logger->info("Razorpay Webhook: fetching RZP order "
                 . "data(id:$orderId) failed with error: ". $e->getMessage());
             return;
         }
