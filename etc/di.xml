@@ -14,4 +14,21 @@
     <type name="Magento\Framework\App\Request\CsrfValidator">
         <plugin name="csrf_validator_skip" type="Razorpay\Magento\Plugin\CsrfValidatorSkip" />
     </type>
+    <virtualType name="RazorpayLogger" type="Magento\Framework\Logger\Monolog">
+	    <arguments>
+	        <argument name="handlers" xsi:type="array">
+	            <item name="error" xsi:type="object">Razorpay\Magento\Model\LogHandler</item>
+	        </argument>
+	    </arguments>
+	</virtualType>
+	<type name="Razorpay\Magento\Controller\Payment\Order">
+	    <arguments>
+	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
+	    </arguments>
+	</type>
+	<type name="Razorpay\Magento\Controller\Payment\Webhook">
+	    <arguments>
+	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
+	    </arguments>
+	</type>
 </config>

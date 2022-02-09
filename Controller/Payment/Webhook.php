@@ -36,11 +36,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     protected $logger;
 
     /**
-     * @var \Razorpay\Magento\Model\LogHandler
-     */
-    protected $handler;
-
-    /**
      * @var \Magento\Framework\App\ObjectManager
      */
     protected $objectManagement;
@@ -77,7 +72,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
      * @param \Razorpay\Magento\Model\Config $config
      * @param \Magento\Sales\Api\Data\OrderInterface $order
      * @param \Psr\Log\LoggerInterface $logger
-     * @param \Razorpay\Magento\Model\LogHandler $hahandler
      * @param \Magento\Sales\Model\Service\InvoiceService $invoiceService
      * @param \Magento\Framework\DB\Transaction $transaction
      * @param \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender
@@ -90,7 +84,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         \Razorpay\Magento\Model\Config $config,
         \Magento\Sales\Api\Data\OrderInterface $order,
         \Psr\Log\LoggerInterface $logger,
-        \Razorpay\Magento\Model\LogHandler $handler,
         \Magento\Sales\Model\Service\InvoiceService $invoiceService,
         \Magento\Framework\DB\Transaction $transaction,
         \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender,
@@ -108,8 +101,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         $this->api                = new Api($keyId, $keySecret);
         $this->order              = $order;
         $this->logger             = $logger;
-        $this->handler            = $handler;
-        $this->logger->setHandlers ( [$this->handler] );
         $this->objectManagement   = \Magento\Framework\App\ObjectManager::getInstance();
         $this->invoiceService     = $invoiceService;
         $this->transaction        = $transaction;

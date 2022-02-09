@@ -14,8 +14,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     protected $_currency = PaymentMethod::CURRENCY;
 
     protected $logger;
-
-    protected $handler;
     /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
@@ -23,7 +21,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
      * @param \Magento\Razorpay\Model\CheckoutFactory $checkoutFactory
      * @param \Magento\Razorpay\Model\Config\Payment $razorpayConfig
      * @param \Psr\Log\LoggerInterface $logger
-     * @param \Razorpay\Magento\Model\LogHandler $handler
      */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
@@ -32,8 +29,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
         \Razorpay\Magento\Model\Config $config,
         \Magento\Catalog\Model\Session $catalogSession,
-        \Psr\Log\LoggerInterface $logger,
-        \Razorpay\Magento\Model\LogHandler $handler
+        \Psr\Log\LoggerInterface $logger
     ) {
         parent::__construct(
             $context,
@@ -46,8 +42,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $this->catalogSession  = $catalogSession;
         $this->config          = $config;
         $this->logger          = $logger;
-        $this->handler         = $handler;
-        $this->logger->setHandlers ( [$this->handler] );
     }
 
     public function execute()
