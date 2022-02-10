@@ -257,7 +257,7 @@ define(
 
                         require('Magento_Customer/js/customer-data').reload(['cart']);
 
-                        if (!response.success) { alert('asdsa');
+                        if (!response.success) {
                             fullScreenLoader.stopLoader();
                             self.isPaymentProcessing.reject(response.message);
                             self.handleError(response);
