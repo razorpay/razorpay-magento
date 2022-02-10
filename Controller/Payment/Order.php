@@ -119,7 +119,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 'message'   => $e->getMessage(),
                 'parameters' => []
             ];
-            $this->logger->info("Razorpay Order: Error message:" . $e->getMessage());
+            $this->logger->critical("Razorpay Order: Error message:" . $e->getMessage());
         }
         catch(\Exception $e)
         {
@@ -127,7 +127,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 'message'   => $e->getMessage(),
                 'parameters' => []
             ];
-            $this->logger->info("Razorpay Order: Error message:" . $e->getMessage());
+            $this->logger->critical("Razorpay Order: Error message:" . $e->getMessage());
         }
 
         $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
