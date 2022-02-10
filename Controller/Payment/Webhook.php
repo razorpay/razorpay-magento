@@ -12,6 +12,7 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\DataObject;
 use Magento\Framework\Controller\ResultFactory;
 use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
+use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
 
 /**
  * Webhook controller to handle Razorpay order webhook
@@ -229,16 +230,32 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
                 if ($order)
                 {
-                    if ($order->getStatus() === 'pending')
+                    if ($order->getStatus() !== static::STATUS_PROCESSING)
                     {
-                        $this->checkoutSession
-                            ->setLastQuoteId($order->getQuoteId())
-                            ->setLastSuccessQuoteId($order->getQuoteId())
-                            ->clearHelperData();
+                        $payment = $order->getPayment();
 
-                        $this->checkoutSession->setLastOrderId($order->getId())
-                                ->setLastRealOrderId($order->getIncrementId())
-                                ->setLastOrderStatus($order->getStatus());
+                        $payment->setLastTransId($paymentId)
+                                ->setTransactionId($paymentId)
+                                ->setIsTransactionClosed(true)
+                                ->setShouldCloseParentTransaction(true);
+
+                        $payment->setParentTransactionId($payment->getTransactionId());
+
+                        $payment->addTransactionCommentsToOrder(
+                            "$paymentId",
+                            (new AuthorizeCommand())->execute(
+                                $payment,
+                                $order->getGrandTotal(),
+                                $order
+                            ),
+                            ""
+                        );
+
+                        $transaction = $payment->addTransaction(\Magento\Sales\Model\Order\Payment\Transaction::TYPE_AUTH, null, true, "");
+                        
+                        $transaction->setIsClosed(true);
+                        
+                        $transaction->save();
 
                         $amountPaid = number_format($rzpOrderAmount / 100, 2, ".", "");
 
@@ -312,10 +329,35 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 {
                     $amountPaid = number_format($rzpOrderAmount / 100, 2, ".", "");
                     
-                    if ($order->getStatus() === 'pending')
+                    if ($order->getStatus() !== static::STATUS_PROCESSING)
                     {
                         $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
                     }
+
+                    $payment = $order->getPayment();
+
+                    $payment->setLastTransId($paymentId)
+                            ->setTransactionId($paymentId)
+                            ->setIsTransactionClosed(true)
+                            ->setShouldCloseParentTransaction(true);
+
+                    $payment->setParentTransactionId($payment->getTransactionId());
+
+                    $payment->addTransactionCommentsToOrder(
+                        "$paymentId",
+                        (new CaptureCommand())->execute(
+                            $payment,
+                            $order->getGrandTotal(),
+                            $order
+                        ),
+                        ""
+                    );
+
+                    $transaction = $payment->addTransaction(\Magento\Sales\Model\Order\Payment\Transaction::TYPE_AUTH, null, true, "");
+                    
+                    $transaction->setIsClosed(true);
+                    
+                    $transaction->save();
 
                     $order->addStatusHistoryComment(
                         __(
