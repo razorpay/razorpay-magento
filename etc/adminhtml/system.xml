@@ -10,11 +10,13 @@
                     <label>Enabled</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <config_path>payment/razorpay/active</config_path>
+                    <validate>required-entry</validate>
                 </field>
                 <field id="rzp_payment_action" translate="label" type="select" sortOrder="2" showInDefault="1" showInWebsite="1" showInStore="1" >
                     <label>Payment Action</label>
                     <source_model>Razorpay\Magento\Model\PaymentAction</source_model>
                     <config_path>payment/razorpay/rzp_payment_action</config_path>
+                    <validate>required-entry</validate>
                 </field>
                 <field id="title" translate="label" type="text" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Title</label>
@@ -28,20 +30,24 @@
                     <label>API Key</label>
                     <comment>**Required (Enter test key ID for testing)**</comment>
                     <config_path>payment/razorpay/key_id</config_path>
+                    <validate>required-entry</validate>
                 </field>
                 <field id="key_secret" translate="label" type="text" sortOrder="4" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>API Key Secret</label>
                     <comment>**Required (Enter test key secret for testing)**</comment>
+                    <validate>required-entry</validate>
                     <config_path>payment/razorpay/key_secret</config_path>
                 </field>
                 <field id="order_status" translate="label" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>New Order Status</label>
                     <source_model>Magento\Sales\Model\Config\Source\Order\Status\NewStatus</source_model>
+                    <validate>required-entry</validate>
                     <config_path>payment/razorpay/order_status</config_path>
                 </field>
                 <field id="auto_invoice" translate="label" type="select" sortOrder="2" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Auto Generate Invoice</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <validate>required-entry</validate>
                     <config_path>payment/razorpay/auto_invoice</config_path>
                 </field>
                 <field id="enable_webhook" translate="label" type="select" sortOrder="5" showInDefault="1" showInWebsite="0" showInStore="0">
@@ -49,6 +55,7 @@
                     <comment>** {{base_url}} Copy the Webhook Url from below **</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <frontend_model>Razorpay\Magento\Model\WebhookUrl</frontend_model>
+                    <validate>required-entry</validate>
                     <config_path>payment/razorpay/enable_webhook</config_path>
                 </field>
                 <field id="webhook_secret" translate="label" type="text" sortOrder="5" showInDefault="1" showInWebsite="0" showInStore="0">
