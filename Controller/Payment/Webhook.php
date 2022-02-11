@@ -131,6 +131,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             if (!empty($razorpaySignature) === true)
             {
                 $webhookSecret = $this->config->getWebhookSecret();
+
                 // To accept webhooks, the merchant must configure it on the magento backend by setting the secret.
                 if (empty($webhookSecret) === true)
                 {
@@ -230,10 +231,11 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
                 if ($order)
                 {
-                    if ($order->getStatus() !== static::STATUS_PROCESSING)
-                    {
-                        $payment = $order->getPayment();
+                    $payment = $order->getPayment();
 
+                    if (($order->getStatus() !== static::STATUS_PROCESSING) and
+                        (empty($payment->getLastTransId()) === true))
+                    {
                         $payment->setLastTransId($paymentId)
                                 ->setTransactionId($paymentId)
                                 ->setIsTransactionClosed(true)
@@ -327,9 +329,11 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 
                 if ($order)
                 {
+                    $payment = $order->getPayment();
+
                     $amountPaid = number_format($rzpOrderAmount / 100, 2, ".", "");
                     
-                    if ($order->getStatus() !== static::STATUS_PROCESSING)
+                    if ($order->getStatus() === "pending")
                     {
                         $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
                     }
@@ -361,7 +365,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
                     $order->addStatusHistoryComment(
                         __(
-                            '%1 amount of %2 online. Transaction ID: "' . $paymentId . '"',
+                            '%1 amount of %2 online, with Razorpay Offer/Fee applied.',
                             "Captured",
                             $order->getBaseCurrency()->formatTxt($amountPaid)
                         )
