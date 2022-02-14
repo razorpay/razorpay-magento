@@ -64,7 +64,9 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     /**
      * @var STATUS_PROCESSING
      */
-    protected const STATUS_PROCESSING = 'processing';
+    protected const STATUS_PROCESSING   = 'processing';
+    protected const STATUS_PENDING      = 'pending';
+
 
     /**
      * @param \Magento\Framework\App\Action\Context $context
@@ -131,7 +133,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             if (!empty($razorpaySignature) === true)
             {
                 $webhookSecret = $this->config->getWebhookSecret();
-
                 // To accept webhooks, the merchant must configure it on the magento backend by setting the secret.
                 if (empty($webhookSecret) === true)
                 {
@@ -233,8 +234,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 {
                     $payment = $order->getPayment();
 
-                    if (($order->getStatus() !== static::STATUS_PROCESSING) and
-                        (empty($payment->getLastTransId()) === true))
+                    if (($order->getStatus() === static::STATUS_PENDING) and
+                        (empty($payment->getLastTransId()) === true) )
                     {
                         $payment->setLastTransId($paymentId)
                                 ->setTransactionId($paymentId)
@@ -326,92 +327,95 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                                     ." and entity_id:".$salesOrder['entity_id']);
                 
                 $order = $this->order->load($salesOrder['entity_id']);
-                
+
                 if ($order)
                 {
-                    $payment = $order->getPayment();
-
-                    $amountPaid = number_format($rzpOrderAmount / 100, 2, ".", "");
-                    
-                    if ($order->getStatus() === "pending")
+                    if (in_array($order->getStatus(), [static::STATUS_PENDING, static::STATUS_PROCESSING]))
                     {
-                        $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
-                    }
+                        $payment = $order->getPayment();
 
-                    $payment = $order->getPayment();
+                        $amountPaid = number_format($rzpOrderAmount / 100, 2, ".", "");
 
-                    $payment->setLastTransId($paymentId)
-                            ->setTransactionId($paymentId)
-                            ->setIsTransactionClosed(true)
-                            ->setShouldCloseParentTransaction(true);
+                        if ($order->getStatus() === static::STATUS_PENDING)
+                        {
+                            $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
+                        }
 
-                    $payment->setParentTransactionId($payment->getTransactionId());
+                        $payment = $order->getPayment();
 
-                    $payment->addTransactionCommentsToOrder(
-                        "$paymentId",
-                        (new CaptureCommand())->execute(
-                            $payment,
-                            $order->getGrandTotal(),
-                            $order
-                        ),
-                        ""
-                    );
+                        $payment->setLastTransId($paymentId)
+                                ->setTransactionId($paymentId)
+                                ->setIsTransactionClosed(true)
+                                ->setShouldCloseParentTransaction(true);
 
-                    $transaction = $payment->addTransaction(\Magento\Sales\Model\Order\Payment\Transaction::TYPE_AUTH, null, true, "");
-                    
-                    $transaction->setIsClosed(true);
-                    
-                    $transaction->save();
+                        $payment->setParentTransactionId($payment->getTransactionId());
 
-                    $order->addStatusHistoryComment(
-                        __(
-                            '%1 amount of %2 online, with Razorpay Offer/Fee applied.',
-                            "Captured",
-                            $order->getBaseCurrency()->formatTxt($amountPaid)
-                        )
-                    );
+                        $payment->addTransactionCommentsToOrder(
+                            "$paymentId",
+                            (new CaptureCommand())->execute(
+                                $payment,
+                                $order->getGrandTotal(),
+                                $order
+                            ),
+                            ""
+                        );
 
-                    if ($order->canInvoice() && $this->config->canAutoGenerateInvoice())
-                    {
-                        $invoice = $this->invoiceService->prepareInvoice($order);
-                        $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
-                        $invoice->setTransactionId($paymentId);
-                        $invoice->register();
-                        $invoice->save();
+                        $transaction = $payment->addTransaction(\Magento\Sales\Model\Order\Payment\Transaction::TYPE_AUTH, null, true, "");
 
-                        $transactionSave = $this->transaction
-                          ->addObject($invoice)
-                          ->addObject($invoice
-                          ->getOrder());
-                        $transactionSave->save();
+                        $transaction->setIsClosed(true);
 
-                        $this->invoiceSender->send($invoice);
-
-                        //send notification code
-                        $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
+                        $transaction->save();
 
                         $order->addStatusHistoryComment(
-                            __('Notified customer about invoice #%1.', $invoice->getId())
-                        )->setIsCustomerNotified(true);
+                            __(
+                                '%1 amount of %2 online, with Razorpay Offer/Fee applied.',
+                                "Captured",
+                                $order->getBaseCurrency()->formatTxt($amountPaid)
+                            )
+                        );
 
-                        //send Order email, after successfull payment
-                        try
+                        if ($order->canInvoice() && $this->config->canAutoGenerateInvoice())
                         {
-                            $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
-                            $this->orderSender->send($order);
-                            $this->checkoutSession->unsRazorpayMailSentOnSuccess();
+                            $invoice = $this->invoiceService->prepareInvoice($order);
+                            $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
+                            $invoice->setTransactionId($paymentId);
+                            $invoice->register();
+                            $invoice->save();
+
+                            $transactionSave = $this->transaction
+                              ->addObject($invoice)
+                              ->addObject($invoice
+                              ->getOrder());
+                            $transactionSave->save();
+
+                            $this->invoiceSender->send($invoice);
+
+                            //send notification code
+                            $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
+
+                            $order->addStatusHistoryComment(
+                                __('Notified customer about invoice #%1.', $invoice->getId())
+                            )->setIsCustomerNotified(true);
+
+                            //send Order email, after successfull payment
+                            try
+                            {
+                                $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
+                                $this->orderSender->send($order);
+                                $this->checkoutSession->unsRazorpayMailSentOnSuccess();
+                            }
+                            catch (\Magento\Framework\Exception\MailException $exception)
+                            {
+                                $this->logger->critical($e);
+                            }
+                            catch (\Exception $e)
+                            {
+                                $this->logger->critical($e);
+                            }
                         }
-                        catch (\Magento\Framework\Exception\MailException $exception)
-                        {
-                            $this->logger->critical($e);
-                        }
-                        catch (\Exception $e)
-                        {
-                            $this->logger->critical($e);
-                        }
+
+                        $order->save();
                     }
-
-                    $order->save();
                 }
             }
         }
