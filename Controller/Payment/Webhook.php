@@ -151,7 +151,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 }
                 catch (Errors\SignatureVerificationError $e)
                 {
-                    $this->logger->warning(
+                    $this->logger->critical(
                         $e->getMessage(),
                         [
                             'data'  => $post,
@@ -172,6 +172,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 }
             }
         }
+        $this->logger->info("Razorpay Webhook processing completed.");
     }
 
     /**
@@ -285,9 +286,9 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         }
         catch (\Exception $e)
         {
-            $this->logger->info("Razorpay Webhook payment.authorized exeption, orderID:" . $orderId
-                                    ." and entity_id:".$salesOrder['entity_id']
-                                    ." Message:" . $e->getMessage());
+            $this->logger->critical("Razorpay Webhook payment.authorized exeption, orderID:" . $orderId
+                                    ." PaymentId: " . $paymentId
+                                    ." and Message:" . $e->getMessage());
         }
     }
 
@@ -421,9 +422,9 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         }
         catch (\Exception $e)
         {
-            $this->logger->info("Razorpay Webhook order.paid exeption, orderID:" . $orderId
-                                    ." and entity_id:".$salesOrder['entity_id']
-                                    ." Message:" . $e->getMessage());
+            $this->logger->critical("Razorpay Webhook order.paid exeption, orderID:" . $orderId
+                                    ." PaymentId: " . $paymentId
+                                    ." and Message:" . $e->getMessage());
         }
     }
 
@@ -442,7 +443,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         catch (\Razorpay\Api\Errors\Error $e)
         {
             $this->logger->critical("Razorpay Webhook: fetching RZP order "
-                . "data(id:$orderIdorderId) failed with error: ". $e->getMessage());
+                . "data(id:$orderId) failed with error: ". $e->getMessage());
             return;
         }
         catch (\Exception $e)

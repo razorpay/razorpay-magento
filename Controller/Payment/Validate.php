@@ -124,6 +124,7 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
      */
     public function execute()
     {  
+        $this->logger->info("Validate: Validation started for the incoming webhook");
         $post = $this->getPostData(); 
 
         if (json_last_error() !== 0)
@@ -228,11 +229,11 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
             }
             catch (\Magento\Framework\Exception\MailException $exception)
             {
-                $this->logger->critical($e);
+                $this->logger->critical("Validate: MailException Error message:" . $exception->getMessage());
             }
             catch (\Exception $e)
             {
-                $this->logger->critical($e);
+                $this->logger->critical("Validate: Exception Error message:" . $e->getMessage());
             }
 
             $responseContent = [
@@ -251,12 +252,14 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
         }
         catch(\Razorpay\Api\Errors\Error $e)
         {
+            $this->logger->critical("Validate: Razorpay Error message:" . $e->getMessage());
             $responseContent['message'] = $e->getMessage();
 
             $code = $e->getCode();
         }
         catch(\Exception $e)
         {
+            $this->logger->critical("Validate: Exception Error message:" . $e->getMessage());
             $responseContent['message'] = $e->getMessage();
 
             $code = $e->getCode();
@@ -279,6 +282,7 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
     { 
         if(empty($request['error']) === false)
         {
+            $this->logger->critical("Validate: Payment Failed or error from gateway");
             $this->messageManager->addError(__('Payment Failed'));
             throw new \Exception("Payment Failed or error from gateway");
         }

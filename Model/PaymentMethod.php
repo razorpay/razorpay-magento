@@ -151,7 +151,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $this->request = $request;
         $this->salesTransactionCollectionFactory = $salesTransactionCollectionFactory;
         $this->productMetaData = $productMetaData;
-        $this->regionFactory = $regionFactory;
+        $this->regionFactory   = $regionFactory;
         $this->orderRepository = $orderRepository;
 
         $this->key_id = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
