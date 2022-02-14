@@ -38,16 +38,20 @@ class PlaceRazorpayOrder implements ResolverInterface
      */
     public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {
-        if (empty($args['cart_id'])) {
-            throw new GraphQlInputException(__('Required parameter "cart_id" is missing'));
+        if (empty($args['order_id'])) {
+            throw new GraphQlInputException(__('Required parameter "order_id" is missing'));
         }
         try {
             $storeScope = \Magento\Store\Model\ScopeInterface::SCOPE_STORE;
             $storeId = (int) $context->getExtensionAttributes()->getStore()->getId();
-            $maskedCartId    = $args['cart_id'];
-            $cart            = $this->getCartForUser->execute($maskedCartId, $context->getUserId(), $storeId);
-            $receipt_id      = $cart->getId();
-            $amount          = (int) (number_format($cart->getGrandTotal() * 100, 0, ".", ""));
+            $receipt_id        = $args['order_id'];
+            $collection = $this->_objectManager->get('Magento\Sales\Model\Order')
+            ->getCollection()
+            ->addFieldToSelect('*')
+            ->addFilter('increment_id', $receipt_id)
+            ->getFirstItem();
+            $salesOrder = $collection->getData();
+            $amount          = (int) (number_format($salesOrder['grand_total'] * 100, 0, ".", ""));
             $payment_action  = $this->scopeConfig->getValue('payment/razorpay/payment_action', $storeScope);
             $payment_capture = 1;
             if ($payment_action === 'authorize') {
@@ -56,9 +60,9 @@ class PlaceRazorpayOrder implements ResolverInterface
             $order = $this->rzp->order->create([
                 'amount'          => $amount,
                 'receipt'         => $receipt_id,
-                'currency'        => $cart->getQuoteCurrencyCode(),
+                'currency'        => $salesOrder['order_currency_code'],
                 'payment_capture' => $payment_capture,
-                'app_offer'       => (($cart->getBaseSubtotal() - $cart->getBaseSubtotalWithDiscount()) > 0) ? 1 : 0,
+                'app_offer'       => (($salesOrder['grand_total'] - $salesOrder['base_discount_amount']) > 0) ? 1 : 0,
             ]);
             if (null !== $order && !empty($order->id)) {
 
@@ -66,8 +70,8 @@ class PlaceRazorpayOrder implements ResolverInterface
                     'success'        => true,
                     'rzp_order_id'   => $order->id,
                     'order_quote_id' => $receipt_id,
-                    'amount'         => number_format((float) $cart->getGrandTotal(), 2, ".", ""),
-                    'currency'       => $cart->getQuoteCurrencyCode(),
+                    'amount'         => number_format((float) $salesOrder['grand_total'], 2, ".", ""),
+                    'currency'       => $salesOrder['order_currency_code'],
                     'message'        => 'Razorpay Order created successfully'
                 ];
                 return $responseContent;
