@@ -267,6 +267,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         catch (\Exception $e)
         {
             $this->logger->critical("Razorpay Webhook payment.authorized exeption, orderID:" . $orderId
+                                    ." PaymentId: " . $paymentId
                                     ." and Message:" . $e->getMessage());
         }
     }
@@ -372,6 +373,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         catch (\Exception $e)
         {
             $this->logger->critical("Razorpay Webhook order.paid exeption, orderID:" . $orderId
+                                    ." PaymentId: " . $paymentId
                                     ." and Message:" . $e->getMessage());
         }
     }
