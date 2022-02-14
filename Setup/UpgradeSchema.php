@@ -29,10 +29,8 @@ class UpgradeSchema implements  UpgradeSchemaInterface
                 ['payment/razorpay/payment_action',
                  'payment/razorpay/order_status',
                  'payment/razorpay/webhook_wait_time'
-                 ]))
+                ]))
             {
-                print_r($configRow);
-
                 $setup->getConnection()->delete(
                     $setup->getTable('core_config_data'),
                     ['config_id = ?' => $configRow['config_id']]
