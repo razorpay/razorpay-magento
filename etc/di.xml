@@ -40,9 +40,4 @@
 	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
 	    </arguments>
 	</type>
-	<type name="Razorpay\Magento\Model\PaymentMethod">
-	    <arguments>
-	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
-	    </arguments>
-	</type>
 </config>

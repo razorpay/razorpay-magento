@@ -95,11 +95,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      */
     protected $orderRepository;
 
-    /**
-     * @var \Psr\Log\LoggerInterface
-     */
-    protected $logHandler;
-
     //protected $_isOffline = true;
 
     /**
@@ -110,7 +105,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      * @param \Magento\Payment\Helper\Data $paymentData
      * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
      * @param \Magento\Payment\Model\Method\Logger $logger
-     * @param \Psr\Log\LoggerInterface $logHandler
      * @param \Razorpay\Magento\Model\Config $config
      * @param \Magento\Framework\App\RequestInterface $request
      * @param TransactionCollectionFactory $salesTransactionCollectionFactory
@@ -130,7 +124,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         \Magento\Payment\Helper\Data $paymentData,
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         \Magento\Payment\Model\Method\Logger $logger,
-        \Psr\Log\LoggerInterface $logHandler,
         \Razorpay\Magento\Model\Config $config,
         \Magento\Framework\App\RequestInterface $request,
         TransactionCollectionFactory $salesTransactionCollectionFactory,
@@ -160,7 +153,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $this->productMetaData = $productMetaData;
         $this->regionFactory   = $regionFactory;
         $this->orderRepository = $orderRepository;
-        $this->logHandler      = $logHandler;
 
         $this->key_id = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
         $this->key_secret = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
@@ -227,7 +219,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
         $refundId = $payment->getTransactionId();
 
-        $this->logHandler->info('Razorpay Refund - Transaction ID:' . $refundId);
+        $this->_logger->info('Razorpay Refund - Transaction ID:' . $refundId);
 
         $paymentId = substr($refundId, 0, -7);
 
@@ -257,13 +249,13 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         }
         catch (\Razorpay\Api\Errors\Error $e)
         {
-            $this->logHandler->critical($e);
+            $this->_logger->critical($e);
 
             throw new LocalizedException(__('Razorpay Error: %1.', $e->getMessage()));
         }
         catch (\Exception $e)
         {
-            $this->logHandler->critical($e);
+            $this->_logger->critical($e);
 
             throw new LocalizedException(__('Razorpay Error: %1.', $e->getMessage()));
         }
