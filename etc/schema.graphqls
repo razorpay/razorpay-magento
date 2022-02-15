@@ -18,13 +18,13 @@ type RazorpayOrder {
 }
 
 input SetRzpPaymentDetailsOnCartInput {
-	cart_id: String!
+	order_id: String!
 	rzp_payment_id: String!
 	rzp_order_id: String!
 	rzp_signature: String!
 }
 
 type SetRzpPaymentDetailsOnCartOutput {
-    cart: Cart!
+    order: Order!
 }
 
