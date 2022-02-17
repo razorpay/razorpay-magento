@@ -11,7 +11,7 @@ type Mutation {
 type RazorpayOrder {
 	success: Boolean!
 	rzp_order_id: String
-	order_quote_id: String
+	order_id: String
 	amount: String
 	currency: String
 	message: String

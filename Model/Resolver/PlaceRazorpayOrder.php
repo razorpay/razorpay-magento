@@ -83,7 +83,7 @@ class PlaceRazorpayOrder implements ResolverInterface
                 $responseContent = [
                     'success'        => true,
                     'rzp_order_id'   => $order->id,
-                    'order_quote_id' => $receipt_id,
+                    'order_id'       => $receipt_id,
                     'amount'         => number_format((float) $salesOrder['grand_total'], 2, ".", ""),
                     'currency'       => $salesOrder['order_currency_code'],
                     'message'        => 'Razorpay Order created successfully'
