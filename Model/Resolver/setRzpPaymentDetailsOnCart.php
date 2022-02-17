@@ -193,6 +193,8 @@ class SetRzpPaymentDetailsOnCart implements ResolverInterface
             }
         } catch (\Razorpay\Api\Errors\Error $e) {
             throw new GraphQlInputException(__('Razorpay Error: %1.', $e->getMessage()));
+        } catch (\Exception $e) {
+            throw new GraphQlInputException(__('Error: %1.', $e->getMessage()));
         }
 
         return [
