@@ -29,22 +29,30 @@ class PlaceRazorpayOrder implements ResolverInterface
     protected $_objectManager;
 
     /**
+     * @var \Magento\Sales\Api\Data\OrderInterface
+     */
+    protected $order;
+
+    /**
      * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
      * @param GetCartForUser $getCartForUser
      * @param \Magento\Quote\Api\CartManagementInterface $cartManagement
      * @param PaymentMethod $paymentMethod
+     * @param \Magento\Sales\Api\Data\OrderInterface $order
      */
     public function __construct(
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         GetCartForUser $getCartForUser,
         \Magento\Quote\Api\CartManagementInterface $cartManagement,
-        PaymentMethod $paymentMethod
+        PaymentMethod $paymentMethod,
+        \Magento\Sales\Api\Data\OrderInterface $order
     ) {
         $this->scopeConfig    = $scopeConfig;
         $this->getCartForUser = $getCartForUser;
         $this->cartManagement = $cartManagement;
-        $this->rzp = $paymentMethod->rzp;
-        $this->_objectManager   = \Magento\Framework\App\ObjectManager::getInstance();
+        $this->rzp            = $paymentMethod->rzp;
+        $this->_objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $this->order          = $order;
     }
 
     /**
@@ -71,18 +79,24 @@ class PlaceRazorpayOrder implements ResolverInterface
             if ($payment_action === 'authorize') {
                 $payment_capture = 0;
             }
-            $order = $this->rzp->order->create([
+            $razorpay_order = $this->rzp->order->create([
                 'amount'          => $amount,
                 'receipt'         => $receipt_id,
                 'currency'        => $salesOrder['order_currency_code'],
                 'payment_capture' => $payment_capture,
                 'app_offer'       => (($salesOrder['grand_total'] - $salesOrder['base_discount_amount']) > 0) ? 1 : 0,
             ]);
-            if (null !== $order && !empty($order->id)) {
-
+            if (null !== $razorpay_order && !empty($razorpay_order->id)) {
+                if (isset($salesOrder['entity_id']) && empty($salesOrder['entity_id']) === false) {
+                    $order = $this->order->load($salesOrder['entity_id']);
+                    if ($order) {
+                        $order->setRzpOrderId($razorpay_order->id);
+                    }
+                    $order->save();
+                }
                 $responseContent = [
                     'success'        => true,
-                    'rzp_order_id'   => $order->id,
+                    'rzp_order_id'   => $razorpay_order->id,
                     'order_id'       => $receipt_id,
                     'amount'         => number_format((float) $salesOrder['grand_total'], 2, ".", ""),
                     'currency'       => $salesOrder['order_currency_code'],
