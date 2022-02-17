@@ -13,12 +13,27 @@ use Razorpay\Magento\Model\PaymentMethod;
 
 class PlaceRazorpayOrder implements ResolverInterface
 {
+    /**
+     * @var \Magento\Framework\App\Config\ScopeConfigInterface
+     */
     protected $scopeConfig;
 
+    /**
+     * @var \Magento\Quote\Api\CartManagementInterface
+     */
     protected $cartManagement;
 
+    /**
+     * @var \Magento\Framework\App\ObjectManager
+     */
     protected $_objectManager;
 
+    /**
+     * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
+     * @param GetCartForUser $getCartForUser
+     * @param \Magento\Quote\Api\CartManagementInterface $cartManagement
+     * @param PaymentMethod $paymentMethod
+     */
     public function __construct(
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         GetCartForUser $getCartForUser,
@@ -33,7 +48,6 @@ class PlaceRazorpayOrder implements ResolverInterface
     }
 
     /**
-     * @param GetCartForUser $getCartForUser
      * @inheritdoc
      */
     public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
@@ -45,7 +59,7 @@ class PlaceRazorpayOrder implements ResolverInterface
             $storeScope = \Magento\Store\Model\ScopeInterface::SCOPE_STORE;
             $storeId = (int) $context->getExtensionAttributes()->getStore()->getId();
             $receipt_id        = $args['order_id'];
-            $collection = $this->_objectManager->get('Magento\Sales\Model\Order')
+            $collection = $this->_objectManager->get(\Magento\Sales\Model\Order::class)
             ->getCollection()
             ->addFieldToSelect('*')
             ->addFilter('increment_id', $receipt_id)

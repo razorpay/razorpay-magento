@@ -34,6 +34,9 @@ class SetRzpPaymentDetailsOnCart implements ResolverInterface
      */
     private $checkCartCheckoutAllowance;
 
+    /**
+     * @var \Magento\Framework\App\ObjectManager
+     */
     protected $_objectManager;
 
     /**
@@ -116,7 +119,8 @@ class SetRzpPaymentDetailsOnCart implements ResolverInterface
 
         $rzp_payment_id = $args['input']['rzp_payment_id'];
         if (empty($args['input']['rzp_order_id'])) {
-            throw new GraphQlInputException(__('Required parameter "rzp_order_id" is missing.'));
+            throw new GraphQlInputException(__('Required parameter'
+            . ' "rzp_order_id" is missing.'));
         }
 
         $rzp_order_id = $args['input']['rzp_order_id'];
@@ -140,12 +144,12 @@ class SetRzpPaymentDetailsOnCart implements ResolverInterface
             }
             //fetch order from API
             $rzp_order_data = $this->rzp->order->fetch($rzp_order_id);
-            $receipt = isset($rzp_order_data->receipt) ? $rzp_order_data->receipt : NULL;
+            $receipt = isset($rzp_order_data->receipt) ? $rzp_order_data->receipt : null;
             if ($receipt !== $order_id) {
                 throw new GraphQlInputException(__('Not a valid Razorpay orderID'));
             }
             $rzpOrderAmount = $rzp_order_data->amount;
-            $collection     = $this->_objectManager->get('Magento\Sales\Model\Order')
+            $collection     = $this->_objectManager->get(\Magento\Sales\Model\Order::class)
             ->getCollection()
             ->addFieldToSelect('*')
             ->addFilter('increment_id', $order_id)
@@ -153,11 +157,9 @@ class SetRzpPaymentDetailsOnCart implements ResolverInterface
             $salesOrder = $collection->getData();
             if (isset($salesOrder['entity_id']) && empty($salesOrder['entity_id']) === false) {
                 $order = $this->order->load($salesOrder['entity_id']);
-                if ($order)
-                {
+                if ($order) {
                     $amountPaid = number_format($rzpOrderAmount / 100, 2, ".", "");
-                    if ($order->getStatus() === 'pending')
-                    {
+                    if ($order->getStatus() === 'pending') {
                         $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
                     }
 
@@ -169,8 +171,8 @@ class SetRzpPaymentDetailsOnCart implements ResolverInterface
                         )
                     );
 
-                    if ($order->canInvoice() && $this->config->canAutoGenerateInvoice() && $rzp_order_data->status === 'paid')
-                    {
+                    if ($order->canInvoice() && $this->config->canAutoGenerateInvoice()
+                        && $rzp_order_data->status === 'paid') {
                         $invoice = $this->invoiceService->prepareInvoice($order);
                         $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
                         $invoice->setTransactionId($rzp_payment_id);
