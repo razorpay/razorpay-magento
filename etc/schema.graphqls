@@ -20,7 +20,6 @@ type RazorpayOrder {
 input SetRzpPaymentDetailsOnCartInput {
 	order_id: String!
 	rzp_payment_id: String!
-	rzp_order_id: String!
 	rzp_signature: String!
 }
 

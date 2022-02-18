@@ -118,17 +118,28 @@ class SetRzpPaymentDetailsOnCart implements ResolverInterface
         }
 
         $rzp_payment_id = $args['input']['rzp_payment_id'];
-        if (empty($args['input']['rzp_order_id'])) {
-            throw new GraphQlInputException(__('Required parameter'
-            . ' "rzp_order_id" is missing.'));
-        }
 
-        $rzp_order_id = $args['input']['rzp_order_id'];
         if (empty($args['input']['rzp_signature'])) {
             throw new GraphQlInputException(__('Required parameter "rzp_signature" is missing.'));
         }
 
         $rzp_signature = $args['input']['rzp_signature'];
+
+        $rzp_order_id = '';
+        try {
+            $collection     = $this->_objectManager->get(\Magento\Sales\Model\Order::class)
+            ->getCollection()
+            ->addFieldToSelect('*')
+            ->addFilter('increment_id', $order_id)
+            ->getFirstItem();
+            $salesOrder = $collection->getData();
+            $order = $this->order->load($salesOrder['entity_id']);
+            if ($order) {
+                $rzp_order_id = $order->getRzpOrderId();
+            }
+        } catch (\Exception $e) {
+            throw new GraphQlInputException(__('Error: %1.', $e->getMessage()));
+        }
         $attributes = [
             'razorpay_payment_id' => $rzp_payment_id,
             'razorpay_order_id'   => $rzp_order_id,
@@ -149,14 +160,7 @@ class SetRzpPaymentDetailsOnCart implements ResolverInterface
                 throw new GraphQlInputException(__('Not a valid Razorpay orderID'));
             }
             $rzpOrderAmount = $rzp_order_data->amount;
-            $collection     = $this->_objectManager->get(\Magento\Sales\Model\Order::class)
-            ->getCollection()
-            ->addFieldToSelect('*')
-            ->addFilter('increment_id', $order_id)
-            ->getFirstItem();
-            $salesOrder = $collection->getData();
             if (isset($salesOrder['entity_id']) && empty($salesOrder['entity_id']) === false) {
-                $order = $this->order->load($salesOrder['entity_id']);
                 if ($order) {
                     $amountPaid = number_format($rzpOrderAmount / 100, 2, ".", "");
                     if ($order->getStatus() === 'pending') {
