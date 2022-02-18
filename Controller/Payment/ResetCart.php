@@ -47,47 +47,62 @@ class ResetCart extends \Razorpay\Magento\Controller\BaseController
     public function execute()
     {
         $this->logger->info("Reset Cart started.");
+
         $lastQuoteId = $this->checkoutSession->getLastQuoteId();
+
         $lastOrderId = $this->checkoutSession->getLastRealOrder();
 
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
 
-
-
-        if ($lastQuoteId && $lastOrderId) {
+        if ($lastQuoteId && $lastOrderId)
+        {
             $this->logger->info("Reset Cart: with lastQuoteId:" . $lastQuoteId);
+
             $orderModel = $objectManager->get('Magento\Sales\Model\Order')->load($lastOrderId->getEntityId());
 
-            if($orderModel->canCancel()) {
-               
+            if ($orderModel->canCancel())
+            {
                 $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($lastQuoteId);
+
                 $quote->setIsActive(true)->save();
+
+                $this->checkoutSession->replaceQuote($quote);
                  
                 //not canceling order as cancled order can't be used again for order processing.
                 //$orderModel->cancel(); 
                 $orderModel->setStatus('canceled');
+
                 $orderModel->save();
-                $this->checkoutSession->setFirstTimeChk('0');                
+
+                $this->checkoutSession->setFirstTimeChk('0');
+
                 $this->logger->info("Reset Cart: redirect_url: checkout/#payment");
+
                 $responseContent = [
                     'success'           => true,
                     'redirect_url'         => 'checkout/#payment'
-                    ];
+                ];
             }
         }
        
-        if (!$lastQuoteId || !$lastOrderId) {
+        if (!$lastQuoteId || !$lastOrderId)
+        {
             $this->logger->info("Reset Cart: redirect_url: checkout/cart");
+
             $responseContent = [
                 'success'           => true,
                 'redirect_url'         => 'checkout/cart'
-                ];
+            ];
         }
 
         $this->messageManager->addError(__('Payment Failed or Payment closed'));
+
         $this->logger->critical("Reset Cart: Payment Failed or Payment closed");
+
         $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
+
         $response->setData($responseContent);
+
         $response->setHttpResponseCode(200);
 
         return $response;
