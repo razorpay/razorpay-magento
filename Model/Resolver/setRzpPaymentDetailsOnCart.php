@@ -148,7 +148,7 @@ class SetRzpPaymentDetailsOnCart implements ResolverInterface
         $this->rzp->utility->verifyPaymentSignature($attributes);
         try {
             $storeScope = \Magento\Store\Model\ScopeInterface::SCOPE_STORE;
-            $payment_action  = $this->scopeConfig->getValue('payment/razorpay/payment_action', $storeScope);
+            $payment_action  = $this->scopeConfig->getValue('payment/razorpay/rzp_payment_action', $storeScope);
             $payment_capture = 'Captured';
             if ($payment_action === 'authorize') {
                 $payment_capture = 'Authorized';

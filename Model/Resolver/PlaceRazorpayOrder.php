@@ -74,7 +74,7 @@ class PlaceRazorpayOrder implements ResolverInterface
             ->getFirstItem();
             $salesOrder = $collection->getData();
             $amount          = (int) (number_format($salesOrder['grand_total'] * 100, 0, ".", ""));
-            $payment_action  = $this->scopeConfig->getValue('payment/razorpay/payment_action', $storeScope);
+            $payment_action  = $this->scopeConfig->getValue('payment/razorpay/rzp_payment_action', $storeScope);
             $payment_capture = 1;
             if ($payment_action === 'authorize') {
                 $payment_capture = 0;
