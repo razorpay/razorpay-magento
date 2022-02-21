@@ -79,11 +79,10 @@ mutation {
 5. Save Razorpay Response Details against Cart after payment success with Magento orderID, RZP paymentId , orderId and signature
 ```
 mutation {
-  setRzpPaymentDetailsOnCart (
+  setRzpPaymentDetailsForOrder (
     input: {
       order_id: "{{order_ID}}"
       rzp_payment_id: "{{RAZORPAY_PAYMENT_ID}}"
-      rzp_order_id: "{{RAZORPAY_ORDER_ID}}"
       rzp_signature: "{{RAZORPAY_SIGNATURE}}"
     }
   ){

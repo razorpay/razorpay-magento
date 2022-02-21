@@ -4,7 +4,7 @@ type StoreConfig @doc(description: "The type contains information about a store 
 }
 
 type Mutation {
-	setRzpPaymentDetailsOnCart(input: SetRzpPaymentDetailsOnCartInput) : SetRzpPaymentDetailsOnCartOutput @resolver(class: "Razorpay\\Magento\\Model\\Resolver\\SetRzpPaymentDetailsOnCart")
+	setRzpPaymentDetailsForOrder(input: SetRzpPaymentDetailsForOrderInput) : SetRzpPaymentDetailsForOrderOutput @resolver(class: "Razorpay\\Magento\\Model\\Resolver\\SetRzpPaymentDetailsForOrder")
 	placeRazorpayOrder (order_id: String @doc(description: "order_id to generate Razorpay Order ID.")) : RazorpayOrder @resolver( class: "Razorpay\\Magento\\Model\\Resolver\\PlaceRazorpayOrder") @doc(description: "Place Razorpay Order with cart amount and currency to generate RZP order ID.")
 }
 
@@ -17,13 +17,13 @@ type RazorpayOrder {
 	message: String
 }
 
-input SetRzpPaymentDetailsOnCartInput {
+input SetRzpPaymentDetailsForOrderInput {
 	order_id: String!
 	rzp_payment_id: String!
 	rzp_signature: String!
 }
 
-type SetRzpPaymentDetailsOnCartOutput {
+type SetRzpPaymentDetailsForOrderOutput {
     order: Order!
 }
 
