@@ -17,7 +17,7 @@ use Razorpay\Magento\Model\Config;
 /**
  * Mutation resolver for setting payment method for shopping cart
  */
-class SetRzpPaymentDetailsOnCart implements ResolverInterface
+class SetRzpPaymentDetailsForOrder implements ResolverInterface
 {
     /**
      * @var GetCartForUser
