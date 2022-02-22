@@ -70,12 +70,15 @@ class PlaceRazorpayOrder implements ResolverInterface
             $storeScope = \Magento\Store\Model\ScopeInterface::SCOPE_STORE;
             $storeId = (int) $context->getExtensionAttributes()->getStore()->getId();
             $receipt_id        = $args['order_id'];
+
             $collection = $this->_objectManager->get(\Magento\Sales\Model\Order::class)
             ->getCollection()
             ->addFieldToSelect('*')
             ->addFilter('increment_id', $receipt_id)
             ->getFirstItem();
+
             $salesOrder = $collection->getData();
+
             $amount          = (int) (number_format($salesOrder['grand_total'] * 100, 0, ".", ""));
             $payment_action  = $this->scopeConfig->getValue('payment/razorpay/rzp_payment_action', $storeScope);
             $payment_capture = 1;
@@ -83,6 +86,7 @@ class PlaceRazorpayOrder implements ResolverInterface
             {
                 $payment_capture = 0;
             }
+
             $razorpay_order = $this->rzp->order->create([
                 'amount'          => $amount,
                 'receipt'         => $receipt_id,
@@ -90,6 +94,7 @@ class PlaceRazorpayOrder implements ResolverInterface
                 'payment_capture' => $payment_capture,
                 'app_offer'       => (($salesOrder['grand_total'] - $salesOrder['base_discount_amount']) > 0) ? 1 : 0,
             ]);
+
             if (null !== $razorpay_order && !empty($razorpay_order->id))
             {
                 if (isset($salesOrder['entity_id']) && empty($salesOrder['entity_id']) === false)
@@ -101,6 +106,7 @@ class PlaceRazorpayOrder implements ResolverInterface
                     }
                     $order->save();
                 }
+
                 $responseContent = [
                     'success'        => true,
                     'rzp_order_id'   => $razorpay_order->id,
@@ -109,6 +115,7 @@ class PlaceRazorpayOrder implements ResolverInterface
                     'currency'       => $salesOrder['order_currency_code'],
                     'message'        => 'Razorpay Order created successfully'
                 ];
+
                 return $responseContent;
             } else
             {
