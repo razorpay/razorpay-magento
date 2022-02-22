@@ -46,7 +46,8 @@ class PlaceRazorpayOrder implements ResolverInterface
         \Magento\Quote\Api\CartManagementInterface $cartManagement,
         PaymentMethod $paymentMethod,
         \Magento\Sales\Api\Data\OrderInterface $order
-    ) {
+    )
+    {
         $this->scopeConfig    = $scopeConfig;
         $this->getCartForUser = $getCartForUser;
         $this->cartManagement = $cartManagement;
@@ -60,10 +61,12 @@ class PlaceRazorpayOrder implements ResolverInterface
      */
     public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {
-        if (empty($args['order_id'])) {
+        if (empty($args['order_id']))
+        {
             throw new GraphQlInputException(__('Required parameter "order_id" is missing'));
         }
-        try {
+        try
+        {
             $storeScope = \Magento\Store\Model\ScopeInterface::SCOPE_STORE;
             $storeId = (int) $context->getExtensionAttributes()->getStore()->getId();
             $receipt_id        = $args['order_id'];
@@ -76,7 +79,8 @@ class PlaceRazorpayOrder implements ResolverInterface
             $amount          = (int) (number_format($salesOrder['grand_total'] * 100, 0, ".", ""));
             $payment_action  = $this->scopeConfig->getValue('payment/razorpay/rzp_payment_action', $storeScope);
             $payment_capture = 1;
-            if ($payment_action === 'authorize') {
+            if ($payment_action === 'authorize')
+            {
                 $payment_capture = 0;
             }
             $razorpay_order = $this->rzp->order->create([
@@ -86,10 +90,13 @@ class PlaceRazorpayOrder implements ResolverInterface
                 'payment_capture' => $payment_capture,
                 'app_offer'       => (($salesOrder['grand_total'] - $salesOrder['base_discount_amount']) > 0) ? 1 : 0,
             ]);
-            if (null !== $razorpay_order && !empty($razorpay_order->id)) {
-                if (isset($salesOrder['entity_id']) && empty($salesOrder['entity_id']) === false) {
+            if (null !== $razorpay_order && !empty($razorpay_order->id))
+            {
+                if (isset($salesOrder['entity_id']) && empty($salesOrder['entity_id']) === false)
+                {
                     $order = $this->order->load($salesOrder['entity_id']);
-                    if ($order) {
+                    if ($order)
+                    {
                         $order->setRzpOrderId($razorpay_order->id);
                     }
                     $order->save();
@@ -103,18 +110,21 @@ class PlaceRazorpayOrder implements ResolverInterface
                     'message'        => 'Razorpay Order created successfully'
                 ];
                 return $responseContent;
-            } else {
+            } else
+            {
                 return [
                     'success' => false,
                     'message' => "Razorpay Order not generated. Something went wrong",
                 ];
             }
-        } catch (\Razorpay\Api\Errors\Error $e) {
+        } catch (\Razorpay\Api\Errors\Error $e)
+        {
             return [
                 'success' => false,
                 'message' => $e->getMessage(),
             ];
-        } catch (\Exception $e) {
+        } catch (\Exception $e)
+        {
             return [
                 'success' => false,
                 'message' => $e->getMessage(),

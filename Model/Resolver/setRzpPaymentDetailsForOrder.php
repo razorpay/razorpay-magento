@@ -90,7 +90,8 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
         \Magento\Sales\Model\Service\InvoiceService $invoiceService,
         \Magento\Framework\DB\Transaction $transaction,
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
-    ) {
+    )
+    {
         $this->getCartForUser             = $getCartForUser;
         $this->setPaymentMethodOnCart     = $setPaymentMethodOnCart;
         $this->checkCartCheckoutAllowance = $checkCartCheckoutAllowance;
@@ -108,25 +109,29 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
      */
     public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {
-        if (empty($args['input']['order_id'])) {
+        if (empty($args['input']['order_id']))
+        {
             throw new GraphQlInputException(__('Required parameter "order_id" is missing.'));
         }
 
         $order_id = $args['input']['order_id'];
-        if (empty($args['input']['rzp_payment_id'])) {
+        if (empty($args['input']['rzp_payment_id']))
+        {
             throw new GraphQlInputException(__('Required parameter "rzp_payment_id" is missing.'));
         }
 
         $rzp_payment_id = $args['input']['rzp_payment_id'];
 
-        if (empty($args['input']['rzp_signature'])) {
+        if (empty($args['input']['rzp_signature']))
+        {
             throw new GraphQlInputException(__('Required parameter "rzp_signature" is missing.'));
         }
 
         $rzp_signature = $args['input']['rzp_signature'];
 
         $rzp_order_id = '';
-        try {
+        try
+        {
             $collection     = $this->_objectManager->get(\Magento\Sales\Model\Order::class)
             ->getCollection()
             ->addFieldToSelect('*')
@@ -134,10 +139,12 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
             ->getFirstItem();
             $salesOrder = $collection->getData();
             $order = $this->order->load($salesOrder['entity_id']);
-            if ($order) {
+            if ($order)
+            {
                 $rzp_order_id = $order->getRzpOrderId();
             }
-        } catch (\Exception $e) {
+        } catch (\Exception $e)
+        {
             throw new GraphQlInputException(__('Error: %1.', $e->getMessage()));
         }
         $attributes = [
@@ -146,24 +153,30 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
             'razorpay_signature'  => $rzp_signature
         ];
         $this->rzp->utility->verifyPaymentSignature($attributes);
-        try {
+        try
+        {
             $storeScope = \Magento\Store\Model\ScopeInterface::SCOPE_STORE;
             $payment_action  = $this->scopeConfig->getValue('payment/razorpay/rzp_payment_action', $storeScope);
             $payment_capture = 'Captured';
-            if ($payment_action === 'authorize') {
+            if ($payment_action === 'authorize')
+            {
                 $payment_capture = 'Authorized';
             }
             //fetch order from API
             $rzp_order_data = $this->rzp->order->fetch($rzp_order_id);
             $receipt = isset($rzp_order_data->receipt) ? $rzp_order_data->receipt : null;
-            if ($receipt !== $order_id) {
+            if ($receipt !== $order_id)
+            {
                 throw new GraphQlInputException(__('Not a valid Razorpay orderID'));
             }
             $rzpOrderAmount = $rzp_order_data->amount;
-            if (isset($salesOrder['entity_id']) && empty($salesOrder['entity_id']) === false) {
-                if ($order) {
+            if (isset($salesOrder['entity_id']) && empty($salesOrder['entity_id']) === false)
+            {
+                if ($order)
+                {
                     $amountPaid = number_format($rzpOrderAmount / 100, 2, ".", "");
-                    if ($order->getStatus() === 'pending') {
+                    if ($order->getStatus() === 'pending')
+                    {
                         $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
                     }
 
@@ -176,7 +189,8 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
                     );
 
                     if ($order->canInvoice() && $this->config->canAutoGenerateInvoice()
-                        && $rzp_order_data->status === 'paid') {
+                        && $rzp_order_data->status === 'paid')
+                    {
                         $invoice = $this->invoiceService->prepareInvoice($order);
                         $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
                         $invoice->setTransactionId($rzp_payment_id);
@@ -195,9 +209,11 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
                     $order->save();
                 }
             }
-        } catch (\Razorpay\Api\Errors\Error $e) {
+        } catch (\Razorpay\Api\Errors\Error $e)
+        {
             throw new GraphQlInputException(__('Razorpay Error: %1.', $e->getMessage()));
-        } catch (\Exception $e) {
+        } catch (\Exception $e)
+        {
             throw new GraphQlInputException(__('Error: %1.', $e->getMessage()));
         }
 
