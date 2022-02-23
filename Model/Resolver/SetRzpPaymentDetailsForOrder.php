@@ -8,9 +8,6 @@ use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Exception\GraphQlInputException;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
-use Magento\QuoteGraphQl\Model\Cart\CheckCartCheckoutAllowance;
-use Magento\QuoteGraphQl\Model\Cart\GetCartForUser;
-use Magento\QuoteGraphQl\Model\Cart\SetPaymentMethodOnCart as SetPaymentMethodOnCartModel;
 use Razorpay\Magento\Model\PaymentMethod;
 use Razorpay\Magento\Model\Config;
 
@@ -19,26 +16,6 @@ use Razorpay\Magento\Model\Config;
  */
 class SetRzpPaymentDetailsForOrder implements ResolverInterface
 {
-    /**
-     * @var GetCartForUser
-     */
-    private $getCartForUser;
-
-    /**
-     * @var SetPaymentMethodOnCartModel
-     */
-    private $setPaymentMethodOnCart;
-
-    /**
-     * @var CheckCartCheckoutAllowance
-     */
-    private $checkCartCheckoutAllowance;
-
-    /**
-     * @var \Magento\Framework\App\ObjectManager
-     */
-    protected $_objectManager;
-
     /**
      * @var \Magento\Sales\Api\Data\OrderInterface
      */
@@ -70,9 +47,6 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
     protected const STATUS_PROCESSING = 'processing';
 
     /**
-     * @param GetCartForUser $getCartForUser
-     * @param SetPaymentMethodOnCartModel $setPaymentMethodOnCart
-     * @param CheckCartCheckoutAllowance $checkCartCheckoutAllowance
      * @param PaymentMethod $paymentMethod
      * @param \Magento\Sales\Api\Data\OrderInterface $order
      * @param \Razorpay\Magento\Model\Config $config
@@ -81,9 +55,6 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
      * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
      */
     public function __construct(
-        GetCartForUser $getCartForUser,
-        SetPaymentMethodOnCartModel $setPaymentMethodOnCart,
-        CheckCartCheckoutAllowance $checkCartCheckoutAllowance,
         PaymentMethod $paymentMethod,
         \Magento\Sales\Api\Data\OrderInterface $order,
         \Razorpay\Magento\Model\Config $config,
@@ -92,16 +63,12 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
     )
     {
-        $this->getCartForUser             = $getCartForUser;
-        $this->setPaymentMethodOnCart     = $setPaymentMethodOnCart;
-        $this->checkCartCheckoutAllowance = $checkCartCheckoutAllowance;
         $this->rzp                        = $paymentMethod->rzp;
         $this->order                      = $order;
         $this->config                     = $config;
         $this->invoiceService             = $invoiceService;
         $this->transaction                = $transaction;
         $this->scopeConfig                = $scopeConfig;
-        $this->_objectManager             = \Magento\Framework\App\ObjectManager::getInstance();
     }
 
     /**
