@@ -133,15 +133,7 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
         $rzp_order_id = '';
         try
         {
-            $collection     = $this->_objectManager->get(\Magento\Sales\Model\Order::class)
-            ->getCollection()
-            ->addFieldToSelect('*')
-            ->addFilter('increment_id', $order_id)
-            ->getFirstItem();
-
-            $salesOrder = $collection->getData();
-
-            $order = $this->order->load($salesOrder['entity_id']);
+            $order = $this->order->load($order_id,$this->order::INCREMENT_ID);
             if ($order)
             {
                 $rzp_order_id = $order->getRzpOrderId();
@@ -177,44 +169,41 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
             }
             $rzpOrderAmount = $rzp_order_data->amount;
 
-            if (isset($salesOrder['entity_id']) && empty($salesOrder['entity_id']) === false)
+            if ($order)
             {
-                if ($order)
+                $amountPaid = number_format($rzpOrderAmount / 100, 2, ".", "");
+                if ($order->getStatus() === 'pending')
                 {
-                    $amountPaid = number_format($rzpOrderAmount / 100, 2, ".", "");
-                    if ($order->getStatus() === 'pending')
-                    {
-                        $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
-                    }
+                    $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
+                }
+
+                $order->addStatusHistoryComment(
+                    __(
+                        '%1 amount of %2 online. Transaction ID: "' . $rzp_payment_id . '"',
+                        $payment_capture,
+                        $order->getBaseCurrency()->formatTxt($amountPaid)
+                    )
+                );
+
+                if ($order->canInvoice() && $this->config->canAutoGenerateInvoice()
+                    && $rzp_order_data->status === 'paid')
+                {
+                    $invoice = $this->invoiceService->prepareInvoice($order);
+                    $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
+                    $invoice->setTransactionId($rzp_payment_id);
+                    $invoice->register();
+                    $invoice->save();
+
+                    $transactionSave = $this->transaction
+                        ->addObject($invoice)
+                        ->addObject($invoice->getOrder());
+                    $transactionSave->save();
 
                     $order->addStatusHistoryComment(
-                        __(
-                            '%1 amount of %2 online. Transaction ID: "' . $rzp_payment_id . '"',
-                            $payment_capture,
-                            $order->getBaseCurrency()->formatTxt($amountPaid)
-                        )
-                    );
-
-                    if ($order->canInvoice() && $this->config->canAutoGenerateInvoice()
-                        && $rzp_order_data->status === 'paid')
-                    {
-                        $invoice = $this->invoiceService->prepareInvoice($order);
-                        $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
-                        $invoice->setTransactionId($rzp_payment_id);
-                        $invoice->register();
-                        $invoice->save();
-
-                        $transactionSave = $this->transaction
-                          ->addObject($invoice)
-                          ->addObject($invoice->getOrder());
-                        $transactionSave->save();
-
-                        $order->addStatusHistoryComment(
-                            __('Notified customer about invoice #%1.', $invoice->getId())
-                        )->setIsCustomerNotified(true);
-                    }
-                    $order->save();
+                        __('Notified customer about invoice #%1.', $invoice->getId())
+                    )->setIsCustomerNotified(true);
                 }
+                $order->save();
             }
         } catch (\Razorpay\Api\Errors\Error $e)
         {
