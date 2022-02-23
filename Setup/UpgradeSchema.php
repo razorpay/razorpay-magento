@@ -47,7 +47,7 @@ class UpgradeSchema implements  UpgradeSchemaInterface
                     [
                         'nullable' => true,
                         'type'     => \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
-                        'length'   => 255,
+                        'length'   => 55,
                         'comment'  => 'RZP Order ID'
                     ]
                 );
