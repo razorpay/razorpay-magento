@@ -37,6 +37,21 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
     protected $transaction;
 
     /**
+     * @var \Magento\Checkout\Model\Session
+     */
+    protected $checkoutSession;
+
+    /**
+     * @var \Magento\Sales\Model\Order\Email\Sender\InvoiceSender
+     */
+    protected $invoiceSender;
+
+    /**
+     * @var \Magento\Sales\Model\Order\Email\Sender\OrderSender
+     */
+    protected $orderSender;
+
+    /**
      * @var \Magento\Framework\App\Config\ScopeConfigInterface
      */
     protected $scopeConfig;
@@ -53,6 +68,9 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
      * @param \Magento\Sales\Model\Service\InvoiceService $invoiceService
      * @param \Magento\Framework\DB\Transaction $transaction
      * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
+     * @param \Magento\Checkout\Model\Session $checkoutSession
+     * @param \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender
+     * @param \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender
      */
     public function __construct(
         PaymentMethod $paymentMethod,
@@ -60,7 +78,10 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
         \Razorpay\Magento\Model\Config $config,
         \Magento\Sales\Model\Service\InvoiceService $invoiceService,
         \Magento\Framework\DB\Transaction $transaction,
-        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
+        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
+        \Magento\Checkout\Model\Session $checkoutSession,
+        \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender,
+        \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender
     )
     {
         $this->rzp                        = $paymentMethod->rzp;
@@ -69,6 +90,9 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
         $this->invoiceService             = $invoiceService;
         $this->transaction                = $transaction;
         $this->scopeConfig                = $scopeConfig;
+        $this->checkoutSession            = $checkoutSession;
+        $this->invoiceSender              = $invoiceSender;
+        $this->orderSender                = $orderSender;
     }
 
     /**
@@ -166,9 +190,20 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
                         ->addObject($invoice->getOrder());
                     $transactionSave->save();
 
+                    $this->invoiceSender->send($invoice);
+
                     $order->addStatusHistoryComment(
                         __('Notified customer about invoice #%1.', $invoice->getId())
                     )->setIsCustomerNotified(true);
+                    try {
+                        $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
+                        $this->orderSender->send($order);
+                        $this->checkoutSession->unsRazorpayMailSentOnSuccess();
+                    } catch (\Magento\Framework\Exception\MailException $e) {
+                        throw new GraphQlInputException(__('Razorpay Error: %1.', $e->getMessage()));
+                    } catch (\Exception $e) {
+                        throw new GraphQlInputException(__('Error: %1.', $e->getMessage()));
+                    }
                 }
                 $order->save();
             }
