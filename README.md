@@ -65,7 +65,7 @@ mutation {
   ){
     success
     rzp_order_id
-    order_quote_id
+    order_id
     amount
     currency
     message
