@@ -10,6 +10,8 @@ use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Razorpay\Magento\Model\PaymentMethod;
 use Razorpay\Magento\Model\Config;
+use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
+use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
 
 /**
  * Mutation resolver for setting payment method for shopping cart
@@ -220,6 +222,45 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
 
                     $this->logger->info('graphQL: Order Status Updated to ' . static::STATUS_PROCESSING);
                 }
+
+                $payment = $order->getPayment();
+
+                $payment->setLastTransId($rzp_payment_id)
+                        ->setTransactionId($rzp_payment_id)
+                        ->setIsTransactionClosed(true)
+                        ->setShouldCloseParentTransaction(true);
+
+                $payment->setParentTransactionId($payment->getTransactionId());
+
+                if ($this->config->getPaymentAction()  === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE)
+                {
+                    $payment->addTransactionCommentsToOrder(
+                        "$rzp_payment_id",
+                        (new CaptureCommand())->execute(
+                            $payment,
+                            $order->getGrandTotal(),
+                            $order
+                        ),
+                        ""
+                    );
+                } else
+                {
+                    $payment->addTransactionCommentsToOrder(
+                        "$rzp_payment_id",
+                        (new AuthorizeCommand())->execute(
+                            $payment,
+                            $order->getGrandTotal(),
+                            $order
+                        ),
+                        ""
+                    );
+                }
+
+                $transaction = $payment->addTransaction(\Magento\Sales\Model\Order\Payment\Transaction::TYPE_AUTH, null, true, "");
+
+                $transaction->setIsClosed(true);
+
+                $transaction->save();
 
                 $order->addStatusHistoryComment(
                     __(
