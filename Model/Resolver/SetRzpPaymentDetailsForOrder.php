@@ -124,7 +124,7 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
         $rzp_order_id = '';
         try
         {
-            $order = $this->order->load($order_id,$this->order::INCREMENT_ID);
+            $order = $this->order->load($order_id, $this->order::INCREMENT_ID);
             if ($order)
             {
                 $rzp_order_id = $order->getRzpOrderId();
