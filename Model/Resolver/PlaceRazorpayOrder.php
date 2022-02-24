@@ -70,15 +70,18 @@ class PlaceRazorpayOrder implements ResolverInterface
     public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {
         $this->logger->info('graphQL: Creating Razorpay Order');
+
         if (empty($args['order_id']))
         {
             $this->logger->critical('graphQL: Input Exception: Required parameter "order_id" is missing');
+
             throw new GraphQlInputException(__('Required parameter "order_id" is missing'));
         }
         try
         {
             $storeScope = \Magento\Store\Model\ScopeInterface::SCOPE_STORE;
             $order_id   = $args['order_id'];
+
             $this->logger->info('graphQL: Order ID: ' . $order_id);
 
             $order = $this->order->load($order_id, $this->order::INCREMENT_ID);
@@ -92,6 +95,7 @@ class PlaceRazorpayOrder implements ResolverInterface
                 || null === $order_base_discount_amount)
             {
                 $this->logger->critical('graphQL: Unable to fetch order data for Order ID: ' . $order_id);
+
                 return [
                     'success' => false,
                     'message' => 'graphQL: Unable to fetch order data for Order ID: ' . $order_id,
@@ -111,6 +115,7 @@ class PlaceRazorpayOrder implements ResolverInterface
                 . 'Receipt:' . $order_id . ', '
                 . 'Currency:' . $order_currency_code . ', '
                 . ' Payment Capture:' . $payment_capture);
+
             $razorpay_order = $this->rzp->order->create([
                 'amount'          => $amount,
                 'receipt'         => $order_id,
@@ -122,6 +127,7 @@ class PlaceRazorpayOrder implements ResolverInterface
             if (null !== $razorpay_order && !empty($razorpay_order->id))
             {
                 $this->logger->info('graphQL: Razorpay Order ID: ' . $razorpay_order->id);
+
                 if ($order)
                 {
                     $order->setRzpOrderId($razorpay_order->id);
@@ -141,6 +147,7 @@ class PlaceRazorpayOrder implements ResolverInterface
             } else
             {
                 $this->logger->critical('graphQL: Razorpay Order not generated. Something went wrong');
+
                 return [
                     'success' => false,
                     'message' => "Razorpay Order not generated. Something went wrong",
@@ -149,6 +156,7 @@ class PlaceRazorpayOrder implements ResolverInterface
         } catch (\Razorpay\Api\Errors\Error $e)
         {
             $this->logger->critical('graphQL: Razorpay API Error: ' . $e->getMessage());
+
             return [
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -156,6 +164,7 @@ class PlaceRazorpayOrder implements ResolverInterface
         } catch (\Exception $e)
         {
             $this->logger->critical('graphQL: Exception: ' . $e->getMessage());
+
             return [
                 'success' => false,
                 'message' => $e->getMessage(),
