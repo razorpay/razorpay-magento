@@ -262,14 +262,6 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
 
                 $transaction->save();
 
-                $order->addStatusHistoryComment(
-                    __(
-                        '%1 amount of %2 online. Transaction ID: "' . $rzp_payment_id . '"',
-                        $payment_capture,
-                        $order->getBaseCurrency()->formatTxt($amountPaid)
-                    )
-                );
-
                 if ($order->canInvoice() && $this->config->canAutoGenerateInvoice()
                     && $rzp_order_data->status === 'paid')
                 {
