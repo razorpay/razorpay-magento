@@ -59,6 +59,12 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
     /**
      * @var STATUS_PROCESSING
      */
+
+    /**
+     * @var \Psr\Log\LoggerInterface
+     */
+    protected $logger;
+
     protected const STATUS_PROCESSING = 'processing';
 
     /**
@@ -71,6 +77,7 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
      * @param \Magento\Checkout\Model\Session $checkoutSession
      * @param \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender
      * @param \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender
+     * @param \Psr\Log\LoggerInterface $logger
      */
     public function __construct(
         PaymentMethod $paymentMethod,
@@ -81,18 +88,20 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         \Magento\Checkout\Model\Session $checkoutSession,
         \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender,
-        \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender
+        \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
+        \Psr\Log\LoggerInterface $logger
     )
     {
-        $this->rzp                        = $paymentMethod->rzp;
-        $this->order                      = $order;
-        $this->config                     = $config;
-        $this->invoiceService             = $invoiceService;
-        $this->transaction                = $transaction;
-        $this->scopeConfig                = $scopeConfig;
-        $this->checkoutSession            = $checkoutSession;
-        $this->invoiceSender              = $invoiceSender;
-        $this->orderSender                = $orderSender;
+        $this->rzp             = $paymentMethod->rzp;
+        $this->order           = $order;
+        $this->config          = $config;
+        $this->invoiceService  = $invoiceService;
+        $this->transaction     = $transaction;
+        $this->scopeConfig     = $scopeConfig;
+        $this->checkoutSession = $checkoutSession;
+        $this->invoiceSender   = $invoiceSender;
+        $this->orderSender     = $orderSender;
+        $this->logger          = $logger;
     }
 
     /**
@@ -100,8 +109,12 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
      */
     public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {
+        $this->logger->info('graphQL: Set Razorpay Payment Details for Order Started');
+
         if (empty($args['input']['order_id']))
         {
+            $this->logger->critical('graphQL: Input Exception: Required parameter "order_id" is missing.');
+
             throw new GraphQlInputException(__('Required parameter "order_id" is missing.'));
         }
 
@@ -109,6 +122,8 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
 
         if (empty($args['input']['rzp_payment_id']))
         {
+            $this->logger->critical('graphQL: Input Exception: Required parameter "rzp_payment_id" is missing.');
+
             throw new GraphQlInputException(__('Required parameter "rzp_payment_id" is missing.'));
         }
 
@@ -116,10 +131,17 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
 
         if (empty($args['input']['rzp_signature']))
         {
+            $this->logger->critical('graphQL: Input Exception: Required parameter "rzp_signature" is missing.');
+
             throw new GraphQlInputException(__('Required parameter "rzp_signature" is missing.'));
         }
 
         $rzp_signature = $args['input']['rzp_signature'];
+
+        $this->logger->info('graphQL: Order Data'
+            . ' order_id:' . $order_id . ','
+            . ' rzp_payment_id:' . $rzp_payment_id . ','
+            . ' rzp_signature:' . $rzp_signature);
 
         $rzp_order_id = '';
         try
@@ -128,11 +150,33 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
             if ($order)
             {
                 $rzp_order_id = $order->getRzpOrderId();
+                if(null !== $rzp_order_id)
+                {
+                    $this->logger->info('graphQL: Razorpay'
+                    . ' Order ID:'  . $rzp_order_id);
+                } else
+                {
+                    $this->logger->critical('graphQL: ' .
+                    'Unable to Razorpay Order ID ' .
+                    'for Order ID:' . $order_id);
+
+                    throw new GraphQlInputException(__('Error: %1.',
+                    'Unable to Razorpay Order ID ' .
+                    'for Order ID:' . $order_id));
+                }
             }
         } catch (\Exception $e)
         {
+            $this->logger->critical('graphQL: '
+            . ' Error: ' . $e->getMessage());
+
             throw new GraphQlInputException(__('Error: %1.', $e->getMessage()));
         }
+
+        $this->logger->info('graphQL: Verify Signature'
+            . ' razorpay_payment_id:' . $rzp_payment_id . ','
+            . ' razorpay_order_id:' . $rzp_order_id . ','
+            . ' razorpay_signature:' . $rzp_signature);
 
         $attributes = [
             'razorpay_payment_id' => $rzp_payment_id,
@@ -151,11 +195,18 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
                 $payment_capture = 'Authorized';
             }
 
+            $this->logger->info('graphQL: payment_action:' . $payment_action);
+
             //fetch order from API
             $rzp_order_data = $this->rzp->order->fetch($rzp_order_id);
             $receipt = isset($rzp_order_data->receipt) ? $rzp_order_data->receipt : null;
+
+            $this->logger->info('graphQL: Razorpay Order receipt:' . $receipt);
+
             if ($receipt !== $order_id)
             {
+                $this->logger->critical('graphQL: Not a valid Razorpay orderID');
+
                 throw new GraphQlInputException(__('Not a valid Razorpay orderID'));
             }
             $rzpOrderAmount = $rzp_order_data->amount;
@@ -166,6 +217,8 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
                 if ($order->getStatus() === 'pending')
                 {
                     $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
+
+                    $this->logger->info('graphQL: Order Status Updated to ' . static::STATUS_PROCESSING);
                 }
 
                 $order->addStatusHistoryComment(
@@ -185,6 +238,10 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
                     $invoice->register();
                     $invoice->save();
 
+                    $this->logger->info('graphQL: Created Invoice for '
+                    . 'order_id ' . $order_id . ', '
+                    . 'rzp_payment_id ' . $rzp_payment_id);
+
                     $transactionSave = $this->transaction
                         ->addObject($invoice)
                         ->addObject($invoice->getOrder());
@@ -200,8 +257,14 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
                         $this->orderSender->send($order);
                         $this->checkoutSession->unsRazorpayMailSentOnSuccess();
                     } catch (\Magento\Framework\Exception\MailException $e) {
+                        $this->logger->critical('graphQL: '
+                        . 'Razorpay Error:' . $e->getMessage());
+
                         throw new GraphQlInputException(__('Razorpay Error: %1.', $e->getMessage()));
                     } catch (\Exception $e) {
+                        $this->logger->critical('graphQL: '
+                        . 'Error:' . $e->getMessage());
+
                         throw new GraphQlInputException(__('Error: %1.', $e->getMessage()));
                     }
                 }
@@ -209,9 +272,15 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
             }
         } catch (\Razorpay\Api\Errors\Error $e)
         {
+            $this->logger->critical('graphQL: '
+            . 'Razorpay Error:' . $e->getMessage());
+
             throw new GraphQlInputException(__('Razorpay Error: %1.', $e->getMessage()));
         } catch (\Exception $e)
         {
+            $this->logger->critical('graphQL: '
+            . 'Error:' . $e->getMessage());
+
             throw new GraphQlInputException(__('Error: %1.', $e->getMessage()));
         }
 
