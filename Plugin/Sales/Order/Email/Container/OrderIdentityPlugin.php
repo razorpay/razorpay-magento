@@ -9,15 +9,22 @@ class OrderIdentityPlugin
     protected $checkoutSession;
 
     /**
+     * @var \Psr\Log\LoggerInterface $logger
+     */
+    protected $logger;
+
+    /**
      * @param \Magento\Checkout\Model\Session $checkoutSession
      *
      * @codeCoverageIgnore
      */
     public function __construct(
-        \Magento\Checkout\Model\Session $checkoutSession
+        \Magento\Checkout\Model\Session $checkoutSession,
+        \Psr\Log\LoggerInterface $logger
     )
     {
         $this->checkoutSession = $checkoutSession;
+        $this->logger = $logger;
     }
 
     /**
@@ -32,9 +39,11 @@ class OrderIdentityPlugin
         $forceOrderMailSentOnSuccess = $this->checkoutSession->getRazorpayMailSentOnSuccess();
         if(isset($forceOrderMailSentOnSuccess))
         {
-            $returnValue = $forceOrderMailSentOnSuccess;
-            $this->checkoutSession->unsRazorpayMailSentOnSuccess();           
+            // Send order confirmation email after payment completed successfully
+            $returnValue = (bool)$forceOrderMailSentOnSuccess;
         }
+
+        $this->logger->info('OrderIdentityPlugin::aroundIsEnabled returnValue:' . $returnValue);
         
         return $returnValue;
     }
