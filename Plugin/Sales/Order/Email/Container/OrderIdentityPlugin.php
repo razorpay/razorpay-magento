@@ -40,7 +40,7 @@ class OrderIdentityPlugin
         if(isset($forceOrderMailSentOnSuccess))
         {
             // Send order confirmation email after payment completed successfully
-            $returnValue = (bool)$forceOrderMailSentOnSuccess;
+            $returnValue = $forceOrderMailSentOnSuccess;
         }
 
         $this->logger->info('OrderIdentityPlugin::aroundIsEnabled returnValue:' . $returnValue);
