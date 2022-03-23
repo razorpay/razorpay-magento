@@ -18,6 +18,8 @@ class Config
     const KEY_NEW_ORDER_STATUS = 'order_status';
     const ENABLE_WEBHOOK = 'enable_webhook';
     const WEBHOOK_SECRET = 'webhook_secret';
+    const ENABLE_PENDING_ORDERS_CRON = 'enable_pending_orders_cron';
+    const PENDING_ORDER_TIMEOUT = 'pending_orders_timeout';
 
     /**
      * @var string
@@ -70,6 +72,16 @@ class Config
         return $this->getConfigData(self::WEBHOOK_SECRET);
     }
     
+    public function isCancelPendingOrderCronEnabled()
+    {
+        return (bool) (int) $this->getConfigData(self::ENABLE_PENDING_ORDERS_CRON, $this->storeId);
+    }
+
+    public function getPendingOrderTimeout()
+    {
+        return (int) $this->getConfigData(self::PENDING_ORDER_TIMEOUT);
+    }
+
     public function getPaymentAction()
     {
         return $this->getConfigData(self::KEY_PAYMENT_ACTION);

@@ -12,6 +12,8 @@
                 <key_id>Key ID</key_id>
                 <key_secret>Key Secret</key_secret>
                 <enable_webhook>0</enable_webhook>
+                <enable_pending_orders_cron>1</enable_pending_orders_cron>
+                <pending_orders_timeout>30</pending_orders_timeout>
             </razorpay>
         </payment>
     </default>

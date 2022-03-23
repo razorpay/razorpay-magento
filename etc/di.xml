@@ -55,4 +55,9 @@
 	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
 	    </arguments>
 	</type>
+	<type name="Razorpay\Magento\Cron\CancelPendingOrders">
+	    <arguments>
+	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
+	    </arguments>
+	</type>
 </config>
