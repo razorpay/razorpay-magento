@@ -28,12 +28,12 @@
 
                 <field id="pending_orders_timeout" translate="label" type="text" sortOrder="5" showInDefault="1" showInWebsite="0" showInStore="0">
                     <label>Pending Orders Timeout</label>
-                    <comment>Set timeout in minutes, (default: 30 minutes). This will enable cron for moving pending orders to Cancel status for given timeout.</comment>
+                    <comment>Set timeout in minutes, (default: 30 minutes). Timeout can be updated between range of 20 minutes to 43200 minutes (30 days). This will enable cron for moving pending orders to Cancel status for given timeout.</comment>
                     <config_path>payment/razorpay/pending_orders_timeout</config_path>
                     <depends>
                         <field id="enable_pending_orders_cron">1</field>
                     </depends>
-                    <validate>required-entry</validate>
+                    <validate>required-entry validate-digits validate-not-negative-number validate-digits-range digits-range-20-43200</validate>
                 </field>
 
                 <field id="title" translate="label" type="text" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="1">
