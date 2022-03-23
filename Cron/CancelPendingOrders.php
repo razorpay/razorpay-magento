@@ -53,7 +53,8 @@ class CancelPendingOrders {
     public function execute()
     {
         // Execute only if Cancel Pending Order Cron is Enabled
-        if($this->isCancelPendingOrderCronEnabled === true && $this->pendingOrderTimeout > 0)
+        if ($this->isCancelPendingOrderCronEnabled === true
+            && $this->pendingOrderTimeout > 0)
         {
             $this->logger->info("Cronjob: Cancel Pending Order Cron started.");
             $dateTimeCheck = date('Y-m-d H:i:s',strtotime('-' . $this->pendingOrderTimeout . ' minutes'));
