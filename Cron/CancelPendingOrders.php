@@ -57,7 +57,7 @@ class CancelPendingOrders {
             && $this->pendingOrderTimeout > 0)
         {
             $this->logger->info("Cronjob: Cancel Pending Order Cron started.");
-            $dateTimeCheck = date('Y-m-d H:i:s',strtotime('-' . $this->pendingOrderTimeout . ' minutes'));
+            $dateTimeCheck = date('Y-m-d H:i:s', strtotime('-' . $this->pendingOrderTimeout . ' minutes'));
             $sortOrder = $this->sortOrderBuilder->setField('entity_id')->setDirection('DESC')->create();
             $searchCriteria = $this->searchCriteriaBuilder
             ->addFilter(
