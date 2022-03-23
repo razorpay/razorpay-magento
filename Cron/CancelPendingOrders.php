@@ -18,6 +18,11 @@ class CancelPendingOrders {
     protected $orderManagement;
 
     /**
+     * @var STATUS_PENDING
+     */
+    protected const STATUS_PENDING = 'pending';
+
+    /**
      * CancelOrder constructor.
      * @param \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
      * @param \Magento\Framework\Api\SearchCriteriaBuilder $searchCriteriaBuilder
@@ -60,7 +65,7 @@ class CancelPendingOrders {
                 'lt'
             )->addFilter(
                'status',
-               'pending',
+               static::STATUS_PENDING,
                'eq'
             )->setSortOrders(
                 [$sortOrder]
