@@ -61,7 +61,7 @@ class CancelPendingOrders {
             $sortOrder = $this->sortOrderBuilder->setField('entity_id')->setDirection('DESC')->create();
             $searchCriteria = $this->searchCriteriaBuilder
             ->addFilter(
-                'created_at',
+                'updated_at',
                 $dateTimeCheck,
                 'lt'
             )->addFilter(
