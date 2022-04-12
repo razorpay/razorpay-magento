@@ -29,6 +29,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
         \Razorpay\Magento\Model\Config $config,
         \Magento\Catalog\Model\Session $catalogSession,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Psr\Log\LoggerInterface $logger
     ) {
         parent::__construct(
@@ -42,10 +43,91 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $this->catalogSession  = $catalogSession;
         $this->config          = $config;
         $this->logger          = $logger;
+        $this->webhookId       = null;
+        $this->_storeManager   = $storeManager;
+        $this->webhookUrl      = $this->_storeManager
+                                    ->getStore()
+                                    ->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_WEB) .
+                                    'razorpay/payment/webhook';
     }
 
     public function execute()
     {
+        if(empty($this->config->getConfigData('webhook_triggered_at')) === false)
+        {
+            $webhookUpdatedAt = (int) $this->config->getConfigData('webhook_triggered_at');
+            $diffrenceInHour = abs(time() - $webhookUpdatedAt)/(60*60);
+            if($diffrenceInHour > 24)
+            {
+                try
+                {
+                    $webhookPresent = $this->getExistingWebhook();
+
+                    $razorpayParams['enable_webhook']          = $this->config->getConfigData('enable_webhook');
+                    $razorpayParams['webhook_events']['value'] = explode (",", $this->config->getConfigData('webhook_events'));
+
+                    if(empty($this->config->getConfigData('webhook_secret')) === false)
+                    {
+                        $razorpayParams['webhook_secret']['value'] = $this->config->getConfigData('webhook_secret');
+
+                        $this->logger->info("Razorpay Webhook with existing secret.");
+                    }
+                    else
+                    {
+                        $secret = bin2hex(openssl_random_pseudo_bytes(4));
+
+                        $this->config->setConfigData('webhook_secret',$secret);
+
+                        $razorpayParams['webhook_secret']['value'] = $secret;
+
+                        $this->logger->info("Razorpay Webhook created new secret.");
+                    }
+
+                    $events = [];
+
+                    foreach($razorpayParams['webhook_events']['value'] as $event)
+                    {
+                        $events[$event] = true;
+                    }
+
+                    if(empty($this->webhookId) === false)
+                    {
+                        $webhook = $this->rzp->webhook->edit([
+                            "url" => $this->webhookUrl,
+                            "events" => $events,
+                            "secret" => $razorpayParams['webhook_secret']['value'],
+                            "active" => true,
+                        ], $this->webhookId);
+
+                        $this->config->setConfigData('webhook_triggered_at',time());
+
+                        $this->logger->info("Razorpay Webhook Updated by Admin.");
+                    }
+                    else
+                    {
+                        $webhook = $this->rzp->webhook->create([
+                            "url" => $this->webhookUrl,
+                            "events" => $events,
+                            "secret" => $razorpayParams['webhook_secret']['value'],
+                            "active" => true,
+                        ]);
+
+                        $this->config->setConfigData('webhook_triggered_at',time());
+
+                        $this->logger->info("Razorpay Webhook Created by Admin");
+                    }
+                }
+                catch(\Razorpay\Api\Errors\Error $e)
+                {
+                    $this->logger->info($e->getMessage());
+                }
+                catch(\Exception $e)
+                {
+                    $this->logger->info($e->getMessage());
+                }
+            }
+        }
+
         $mazeOrder = $this->checkoutSession->getLastRealOrder();
 
         $amount = (int) (number_format($mazeOrder->getGrandTotal() * 100, 0, ".", ""));
@@ -140,5 +222,41 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     public function getOrderID()
     {
         return $this->catalogSession->getRazorpayOrderID();
+    }
+
+    /**
+     * @param string $url
+     *
+     * @return return array
+     */
+    private function getExistingWebhook()
+    {
+        try
+        {
+            //fetch all the webhooks
+            $webhooks = $this->rzp->webhook->all();
+
+            if(($webhooks->count) > 0 and (empty($this->webhookUrl) === false))
+            {
+                foreach ($webhooks->items as $key => $webhook)
+                {
+                    if($webhook->url === $this->webhookUrl)
+                    {
+                        $this->webhookId = $webhook->id;
+                        return ['id' => $webhook->id];
+                    }
+                }
+            }
+        }
+        catch(\Razorpay\Api\Errors\Error $e)
+        {
+            $this->logger->info($e->getMessage());
+        }
+        catch(\Exception $e)
+        {
+            $this->logger->info($e->getMessage());
+        }
+
+        return ['id' => null];
     }
 }

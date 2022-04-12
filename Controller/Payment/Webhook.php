@@ -118,6 +118,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     {
         $this->logger->info("Razorpay Webhook processing started.");
         
+        $this->config->setConfigData('webhook_triggered_at',time());
+
         $post = $this->getPostData();
         
         if (json_last_error() !== 0)

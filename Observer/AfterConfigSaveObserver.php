@@ -69,6 +69,9 @@ class AfterConfigSaveObserver implements ObserverInterface
 
         $razorpayParams = $this->request->getParam('groups')['razorpay']['fields'];
         
+        $razorpayParams['enable_webhook']          = $this->config->getConfigData('enable_webhook');
+        $razorpayParams['webhook_events']['value'] = explode (",", $this->config->getConfigData('webhook_events'));
+
         $domain = parse_url($this->webhookUrl, PHP_URL_HOST);
 
         $domain_ip = gethostbyname($domain);
@@ -77,7 +80,6 @@ class AfterConfigSaveObserver implements ObserverInterface
         {
             if (!filter_var($domain_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE))
             {
-                $this->config->setConfigData('enable_webhook', 0);
 
                 $this->logger->info("Can't enable/disable webhook on $domain or private ip($domain_ip).");
                 return;
@@ -87,17 +89,28 @@ class AfterConfigSaveObserver implements ObserverInterface
             {
                 $webhookPresent = $this->getExistingWebhook();
 
-                if(empty($razorpayParams['enable_webhook']['value']) === true)
-                {
-                    $this->disableWebhook();
-                    return;
-                }
-
                 $events = [];
 
                 foreach($razorpayParams['webhook_events']['value'] as $event)
                 {
                     $events[$event] = true;
+                }
+
+                if(empty($this->config->getConfigData('webhook_secret')) === false)
+                {
+                    $razorpayParams['webhook_secret']['value'] = $this->config->getConfigData('webhook_secret');
+
+                    $this->logger->info("Razorpay Webhook with existing secret.");
+                }
+                else
+                {
+                    $secret = bin2hex(openssl_random_pseudo_bytes(4));
+
+                    $this->config->setConfigData('webhook_secret',$secret);
+
+                    $razorpayParams['webhook_secret']['value'] = $secret;
+
+                    $this->logger->info("Razorpay Webhook created new secret.");
                 }
 
                 if(empty($this->webhookId) === false)
@@ -108,6 +121,8 @@ class AfterConfigSaveObserver implements ObserverInterface
                         "secret" => $razorpayParams['webhook_secret']['value'],
                         "active" => true,
                     ], $this->webhookId);
+
+                    $this->config->setConfigData('webhook_triggered_at',time());
 
                     $this->logger->info("Razorpay Webhook Updated by Admin.");
                 }
@@ -120,20 +135,18 @@ class AfterConfigSaveObserver implements ObserverInterface
                         "active" => true,
                     ]);
 
+                    $this->config->setConfigData('webhook_triggered_at',time());
+
                     $this->logger->info("Razorpay Webhook Created by Admin");
                 }
             }
             catch(\Razorpay\Api\Errors\Error $e)
             {
                 $this->logger->info($e->getMessage());
-                //in case of error disable the webhook config
-                $this->disableWebhook();
             }
             catch(\Exception $e)
             {
                 $this->logger->info($e->getMessage());
-
-                $this->disableWebhook();
             }
         }
         
@@ -169,14 +182,10 @@ class AfterConfigSaveObserver implements ObserverInterface
         catch(\Razorpay\Api\Errors\Error $e)
         {            
             $this->logger->info($e->getMessage());
-
-            $this->disableWebhook();
         }
         catch(\Exception $e)
         {
             $this->logger->info($e->getMessage());
-
-            $this->disableWebhook();
         }
 
         return ['id' => null];   
