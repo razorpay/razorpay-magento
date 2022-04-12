@@ -28,7 +28,10 @@ class UpgradeSchema implements  UpgradeSchemaInterface
             if (in_array($configRow['path'],  
                 ['payment/razorpay/payment_action',
                  'payment/razorpay/order_status',
-                 'payment/razorpay/webhook_wait_time'
+                 'payment/razorpay/webhook_wait_time',
+                 'payment/razorpay/enable_webhook',
+                 'payment/razorpay/webhook_secret',
+                 'payment/razorpay/webhook_events'
                 ]))
             {
                 $setup->getConnection()->delete(
