@@ -55,9 +55,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     {
         if(empty($this->config->getConfigData('webhook_triggered_at')) === false)
         {
-            $webhookUpdatedAt = (int) $this->config->getConfigData('webhook_triggered_at');
-            $diffrenceInHour = abs(time() - $webhookUpdatedAt)/(60*60);
-            if($diffrenceInHour > 24)
+            $webhookTriggeredAt = (int) $this->config->getConfigData('webhook_triggered_at');
+            if(($webhookTriggeredAt + (24*60*60)) < time())
             {
                 try
                 {
