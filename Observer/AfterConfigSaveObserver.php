@@ -122,7 +122,7 @@ class AfterConfigSaveObserver implements ObserverInterface
                         "active" => true,
                     ], $this->webhookId);
 
-                    $this->config->setConfigData('webhook_triggered_at',time());
+                    $this->config->setConfigData('webhook_triggered_at', time());
 
                     $this->logger->info("Razorpay Webhook Updated by Admin.");
                 }
@@ -135,7 +135,7 @@ class AfterConfigSaveObserver implements ObserverInterface
                         "active" => true,
                     ]);
 
-                    $this->config->setConfigData('webhook_triggered_at',time());
+                    $this->config->setConfigData('webhook_triggered_at', time());
 
                     $this->logger->info("Razorpay Webhook Created by Admin");
                 }
