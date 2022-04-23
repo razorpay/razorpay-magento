@@ -71,8 +71,9 @@ class AfterConfigSaveObserver implements ObserverInterface
 
         $razorpayParams = $this->request->getParam('groups')['razorpay']['fields'];
         
-        $razorpayParams['enable_webhook']          = $this->config->getConfigData('enable_webhook');
-        $razorpayParams['webhook_events']['value'] = explode (",", $this->config->getConfigData('webhook_events'));
+        $razorpayParams['enable_webhook']                    = $this->config->getConfigData('enable_webhook');
+        $razorpayParams['webhook_events']['value']           = explode (",", $this->config->getConfigData('webhook_events'));
+        $razorpayParams['supported_webhook_events']['value'] = explode (",", $this->config->getConfigData('supported_webhook_events'));
 
         $domain = parse_url($this->webhookUrl, PHP_URL_HOST);
 
@@ -96,6 +97,14 @@ class AfterConfigSaveObserver implements ObserverInterface
                 foreach($razorpayParams['webhook_events']['value'] as $event)
                 {
                     $events[$event] = true;
+                }
+
+                foreach($this->active_events as $event)
+                {
+                    if(in_array($event, $razorpayParams['supported_webhook_events']['value']))
+                    {
+                        $events[$event] = true;
+                    }
                 }
 
                 if(empty($this->config->getConfigData('webhook_secret')) === false)
