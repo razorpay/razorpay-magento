@@ -56,7 +56,15 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         if(empty($this->config->getConfigData('webhook_triggered_at')) === false)
         {
             $webhookTriggeredAt = (int) $this->config->getConfigData('webhook_triggered_at');
-            if(($webhookTriggeredAt + (24*60*60)) < time())
+
+            $domain    = parse_url($this->webhookUrl, PHP_URL_HOST);
+            $domain_ip = gethostbyname($domain);
+
+            if (!filter_var($domain_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE))
+            {
+                $this->logger->info("Can't enable/disable webhook on $domain or private ip($domain_ip).");
+            }
+            else if(($webhookTriggeredAt + (24*60*60)) < time())
             {
                 try
                 {
