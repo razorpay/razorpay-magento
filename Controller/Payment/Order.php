@@ -44,6 +44,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $this->config          = $config;
         $this->logger          = $logger;
         $this->webhookId       = null;
+        $this->active_events   = [];
         $this->_storeManager   = $storeManager;
         $this->webhookUrl      = $this->_storeManager
                                     ->getStore()
@@ -232,7 +233,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     }
 
     /**
-     * @param string $url
+     * getExistingWebhook.
      *
      * @return return array
      */
@@ -250,7 +251,15 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                     if($webhook->url === $this->webhookUrl)
                     {
                         $this->webhookId = $webhook->id;
-                        return ['id' => $webhook->id];
+
+                        foreach($webhook->events as $eventKey => $eventActive)
+                        {
+                            if($eventActive)
+                            {
+                                $this->active_events[] = $eventKey;
+                            }
+                        }
+                        return ['id' => $webhook->id, 'active_events'=>$this->active_events];
                     }
                 }
             }
@@ -264,7 +273,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             $this->logger->info($e->getMessage());
         }
 
-        return ['id' => null];
+        return ['id' => null,'active_events'=>null];
     }
 
     private function generatePassword()
