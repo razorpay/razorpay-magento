@@ -13,6 +13,7 @@
                 <key_secret>Key Secret</key_secret>
                 <enable_webhook>1</enable_webhook>
                 <webhook_events>order.paid,payment.authorized</webhook_events>
+                <supported_webhook_events>order.paid,payment.authorized</supported_webhook_events>
                 <webhook_triggered_at>0</webhook_triggered_at>
                 <enable_pending_orders_cron>1</enable_pending_orders_cron>
                 <pending_orders_timeout>30</pending_orders_timeout>
