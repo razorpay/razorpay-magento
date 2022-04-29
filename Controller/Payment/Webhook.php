@@ -66,7 +66,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
      */
     protected const STATUS_PROCESSING   = 'processing';
     protected const STATUS_PENDING      = 'pending';
-
+    protected const STATUS_CANCELED     = 'canceled';
+    protected const STATE_NEW           = 'new';
 
     /**
      * @param \Magento\Framework\App\Action\Context $context
@@ -237,8 +238,11 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 {
                     $payment = $order->getPayment();
 
-                    if (($order->getStatus() === static::STATUS_PENDING) and
-                        (empty($payment->getLastTransId()) === true) )
+                    if ((($order->getState() === static::STATE_NEW
+                        && $order->getStatus() === static::STATUS_CANCELED)
+                        || $order->getStatus() === static::STATUS_PENDING)
+                        && (empty($payment->getLastTransId()) === true)
+                    )
                     {
                         $payment->setLastTransId($paymentId)
                                 ->setTransactionId($paymentId)
@@ -333,13 +337,16 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
                 if ($order)
                 {
-                    if (in_array($order->getStatus(), [static::STATUS_PENDING, static::STATUS_PROCESSING]))
+                    if (in_array($order->getStatus(), [static::STATUS_PENDING, static::STATUS_PROCESSING, static::STATUS_CANCELED]))
                     {
                         $payment = $order->getPayment();
 
                         $amountPaid = number_format($rzpOrderAmount / 100, 2, ".", "");
 
-                        if ($order->getStatus() === static::STATUS_PENDING)
+                        if ($order->getStatus() === static::STATUS_PENDING
+                            || ($order->getState() === static::STATE_NEW
+                                && $order->getStatus() === static::STATUS_CANCELED)
+                        )
                         {
                             $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
                         }
