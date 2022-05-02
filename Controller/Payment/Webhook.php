@@ -337,7 +337,9 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
                 if ($order)
                 {
-                    if (in_array($order->getStatus(), [static::STATUS_PENDING, static::STATUS_PROCESSING, static::STATUS_CANCELED]))
+                    if (in_array($order->getStatus(), [static::STATUS_PENDING, static::STATUS_PROCESSING])
+                        || ($order->getState() === static::STATE_NEW && $order->getStatus() === static::STATUS_CANCELED)
+                    )
                     {
                         $payment = $order->getPayment();
 
