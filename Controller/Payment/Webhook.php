@@ -244,6 +244,12 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                         && (empty($payment->getLastTransId()) === true)
                     )
                     {
+
+                        $this->logger->info("Razorpay Webhook: "
+                        . " Event: " . $post['event']
+                        . ", State: " . $order->getState()
+                        . ", Status: " . $order->getStatus());
+
                         $payment->setLastTransId($paymentId)
                                 ->setTransactionId($paymentId)
                                 ->setIsTransactionClosed(true)
@@ -341,6 +347,11 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                         || ($order->getState() === static::STATE_NEW && $order->getStatus() === static::STATUS_CANCELED)
                     )
                     {
+                        $this->logger->info("Razorpay Webhook: "
+                        . " Event: " . $post['event']
+                        . ", State: " . $order->getState()
+                        . ", Status: " . $order->getStatus());
+
                         $payment = $order->getPayment();
 
                         $amountPaid = number_format($rzpOrderAmount / 100, 2, ".", "");
