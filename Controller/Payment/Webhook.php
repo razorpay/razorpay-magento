@@ -70,6 +70,16 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     protected const STATE_NEW           = 'new';
 
     /**
+     * @var HTTP CONFLICT Request
+     */
+    protected const HTTP_CONFLICT_STATUS = 409;
+
+    /**
+     * @var Webhook Notify Wait Time
+     */
+    protected const WEBHOOK_NOTIFY_WAIT_TIME = (5 * 60);
+
+    /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession
@@ -164,6 +174,31 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                     header('Status: 400 Signature Verification failed', true, 400);
                     exit;
                 }
+
+                if (isset($post['payload']['payment']['entity']['notes']['merchant_order_id']) === true)
+                {
+                    $orderId = $post['payload']['payment']['entity']['notes']['merchant_order_id'];
+                    $orderWebhookData = $this->getOrderWebhookData($orderId);
+                    if(!empty($orderWebhookData['rzp_webhook_notified_at']) === false)
+                    {
+                        $this->setWebhookNotifiedAt($orderWebhookData['entity_id']);
+                        $this->logger->info("Razorpay Webhook: Updated WebhookNotifiedAt.");
+                    }
+                    elseif(!empty($orderWebhookData['rzp_webhook_notified_at']) === true and
+                        ((time() - $orderWebhookData['rzp_webhook_notified_at']) < static::WEBHOOK_NOTIFY_WAIT_TIME)
+                    )
+                    {
+                        $this->logger->critical("Razorpay Webhook: Webhook conflicts due to early execution.");
+                        header('Status: ' . static::HTTP_CONFLICT_STATUS . ' Webhook conflicts due to early execution.', true, static::HTTP_CONFLICT_STATUS);
+                        exit;
+                    }
+                }
+                else
+                {
+                    $this->logger->info("Razorpay Webhook: Order ID not set");
+                    return;
+                }
+
                 switch ($post['event'])
                 {
                     case 'payment.authorized':
@@ -501,5 +536,23 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         }
         
         return json_decode($request, true);
+    }
+
+    protected function getOrderWebhookData($orderId) : array
+    {
+        $collection = $this->objectManagement->get('Magento\Sales\Model\Order')
+        ->getCollection()
+        ->addFieldToSelect('entity_id')
+        ->addFieldToSelect('rzp_webhook_notified_at')
+        ->addFilter('increment_id', $orderId)
+        ->getFirstItem();
+        return $collection->getData();
+    }
+
+    protected function setWebhookNotifiedAt($entity_id)
+    {
+        $order = $this->order->load($entity_id);
+        $order->setRzpWebhookNotifiedAt(time());
+        $order->save();
     }
 }
