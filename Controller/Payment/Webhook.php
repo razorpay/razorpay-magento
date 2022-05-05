@@ -285,6 +285,11 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                         );
 
                         $order->save();
+
+                        //update/disable the quote
+                        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+                        $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
+                        $quote->setIsActive(false)->save();
                     }
                     else
                     {
@@ -396,6 +401,11 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                                 $order->getBaseCurrency()->formatTxt($amountPaid)
                             )
                         );
+
+                        //update/disable the quote
+                        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+                        $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
+                        $quote->setIsActive(false)->save();
 
                         if ($order->canInvoice() && $this->config->canAutoGenerateInvoice())
                         {
