@@ -2,6 +2,7 @@
 
 namespace Razorpay\Magento\Controller\Payment;
 
+use Razorpay\Api\Api;
 use Razorpay\Magento\Model\PaymentMethod;
 use Magento\Framework\Controller\ResultFactory;
 
@@ -196,6 +197,9 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             if (null !== $order && !empty($order->id))
             {
                 $this->logger->info("Razorpay Order: order created with rzp_order:" . $order->id);
+                $is_hosted = false;
+                $merchantPreferences    = $this->getMerchantPreferences();
+
                 $responseContent = [
                     'success'           => true,
                     'rzp_order'         => $order->id,
@@ -205,6 +209,9 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                     'quote_amount'      => number_format($mazeOrder->getGrandTotal(), 2, ".", ""),
                     'maze_version'      => $maze_version,
                     'module_version'    => $module_version,
+                    'is_hosted'         => $merchantPreferences['is_hosted'],
+                    'image'             => $merchantPreferences['image'],
+                    'embedded_url'      => $merchantPreferences['embedded_url'],
                 ];
 
                 $code = 200;
@@ -301,6 +308,33 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                                 array_rand($combined, rand(8, 12))
                             )
                         );
+    }
+
+    protected function getMerchantPreferences()
+    {
+        try
+        {
+            $api = new Api($this->config->getKeyId(),"");
+
+            $response = $api->request->request("GET", "preferences");
+        }
+        catch (\Razorpay\Api\Errors\Error $e)
+        {
+            echo 'Magento Error : ' . $e->getMessage();
+        }
+
+        $preferences = [];
+
+        $preferences['embedded_url'] = Api::getFullUrl("checkout/embedded");
+        $preferences['is_hosted'] = true;
+        $preferences['image'] = $response['options']['image'];
+
+        if(isset($response['options']['redirect']) && $response['options']['redirect'] === true)
+        {
+            $preferences['is_hosted'] = true;
+        }
+
+        return $preferences;
     }
 
 }

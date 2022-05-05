@@ -10,9 +10,10 @@ define(
         'Magento_Customer/js/model/customer',
         'Magento_Checkout/js/action/place-order',
         'Magento_Checkout/js/model/full-screen-loader',
-        'Magento_Ui/js/model/messageList'
+        'Magento_Ui/js/model/messageList',
+        'Magento_Customer/js/customer-data'
     ],
-    function (Component, quote, $, ko, additionalValidators, setPaymentInformationAction, url, customer, placeOrderAction, fullScreenLoader, messageList) {
+    function (Component, quote, $, ko, additionalValidators, setPaymentInformationAction, url, customer, placeOrderAction, fullScreenLoader, messageList,customerData) {
         'use strict';
 
         return Component.extend({
@@ -170,7 +171,11 @@ define(
                     success: function (response) {
                         fullScreenLoader.stopLoader();
                         if (response.success) {
-                           self.doCheckoutPayment(response);
+                            if (response.is_hosted) {
+                                self.renderHosted(response);
+                            } else {
+                                self.doCheckoutPayment(response);
+                            }
                         } else {
                             self.isPaymentProcessing.reject(response.message);
                         }
@@ -330,6 +335,102 @@ define(
                         rzp_signature: this.rzp_response.razorpay_signature
                     }
                 };
+            },
+
+            createInputFieldsFromOptions: function (options, form) {
+                var self = this;
+
+                function visitNestedOption(options, parentKey) {
+                    for (let curKey in options) {
+                      if (options.hasOwnProperty(curKey)) {
+                        const value = options[curKey];
+                        let prepareKey = parentKey ? `${parentKey}[${curKey}]` : curKey;
+
+                        if (typeof value === 'object') {
+                          visitNestedOption(value, prepareKey);
+                        } else {
+                          // Exception: Rename key -> key_id (merchant key)
+                          if (prepareKey === 'key') {
+                            prepareKey = 'key_id';
+                          }
+
+                          form.appendChild(self.createHiddenInput(prepareKey, value));
+                        }
+                      }
+                    }
+                }
+              visitNestedOption(options);
+            },
+
+            createHiddenInput: function(key, value) {
+              var input = document.createElement('input');
+
+              input.type = 'hidden';
+              input.name = key;
+              input.value = value;
+
+              return input;
+            },
+
+            renderHosted: function(data) {
+                var self = this,
+                billing_address;
+               
+                billing_address = quote.billingAddress();
+                this.user = {
+                    name: billing_address.firstname + ' ' + billing_address.lastname,
+                    contact: billing_address.telephone,
+                };
+
+                if (!customer.isLoggedIn()) {
+                    this.user.email = quote.guestEmail;
+                }
+                else 
+                {
+                    this.user.email = customer.customerData.email;
+                }
+
+                this.merchant_order_id = data.order_id;
+               
+                var opts = {
+                    key: self.getKeyId(),
+                    name: self.getMerchantName(),
+                    amount: data.amount,
+                    order_id: data.rzp_order,
+                    notes: {
+                        merchant_order_id: '',
+                        merchant_quote_id: data.order_id
+                    },
+                    prefill: {
+                        name: this.user.name,
+                        contact: this.user.contact,
+                        email: this.user.email
+                    },
+                    callback_url: url.build('razorpay/payment/callback?order_id=' + data.order_id),
+                    cancel_url  : url.build('checkout/cart'),
+                    _: {
+                        integration: 'magento',
+                        integration_version: data.module_version,
+                        integration_parent_version: data.maze_version,
+                    }
+                }
+                const options = JSON.parse(JSON.stringify(opts));
+
+                var form = document.createElement('form'),
+                    method = 'POST',
+                    input,
+                    key;
+
+                form.method = method;
+                form.action = data.embedded_url;
+
+                self.createInputFieldsFromOptions(options, form);
+
+                document.body.appendChild(form);
+
+                customerData.invalidate(['cart']);
+
+                form.submit();
             }
         });
     }
