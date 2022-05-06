@@ -280,9 +280,9 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                     {
 
                         $this->logger->info("Razorpay Webhook: "
-                        . " Event: " . $post['event']
-                        . ", State: " . $order->getState()
-                        . ", Status: " . $order->getStatus());
+                                            . " Event: " . $post['event']
+                                            . ", State: " . $order->getState()
+                                            . ", Status: " . $order->getStatus());
 
                         $payment->setLastTransId($paymentId)
                                 ->setTransactionId($paymentId)
@@ -388,9 +388,9 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                     )
                     {
                         $this->logger->info("Razorpay Webhook: "
-                        . " Event: " . $post['event']
-                        . ", State: " . $order->getState()
-                        . ", Status: " . $order->getStatus());
+                                            . " Event: " . $post['event']
+                                            . ", State: " . $order->getState()
+                                            . ", Status: " . $order->getStatus());
 
                         $payment = $order->getPayment();
 
