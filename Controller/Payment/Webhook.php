@@ -182,13 +182,18 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                     if(!empty($orderWebhookData['rzp_webhook_notified_at']) === false)
                     {
                         $this->setWebhookNotifiedAt($orderWebhookData['entity_id']);
+
                         $this->logger->info("Razorpay Webhook: Updated WebhookNotifiedAt.");
+
+                        header('Status: ' . static::HTTP_CONFLICT_STATUS . ' Webhook conflicts due to early execution.', true, static::HTTP_CONFLICT_STATUS);
+                        exit;
                     }
                     elseif(!empty($orderWebhookData['rzp_webhook_notified_at']) === true and
                         ((time() - $orderWebhookData['rzp_webhook_notified_at']) < static::WEBHOOK_NOTIFY_WAIT_TIME)
                     )
                     {
                         $this->logger->critical("Razorpay Webhook: Webhook conflicts due to early execution for OrderID: " . $orderId);
+
                         header('Status: ' . static::HTTP_CONFLICT_STATUS . ' Webhook conflicts due to early execution.', true, static::HTTP_CONFLICT_STATUS);
                         exit;
                     }
