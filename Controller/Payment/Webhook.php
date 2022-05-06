@@ -66,7 +66,18 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
      */
     protected const STATUS_PROCESSING   = 'processing';
     protected const STATUS_PENDING      = 'pending';
+    protected const STATUS_CANCELED     = 'canceled';
+    protected const STATE_NEW           = 'new';
 
+    /**
+     * @var HTTP CONFLICT Request
+     */
+    protected const HTTP_CONFLICT_STATUS = 409;
+
+    /**
+     * @var Webhook Notify Wait Time
+     */
+    protected const WEBHOOK_NOTIFY_WAIT_TIME = (5 * 60);
 
     /**
      * @param \Magento\Framework\App\Action\Context $context
@@ -163,6 +174,31 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                     header('Status: 400 Signature Verification failed', true, 400);
                     exit;
                 }
+
+                if (isset($post['payload']['payment']['entity']['notes']['merchant_order_id']) === true)
+                {
+                    $orderId = $post['payload']['payment']['entity']['notes']['merchant_order_id'];
+                    $orderWebhookData = $this->getOrderWebhookData($orderId);
+                    if (empty($orderWebhookData['rzp_webhook_notified_at']) === true)
+                    {
+                        $this->setWebhookNotifiedAt($orderWebhookData['entity_id']);
+
+                        $this->logger->info("Razorpay Webhook: Updated WebhookNotifiedAt.");
+
+                        header('Status: ' . static::HTTP_CONFLICT_STATUS . ' Webhook conflicts due to early execution.', true, static::HTTP_CONFLICT_STATUS);
+                        exit;
+                    }
+                    elseif (empty($orderWebhookData['rzp_webhook_notified_at']) === false and
+                          ((time() - $orderWebhookData['rzp_webhook_notified_at']) < static::WEBHOOK_NOTIFY_WAIT_TIME)
+                    )
+                    {
+                        $this->logger->critical("Razorpay Webhook: Webhook conflicts due to early execution for OrderID: " . $orderId);
+
+                        header('Status: ' . static::HTTP_CONFLICT_STATUS . ' Webhook conflicts due to early execution.', true, static::HTTP_CONFLICT_STATUS);
+                        exit;
+                    }
+                }
+
                 switch ($post['event'])
                 {
                     case 'payment.authorized':
@@ -219,10 +255,10 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             # fetch the related sales order and verify the payment ID with rzp payment id
             # To avoid duplicate order entry for same quote
             $collection = $this->objectManagement->get('Magento\Sales\Model\Order')
-            ->getCollection()
-            ->addFieldToSelect('entity_id')
-            ->addFilter('increment_id', $orderId)
-            ->getFirstItem();
+                                                 ->getCollection()
+                                                 ->addFieldToSelect('entity_id')
+                                                 ->addFilter('increment_id', $orderId)
+                                                 ->getFirstItem();
 
             $salesOrder = $collection->getData();
 
@@ -237,9 +273,17 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 {
                     $payment = $order->getPayment();
 
-                    if (($order->getStatus() === static::STATUS_PENDING) and
-                        (empty($payment->getLastTransId()) === true) )
+                    if ($order->getState() === static::STATE_NEW and
+                        ($order->getStatus() === static::STATUS_CANCELED or
+                        $order->getStatus() === static::STATUS_PENDING)
+                    )
                     {
+
+                        $this->logger->info("Razorpay Webhook: "
+                                            . " Event: " . $post['event']
+                                            . ", State: " . $order->getState()
+                                            . ", Status: " . $order->getStatus());
+
                         $payment->setLastTransId($paymentId)
                                 ->setTransactionId($paymentId)
                                 ->setIsTransactionClosed(true)
@@ -276,6 +320,11 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                         );
 
                         $order->save();
+
+                        //update/disable the quote
+                        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+                        $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
+                        $quote->setIsActive(false)->save();
                     }
                     else
                     {
@@ -317,10 +366,10 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         try
         {
             $collection = $this->objectManagement->get('Magento\Sales\Model\Order')
-            ->getCollection()
-            ->addFieldToSelect('entity_id')
-            ->addFilter('increment_id', $orderId)
-            ->getFirstItem();
+                                                 ->getCollection()
+                                                 ->addFieldToSelect('entity_id')
+                                                 ->addFilter('increment_id', $orderId)
+                                                 ->getFirstItem();
             
             $salesOrder = $collection->getData();
             
@@ -333,13 +382,24 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
                 if ($order)
                 {
-                    if (in_array($order->getStatus(), [static::STATUS_PENDING, static::STATUS_PROCESSING]))
+                    if (in_array($order->getStatus(), [static::STATUS_PENDING, static::STATUS_PROCESSING]) or
+                        ($order->getState() === static::STATE_NEW and
+                         $order->getStatus() === static::STATUS_CANCELED)
+                    )
                     {
+                        $this->logger->info("Razorpay Webhook: "
+                                            . " Event: " . $post['event']
+                                            . ", State: " . $order->getState()
+                                            . ", Status: " . $order->getStatus());
+
                         $payment = $order->getPayment();
 
                         $amountPaid = number_format($rzpOrderAmount / 100, 2, ".", "");
 
-                        if ($order->getStatus() === static::STATUS_PENDING)
+                        if ($order->getState() === static::STATE_NEW and
+                            ($order->getStatus() === static::STATUS_CANCELED or
+                            $order->getStatus() === static::STATUS_PENDING)
+                        )
                         {
                             $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
                         }
@@ -376,6 +436,11 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                                 $order->getBaseCurrency()->formatTxt($amountPaid)
                             )
                         );
+
+                        //update/disable the quote
+                        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+                        $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
+                        $quote->setIsActive(false)->save();
 
                         if ($order->canInvoice() && $this->config->canAutoGenerateInvoice())
                         {
@@ -471,5 +536,23 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         }
         
         return json_decode($request, true);
+    }
+
+    protected function getOrderWebhookData($orderId) : array
+    {
+        $collection = $this->objectManagement->get('Magento\Sales\Model\Order')
+                           ->getCollection()
+                           ->addFieldToSelect('entity_id')
+                           ->addFieldToSelect('rzp_webhook_notified_at')
+                           ->addFilter('increment_id', $orderId)
+                           ->getFirstItem();
+        return $collection->getData();
+    }
+
+    protected function setWebhookNotifiedAt($entity_id)
+    {
+        $order = $this->order->load($entity_id);
+        $order->setRzpWebhookNotifiedAt(time());
+        $order->save();
     }
 }

@@ -41,20 +41,28 @@ class UpgradeSchema implements  UpgradeSchemaInterface
             }
         }
 
-        if (version_compare($context->getVersion(), 'beta-3.3.4', '>')) {
-            $tableName = $setup->getTable('sales_order');
-            if ($setup->getConnection()->isTableExists($tableName) == true) {
-                $setup->getConnection()->addColumn(
-                    $tableName,
-                    'rzp_order_id',
-                    [
-                        'nullable' => true,
-                        'type'     => \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
-                        'length'   => 55,
-                        'comment'  => 'RZP Order ID'
-                    ]
-                );
-            }
+        $tableName = $setup->getTable('sales_order');
+        if ($setup->getConnection()->isTableExists($tableName) == true)
+        {
+            $setup->getConnection()->addColumn(
+                $tableName,
+                'rzp_order_id',
+                [
+                    'nullable' => true,
+                    'type'     => \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
+                    'length'   => 55,
+                    'comment'  => 'RZP Order ID'
+                ]
+            );
+            $setup->getConnection()->addColumn(
+                $tableName,
+                'rzp_webhook_notified_at',
+                [
+                    'nullable' => true,
+                    'type'     => \Magento\Framework\DB\Ddl\Table::TYPE_BIGINT,
+                    'comment'  => 'RZP Webhook Notified Timestamp'
+                ]
+            );
         }
 
 		$setup->endSetup();

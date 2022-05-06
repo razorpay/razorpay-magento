@@ -196,7 +196,7 @@ define(
                     key: self.getKeyId(),
                     name: self.getMerchantName(),
                     amount: data.amount,
-                    timeout: 300,
+                    timeout: 720,
                     handler: function (data) {
                         self.rzp_response = data;
                         self.validateOrder(data);
