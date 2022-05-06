@@ -42,7 +42,8 @@ class UpgradeSchema implements  UpgradeSchemaInterface
         }
 
         $tableName = $setup->getTable('sales_order');
-        if ($setup->getConnection()->isTableExists($tableName) == true) {
+        if ($setup->getConnection()->isTableExists($tableName) == true)
+        {
             $setup->getConnection()->addColumn(
                 $tableName,
                 'rzp_order_id',
