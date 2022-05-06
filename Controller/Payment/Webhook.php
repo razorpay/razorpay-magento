@@ -179,7 +179,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 {
                     $orderId = $post['payload']['payment']['entity']['notes']['merchant_order_id'];
                     $orderWebhookData = $this->getOrderWebhookData($orderId);
-                    if(!empty($orderWebhookData['rzp_webhook_notified_at']) === false)
+                    if (!empty($orderWebhookData['rzp_webhook_notified_at']) === false)
                     {
                         $this->setWebhookNotifiedAt($orderWebhookData['entity_id']);
 
@@ -188,7 +188,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                         header('Status: ' . static::HTTP_CONFLICT_STATUS . ' Webhook conflicts due to early execution.', true, static::HTTP_CONFLICT_STATUS);
                         exit;
                     }
-                    elseif(!empty($orderWebhookData['rzp_webhook_notified_at']) === true and
+                    elseif (!empty($orderWebhookData['rzp_webhook_notified_at']) === true and
                           ((time() - $orderWebhookData['rzp_webhook_notified_at']) < static::WEBHOOK_NOTIFY_WAIT_TIME)
                     )
                     {
@@ -255,10 +255,10 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             # fetch the related sales order and verify the payment ID with rzp payment id
             # To avoid duplicate order entry for same quote
             $collection = $this->objectManagement->get('Magento\Sales\Model\Order')
-                        ->getCollection()
-                        ->addFieldToSelect('entity_id')
-                        ->addFilter('increment_id', $orderId)
-                        ->getFirstItem();
+                                                 ->getCollection()
+                                                 ->addFieldToSelect('entity_id')
+                                                 ->addFilter('increment_id', $orderId)
+                                                 ->getFirstItem();
 
             $salesOrder = $collection->getData();
 
@@ -366,10 +366,10 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         try
         {
             $collection = $this->objectManagement->get('Magento\Sales\Model\Order')
-                        ->getCollection()
-                        ->addFieldToSelect('entity_id')
-                        ->addFilter('increment_id', $orderId)
-                        ->getFirstItem();
+                                                 ->getCollection()
+                                                 ->addFieldToSelect('entity_id')
+                                                 ->addFilter('increment_id', $orderId)
+                                                 ->getFirstItem();
             
             $salesOrder = $collection->getData();
             
@@ -541,11 +541,11 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     protected function getOrderWebhookData($orderId) : array
     {
         $collection = $this->objectManagement->get('Magento\Sales\Model\Order')
-                    ->getCollection()
-                    ->addFieldToSelect('entity_id')
-                    ->addFieldToSelect('rzp_webhook_notified_at')
-                    ->addFilter('increment_id', $orderId)
-                    ->getFirstItem();
+                           ->getCollection()
+                           ->addFieldToSelect('entity_id')
+                           ->addFieldToSelect('rzp_webhook_notified_at')
+                           ->addFilter('increment_id', $orderId)
+                           ->getFirstItem();
         return $collection->getData();
     }
 
