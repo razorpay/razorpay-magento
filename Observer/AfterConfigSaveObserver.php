@@ -61,6 +61,11 @@ class AfterConfigSaveObserver implements ObserverInterface
         $this->webhookId = null;
 
         $this->active_events = [];
+
+        $this->webhooks = (object)[];
+
+        $this->webhooks->entity = 'collection';
+        $this->webhooks->items  = [];
     }
 
     /**
@@ -175,7 +180,7 @@ class AfterConfigSaveObserver implements ObserverInterface
         try
         {
             //fetch all the webhooks
-            $webhooks = $this->rzp->webhook->all();
+            $webhooks = $this->getWebhooks();
 
             if(($webhooks->count) > 0 and (empty($this->webhookUrl) === false))
             {
@@ -207,6 +212,21 @@ class AfterConfigSaveObserver implements ObserverInterface
         }
 
         return ['id' => null,'active_events'=>null];
+    }
+
+    function getWebhooks($count=2, $skip=2)
+    {
+        $webhooks = $this->rzp->webhook->all(['count'=>$count,'skip'=>$skip]);
+
+        if ($webhooks['count'] > 0)
+        {
+            $this->webhooks->items = array_merge($this->webhooks->items, $webhooks['items']);
+            $this->webhooks->count = count($this->webhooks->items);
+
+            $this->getWebhooks($count, $this->webhooks->count);
+        }
+
+        return $this->webhooks;
     }
 
     private function disableWebhook()
