@@ -214,9 +214,9 @@ class AfterConfigSaveObserver implements ObserverInterface
         return ['id' => null,'active_events'=>null];
     }
 
-    function getWebhooks($count=2, $skip=2)
+    function getWebhooks($count=10, $skip=0)
     {
-        $webhooks = $this->rzp->webhook->all(['count'=>$count,'skip'=>$skip]);
+        $webhooks = $this->rzp->webhook->all(['count' => $count, 'skip' => $skip]);
 
         if ($webhooks['count'] > 0)
         {
