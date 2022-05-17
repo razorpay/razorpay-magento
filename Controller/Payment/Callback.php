@@ -54,7 +54,8 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
         \Magento\Sales\Model\Service\InvoiceService $invoiceService,
         \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
         \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender,
-        \Magento\Catalog\Model\Session $catalogSession
+        \Magento\Catalog\Model\Session $catalogSession,
+        \Magento\Sales\Api\Data\OrderInterface $order
         
     ) {
         parent::__construct(
@@ -75,21 +76,41 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
         $this->_invoiceService = $invoiceService;
         $this->_invoiceSender = $invoiceSender;
         $this->catalogSession     = $catalogSession;
+        $this->order              = $order;
         
     }
     public function execute()
     {
-   
-        $params = $this->getRequest()->getParams();
-        $order = $this->checkoutSession->getLastRealOrder();
-        $quoteId = strip_tags($params["order_id"]);
         
-        if(empty($quoteId) === true)
+        $params = $this->getRequest()->getParams();
+       
+        $orderId = strip_tags($params["order_id"]);
+        try
+        {
+            $collection = $this->objectManagement->get('Magento\Sales\Model\Order')
+            ->getCollection()
+            ->addFieldToSelect('entity_id')
+            ->addFieldToSelect('rzp_order_id')
+            ->addFilter('increment_id', $orderId)
+            ->getFirstItem();
+
+            $this->razorpayOrderID = $collection->getRzpOrderId();
+            $order = $this->order->load($collection->getEntityId());
+           
+        }
+        catch(\Exception $e)
+        {
+            $this->logger->critical("Callback Error: " . $e->getMessage());
+        }
+       
+        
+        if(empty($orderId) === true)
         {
             $this->messageManager->addError(__('Razorpay front-end callback: Payment Failed, As no active cart ID found.'));
 
             return $this->_redirect('checkout/cart');
         }
+        
         if(isset($params['razorpay_payment_id']))
         {
             try
@@ -101,8 +122,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
             $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
 
         
-            $payment = $order->getPayment();        
-                
+            $payment = $order->getPayment();       
             $paymentId = $params['razorpay_payment_id'];
             
             $payment->setLastTransId($paymentId)
@@ -150,7 +170,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
             $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
             $quote->setIsActive(false)->save();
 
-            if($order->canInvoice() and
+            if ($order->canInvoice() and
                 ($this->config->getPaymentAction()  === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE) and
                 $this->config->canAutoGenerateInvoice())
             {
@@ -189,7 +209,14 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                     $this->logger->critical("Validate: Exception Error message:" . $e->getMessage());
                 }
 
+                // Re-updating session values for checkout success page as these values are empty after redirect
+               // $this->checkoutSession->setLastRealOrder($order->getData());
+                $this->checkoutSession->setLastOrderId($order->getIncrementId());
+                $this->checkoutSession->setLastSuccessQuoteId($order->getQuoteId());
+                $this->checkoutSession->setLastQuoteId($order->getQuoteId());
+
                 return $this->_redirect('checkout/onepage/success');
+
             }
             catch(\Razorpay\Api\Errors\Error $e)
             {
@@ -236,7 +263,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
 
         $attributes = array(
             'razorpay_payment_id' => $request['razorpay_payment_id'],
-            'razorpay_order_id'   => $this->catalogSession->getRazorpayOrderID(),
+            'razorpay_order_id'   => $this->razorpayOrderID,
             'razorpay_signature'  => $request['razorpay_signature'],
         );
         
