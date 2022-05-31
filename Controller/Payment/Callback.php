@@ -47,18 +47,18 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
     {
         parent::__construct($context, $customerSession, $checkoutSession, $config);
 
-        $this->config = $config;
-        $this->checkoutSession = $checkoutSession;
-        $this->customerSession = $customerSession;
-        $this->logger = $logger;
-        $this->orderRepository = $orderRepository;
+        $this->config           = $config;
+        $this->checkoutSession  = $checkoutSession;
+        $this->customerSession  = $customerSession;
+        $this->logger           = $logger;
+        $this->orderRepository  = $orderRepository;
         $this->objectManagement = \Magento\Framework\App\ObjectManager::getInstance();
-        $this->_transaction = $transaction;
-        $this->orderSender = $orderSender;
-        $this->_invoiceService = $invoiceService;
-        $this->_invoiceSender = $invoiceSender;
-        $this->catalogSession = $catalogSession;
-        $this->order = $order;
+        $this->_transaction     = $transaction;
+        $this->orderSender      = $orderSender;
+        $this->_invoiceService  = $invoiceService;
+        $this->_invoiceSender   = $invoiceSender;
+        $this->catalogSession   = $catalogSession;
+        $this->order            = $order;
 
     }
     public function execute()
