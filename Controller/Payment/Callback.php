@@ -96,6 +96,8 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
 
             $this->razorpayOrderID = $collection->getRzpOrderId();
             $order = $this->order->load($collection->getEntityId());
+
+
            
         }
         catch(\Exception $e)
@@ -129,6 +131,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                 ->setTransactionId($paymentId)
                 ->setIsTransactionClosed(true)
                 ->setShouldCloseParentTransaction(true);
+
 
             $payment->setParentTransactionId($payment->getTransactionId());
 
@@ -199,6 +202,8 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                     $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
                     $this->orderSender->send($order);
                     $this->checkoutSession->unsRazorpayMailSentOnSuccess();
+                
+                
                 }
                 catch (\Magento\Framework\Exception\MailException $exception)
                 {
@@ -209,13 +214,17 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                     $this->logger->critical("Validate: Exception Error message:" . $e->getMessage());
                 }
 
-                // Re-updating session values for checkout success page as these values are empty after redirect
-               // $this->checkoutSession->setLastRealOrder($order->getData());
-                $this->checkoutSession->setLastOrderId($order->getIncrementId());
-                $this->checkoutSession->setLastSuccessQuoteId($order->getQuoteId());
-                $this->checkoutSession->setLastQuoteId($order->getQuoteId());
 
-                return $this->_redirect('checkout/onepage/success');
+                    $this->checkoutSession->setLastSuccessQuoteId($order->getQuoteId())
+                                          ->setLastQuoteId($order->getQuoteId())
+                                          ->clearHelperData();
+                    if(empty($order) === false)
+                    {
+                        $this->checkoutSession->setLastOrderId($order->getId())
+                                              ->setLastRealOrderId($order->getIncrementId())
+                                              ->setLastOrderStatus($order->getStatus());
+                    }
+                  return $this->_redirect('checkout/onepage/success');
 
             }
             catch(\Razorpay\Api\Errors\Error $e)
