@@ -2,6 +2,12 @@
 
 namespace Razorpay\Magento\Model;
 
+if (class_exists('Razorpay\\Api\\Api')  === false)
+{
+   // require in case of zip installation without composer
+    require_once __DIR__ . "/../../Razorpay/Razorpay.php"; 
+}
+
 use Razorpay\Api\Api;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Sales\Model\Order\Payment\Transaction;

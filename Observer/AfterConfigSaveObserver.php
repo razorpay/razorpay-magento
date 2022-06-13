@@ -2,6 +2,12 @@
 
 namespace Razorpay\Magento\Observer;
 
+if (class_exists('Razorpay\\Api\\Api')  === false)
+{
+   // require in case of zip installation without composer
+    require_once __DIR__ . "/../../Razorpay/Razorpay.php"; 
+}
+
 use Razorpay\Api\Api;
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
