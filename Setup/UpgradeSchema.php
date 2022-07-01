@@ -2,15 +2,36 @@
 
 namespace Razorpay\Magento\Setup;
 
+use Razorpay\Magento\Model\Config;
 use Magento\Framework\Setup\UpgradeSchemaInterface;
 use Magento\Framework\Setup\ModuleContextInterface;
+use Razorpay\Magento\Model\TrackPluginInstrumentation;
 use Magento\Framework\Setup\SchemaSetupInterface;
+use Magento\Framework\Module\ModuleListInterface;
+use \Psr\Log\LoggerInterface;
 
-class UpgradeSchema implements  UpgradeSchemaInterface
+class UpgradeSchema implements UpgradeSchemaInterface
 {
-	public function upgrade(SchemaSetupInterface $setup,
-							ModuleContextInterface $context
-						)
+    protected $config;
+    protected $trackPluginInstrumentation;
+    protected $moduleList;
+    protected $logger;
+
+    public function __construct(
+        Config $config,
+        ModuleListInterface $moduleList,
+        LoggerInterface $logger
+        )
+    {
+        $this->config = $config;
+        $this->moduleList = $moduleList;
+        $this->logger = $logger;
+    }
+
+	public function upgrade(
+        SchemaSetupInterface $setup,
+        ModuleContextInterface $context
+    )
 	{
 		$setup->startSetup();
 
@@ -88,4 +109,27 @@ class UpgradeSchema implements  UpgradeSchemaInterface
 
 		$setup->endSetup();
 	}
+
+    /**
+     * Plugin upgrade event track
+     */
+    public function pluginUpgrade()
+    {
+        $storeName = $this->config->getMerchantNameOverride();
+
+        $eventData = array(
+                        "store_name" => $storeName,
+                    );
+
+        $this->trackPluginInstrumentation = new TrackPluginInstrumentation(
+                                                $this->config->getConfigData(Config::KEY_PUBLIC_KEY), 
+                                                $this->config->getConfigData(Config::KEY_PRIVATE_KEY),
+                                                $this->moduleList,
+                                                $this->logger
+                                            );
+
+        $response = $this->trackPluginInstrumentation->rzpTrackSegment('Plugin Upgrade', $eventData);
+
+        $this->logger->info(json_encode($response));
+    }
 }
