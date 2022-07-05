@@ -174,9 +174,7 @@ class FormFieldTrack extends \Magento\Config\Block\System\Config\Form\Field
                                         {
                                             if(!formFieldMap[row])
                                             {
-                                                let objectMissing = new Map()
-                                                objectMissing.set('missing', true)
-                                                resultMapObject.set(row.substring(20), objectMissing)
+                                                resultMapObject.set(row.substring(20), {'missing' : true})
                                             }
                                         }
                                     }
@@ -200,7 +198,7 @@ class FormFieldTrack extends \Magento\Config\Block\System\Config\Form\Field
                                             dataType: 'json',
                                             data: { 
                                                 event : 'Empty Form Fields',
-                                                properties : result
+                                                properties : Object.fromEntries(result)
                                             },
                                             beforeSend: function(xhr){
                                                 //Empty to remove magento's default handler
