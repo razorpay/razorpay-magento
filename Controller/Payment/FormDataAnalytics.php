@@ -62,14 +62,10 @@ class FormDataAnalytics extends \Razorpay\Magento\Controller\BaseController
             // Api logic here
             $this->logger->info("FormDataAnalyticsController controller started");
             
-            $requestData = $this->getPostData();
-            $requestData = is_array($requestData) ? $requestData : array($requestData);
-            
-            // Get keyid/keysecret
-            $keyId = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
-            $keySecret = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
-
-            // $this->logger->info(json_encode($this->getPostData()));
+            $requestData    = $this->getPostData();
+            $requestData    = is_array($requestData) ? $requestData : array($requestData);
+            $keyId          = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
+            $keySecret      = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
 
             $this->trackPluginInstrumentation = new TrackPluginInstrumentation($keyId, $keySecret, $this->moduleList, $this->logger);
 
@@ -82,7 +78,7 @@ class FormDataAnalytics extends \Razorpay\Magento\Controller\BaseController
                 throw new \Exception("Empty field passed for event name payload to Segment");
             }
             
-            if (array_key_exists('event', $requestData))
+            if (array_key_exists('properties', $requestData))
             {
                 $properties = $requestData['properties'];
             } 
@@ -90,6 +86,8 @@ class FormDataAnalytics extends \Razorpay\Magento\Controller\BaseController
             {
                 throw new \Exception("Empty field passed for event properties payload to Segment");
             }                            
+
+            $this->logger->info("Event : ". $event .". In function " . __METHOD__);
 
             $trackResponse = $this->trackPluginInstrumentation->rzpTrackSegment($event, $properties);
 

@@ -20,6 +20,7 @@ class FormFieldTrack extends \Magento\Config\Block\System\Config\Form\Field
 
     protected function _getElementHtml(AbstractElement $element)
     {		
+        $baseUrl = $this->_storeManager->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_WEB);
         $copyButton = "<script type='text/javascript'>
 						//<![CDATA[
 						require([
@@ -46,34 +47,18 @@ class FormFieldTrack extends \Magento\Config\Block\System\Config\Form\Field
                                     'field_name': fieldName,
                                     'field_type': fieldType, 
                                 }
-                                //console.log(onFocusData)
 
                                 //Send event 
                                 $.ajax({
-                                    url: '/magento/pub/razorpay/payment/FormDataAnalytics',
+                                    url: '". $baseUrl ."razorpay/payment/FormDataAnalytics',
                                     type: 'POST',
                                     dataType: 'json',
                                     data: { 
                                         'event': 'Form Field Focused', 
                                         'properties': onFocusData
-                                    },
-                                    success: function(result, status, xhr) {
-                                        // console.log('success')
-                                    },
-                                    error: function(xhr, status, error) {
-                                        // console.log('fail')
-                                        // console.log(error)
                                     }
                                 })
 							})
-
-                            // Keep track if any form fields modified
-                            element.change(function(){
-                                if (!localStorage.getItem('changesMade') || localStorage.getItem('changesMade') === 'false')
-                                {
-                                    localStorage.setItem('changesMade', 'true')
-                                }
-                            })
 
                             // Invalid fields check
                             let validationCheckFormFields = function()
@@ -104,19 +89,12 @@ class FormFieldTrack extends \Magento\Config\Block\System\Config\Form\Field
                                             
                                             // Send event
                                             $.ajax({
-                                                url: '/magento/pub/razorpay/payment/FormDataAnalytics',
+                                                url: '". $baseUrl ."razorpay/payment/FormDataAnalytics',
                                                 type: 'POST',
                                                 dataType: 'json',
                                                 data: { 
                                                     event: 'Form Field Validation Error', 
                                                     properties: validationData 
-                                                },
-                                                success: function(result, status, xhr) {
-                                                    // console.log('success')
-                                                },
-                                                error: function(xhr, status, error) {
-                                                    // console.log('fail')
-                                                    // console.log(error)
                                                 }
                                             })
                                         }
@@ -149,23 +127,15 @@ class FormFieldTrack extends \Magento\Config\Block\System\Config\Form\Field
                                                 'validate-not-negative-number'  : checkIfNonNegativeBool,
                                                 'digits-range-20-43200'         : checkIfInNumberRangeBool 
                                             }
-                                            //console.log(validationData);   
                                             
                                             // Send event 
                                             $.ajax({
-                                                url: '/magento/pub/razorpay/payment/FormDataAnalytics',
+                                                url: '". $baseUrl ."razorpay/payment/FormDataAnalytics',
                                                 type: 'POST',
                                                 dataType: 'json',
                                                 data: { 
                                                     event: 'Form Field Validation Error', 
                                                     properties: validationData 
-                                                },
-                                                success: function(result, status, xhr) {
-                                                    // console.log('success')
-                                                },
-                                                error: function(xhr, status, error) {
-                                                    // console.log('fail')
-                                                    // console.log(error)
                                                 }
                                             })
                                         }
@@ -186,7 +156,7 @@ class FormFieldTrack extends \Magento\Config\Block\System\Config\Form\Field
                                     'payment_us_razorpay_auto_invoice'                  : $('#payment_us_razorpay_auto_invoice').val(),
                                     'payment_us_razorpay_pending_orders_timeout'        : $('#payment_us_razorpay_pending_orders_timeout').val(),
                                 }
-                                let resultMapObject = {}
+                                let resultMapObject = new Map()
 
                                 for (var row in formFieldMap)
                                 {
@@ -204,13 +174,14 @@ class FormFieldTrack extends \Magento\Config\Block\System\Config\Form\Field
                                         {
                                             if(!formFieldMap[row])
                                             {
-                                                resultMapObject[row.substring(20)] = {missing: 'true'}
+                                                let objectMissing = new Map()
+                                                objectMissing.set('missing', true)
+                                                resultMapObject.set(row.substring(20), objectMissing)
                                             }
                                         }
                                     }
                                     
                                 }
-                                //console.log(resultMapObject)
                                 return resultMapObject
                             }   
 
@@ -219,12 +190,11 @@ class FormFieldTrack extends \Magento\Config\Block\System\Config\Form\Field
                             {
                                 $('#save').click(function(){
                                     let result = getMissingFormFields()
-                                    //console.log(result)
-                                    //console.log(result.size)
+
                                     if (result && result.size>0){
-                                        // Send event
+                                        // Send empty form fields when Save Config clicked event
                                         $.ajax({
-                                            url: '/magento/pub/razorpay/payment/FormDataAnalytics',
+                                            url: '". $baseUrl ."razorpay/payment/FormDataAnalytics',
                                             type: 'POST',
                                             async: false,
                                             dataType: 'json',
@@ -234,46 +204,8 @@ class FormFieldTrack extends \Magento\Config\Block\System\Config\Form\Field
                                             },
                                             beforeSend: function(xhr){
                                                 //Empty to remove magento's default handler
-                                            },
-                                            success: function(result, status, xhr) {
-                                                //console.log('success')
-                                            },
-                                            error: function(xhr, status, error) {
-                                                //console.log('fail')
                                             }
                                         })
-                                    }
-
-                                    if (!localStorage.getItem('saveConfigClicked')){
-                                        localStorage.setItem('saveConfigClicked', 'yes')
-                                    }
-                                    else{
-                                        // Check if any field modified
-                                        if (localStorage.getItem('changesMade') === 'true')
-                                        {
-                                            localStorage.setItem('changesMade', 'false') 
-                                            // Send event
-                                            $.ajax({
-                                                url: '/magento/pub/razorpay/payment/FormDataAnalytics',
-                                                type: 'POST',
-                                                async: false,
-                                                dataType: 'json',
-                                                data: { 
-                                                    event : 'Config Modified',
-                                                    properties : {'store_name': storeName}
-                                                },
-                                                beforeSend: function(xhr){
-                                                    //Empty to remove magento's default handler
-                                                },
-                                                success: function(result, status, xhr) {
-                                                    //console.log('success')
-                                                },
-                                                error: function(xhr, status, error) {
-                                                    // console.log('fail')
-                                                    // console.log(error)
-                                                }
-                                            })   
-                                        }
                                     }
                                 })
                             }                 

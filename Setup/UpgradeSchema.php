@@ -21,11 +21,11 @@ class UpgradeSchema implements UpgradeSchemaInterface
         Config $config,
         ModuleListInterface $moduleList,
         LoggerInterface $logger
-        )
+    )
     {
-        $this->config = $config;
-        $this->moduleList = $moduleList;
-        $this->logger = $logger;
+        $this->config       = $config;
+        $this->moduleList   = $moduleList;
+        $this->logger       = $logger;
     }
 
 	public function upgrade(
@@ -127,6 +127,7 @@ class UpgradeSchema implements UpgradeSchemaInterface
                                                 $this->moduleList,
                                                 $this->logger
                                             );
+        $this->logger->info("Event : Plugin Upgrade. In function " . __METHOD__);
 
         $response = $this->trackPluginInstrumentation->rzpTrackSegment('Plugin Upgrade', $eventData);
 

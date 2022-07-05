@@ -25,6 +25,7 @@ class EnablePendingOrdersCron extends \Magento\Config\Block\System\Config\Form\F
 
     protected function _getElementHtml(AbstractElement $element)
     {
+		$baseUrl = $this->_storeManager->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_WEB);
 		$copyButton = "<span class='rzp-pending-order-cron-to-clipboard' style='background-color: #337ab7; color: white; border: none;cursor: pointer; padding: 2px 4px; text-decoration: none;display: inline-block;'>Copy Cron</span>
 						<script type='text/javascript'>
 						//<![CDATA[
@@ -44,7 +45,7 @@ class EnablePendingOrdersCron extends \Magento\Config\Block\System\Config\Form\F
 
 									// Send copy cron clicked track event 
 									$.ajax({
-										url: 'http://5471-106-51-76-134.in.ngrok.io/magento/pub/razorpay/payment/FormDataAnalytics',
+										url: '". $baseUrl ."razorpay/payment/FormDataAnalytics',
 										type: 'POST',
 										dataType: 'json',
 										data: {
@@ -53,13 +54,6 @@ class EnablePendingOrdersCron extends \Magento\Config\Block\System\Config\Form\F
 												'store_name': $('#payment_us_razorpay_merchant_name_override').val(),
 												'cron_copy_clicked': true,
 											}
-										},
-										success: function(result, status, xhr) {
-											console.log('success')
-										},
-										error: function(xhr, status, error) {
-											console.log('fail')
-											console.log(error)
 										}
 									})
 									

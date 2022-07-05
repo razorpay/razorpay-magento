@@ -22,14 +22,12 @@ class TrackPluginInstrumentation
     protected ModuleListInterface $moduleList;
 
     public function __construct(
-        // PaymentMethod $paymentMethod,
         String $keyId, 
         String $keySecret,
         ModuleListInterface $moduleList,
         \Psr\Log\LoggerInterface $logger
     )
     {
-        //$this->$paymentMethod = $paymentMethod; 
         $this->keyId        = $keyId;
         $this->keySecret    = $keySecret; 
 
@@ -41,7 +39,6 @@ class TrackPluginInstrumentation
     public function setAndGetRzpApiInstance()
     {
         $apiInstance = new Api($this->keyId, $this->keySecret);
-        //$apiInstance->setHeader('User-Agent', 'Razorpay/'. $this->paymentMethod->getChannel());
 
         return $apiInstance;
     }
@@ -54,7 +51,7 @@ class TrackPluginInstrumentation
             {
                 throw new \Exception("Empty field passed for event name payload to Segment");
             }
-            if(empty($properties) === true)
+            if (empty($properties) === true)
             {
                 throw new \Exception("Empty field passed for event properties payload to Segment");
             }
@@ -64,24 +61,24 @@ class TrackPluginInstrumentation
                 $properties = json_decode($properties);
             }
 
-            $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-            $productMetadata = $objectManager->get('Magento\Framework\App\ProductMetadataInterface');
-            $magentoVersion = $productMetadata->getVersion();
+            $objectManager      = \Magento\Framework\App\ObjectManager::getInstance();
+            $productMetadata    = $objectManager->get('Magento\Framework\App\ProductMetadataInterface');
+            $magentoVersion     = $productMetadata->getVersion();
     
             $razorpayPluginVersion = $this->moduleList->getOne(self::MODULE_NAME)['setup_version'];
             
-            $versionProperties = array();
+            $defaultProperties = array();
 
-            $versionProperties['platform'] = 'Magento';
-            $versionProperties['platform_version'] = $magentoVersion;
-            $versionProperties['plugin'] = 'Razorpay';
-            $versionProperties['plugin_version'] = $razorpayPluginVersion;
+            $defaultProperties['platform']          = 'Magento';
+            $defaultProperties['platform_version']  = $magentoVersion;
+            $defaultProperties['plugin']            = 'Razorpay';
+            $defaultProperties['plugin_version']    = $razorpayPluginVersion;
 
-            $properties = array_merge($properties, $versionProperties);
+            $properties = array_merge($properties, $defaultProperties);
             
             $data = [
-                'event' => $event,
-                'properties' => $properties
+                'event'         => $event,
+                'properties'    => $properties
             ];
 
             $this->logger->info('Event: '. $event .'. Properties: '. json_encode($properties));
@@ -94,13 +91,14 @@ class TrackPluginInstrumentation
         {
             $this->logger->critical("Error:" . $e->getMessage());
             $response = ['status' => 'error', 'message' => $e->getMessage()];
+            return $response;
         }
         catch (\Exception $e)
         {
             $this->logger->critical("Error:" . $e->getMessage());
             $response = ['status' => 'error', 'message' => $e->getMessage()];
+            return $response;
         }
-        return $response;
     }
 
     public function rzpTrackDataLake($properties)

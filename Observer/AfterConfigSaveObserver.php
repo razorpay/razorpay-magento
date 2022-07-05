@@ -177,7 +177,7 @@ class AfterConfigSaveObserver implements ObserverInterface
         
     }
 
-            /**
+    /**
      * Create and track admin form data on Save Config click
      */
     public function saveConfigData($razorpayParams)
@@ -208,9 +208,11 @@ class AfterConfigSaveObserver implements ObserverInterface
                                                 $this->logger
                                             );
 
+        $this->logger->info("Event : Save Config Clicked. In function " . __METHOD__);
+
         $response = $this->trackPluginInstrumentation->rzpTrackSegment('Save Config Clicked', ($eventData));
 
-        // $this->logger->info(json_encode($response));
+        $this->logger->info(json_encode($response));
     }
 
     /**

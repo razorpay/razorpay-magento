@@ -70,7 +70,6 @@
                     <frontend_model>Razorpay\Magento\Model\FormFieldTrack</frontend_model>
                     <validate>required-entry</validate>
                     <config_path>payment/razorpay/order_status</config_path>
-                    <!-- <frontend_model>Razorpay\Magento\Model\FormFieldTrack</frontend_model> -->
                 </field>
                 <field id="auto_invoice" translate="label" type="select" sortOrder="2" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Auto Generate Invoice</label>
@@ -78,7 +77,6 @@
                     <frontend_model>Razorpay\Magento\Model\FormFieldTrack</frontend_model>
                     <validate>required-entry</validate>
                     <config_path>payment/razorpay/auto_invoice</config_path>
-                    <!-- <frontend_model>Razorpay\Magento\Model\FormFieldTrack</frontend_model> -->
                 </field>
                 <field id="enable_webhook" translate="label" type="select" sortOrder="5" showInDefault="0" showInWebsite="0" showInStore="0">
                     <label>Webhook Enabled</label>

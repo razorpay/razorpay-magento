@@ -293,6 +293,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                                                 $this->logger
                                             );
 
+        $this->logger->info("Event : Refund Online Clicked. In function " . __METHOD__);
+        
         $response = $this->trackPluginInstrumentation->rzpTrackSegment('Refund Online Clicked', $eventData);
 
         $this->logger->info(json_encode($response));
