@@ -6,6 +6,7 @@ use Razorpay\Api\Api;
 use Magento\Framework\Module\ModuleListInterface;
 use Razorpay\Api\Errors;
 use Razorpay\Magento\Model\PaymentMethod;
+use Razorpay\Magento\Model\Config;
 
 use function PHPSTORM_META\type;
 
@@ -15,22 +16,15 @@ class TrackPluginInstrumentation
 
     protected $api;
 
-    private String $keyId;
-
-    private String $keySecret;
-
     protected ModuleListInterface $moduleList;
 
     public function __construct(
-        String $keyId, 
-        String $keySecret,
+        \Razorpay\Magento\Model\Config $config,
         ModuleListInterface $moduleList,
         \Psr\Log\LoggerInterface $logger
     )
     {
-        $this->keyId        = $keyId;
-        $this->keySecret    = $keySecret; 
-
+        $this->config       = $config;
         $this->api          = $this->setAndGetRzpApiInstance();
         $this->moduleList   = $moduleList;
         $this->logger       = $logger;
@@ -38,7 +32,9 @@ class TrackPluginInstrumentation
 
     public function setAndGetRzpApiInstance()
     {
-        $apiInstance = new Api($this->keyId, $this->keySecret);
+        $keyId          = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
+        $keySecret      = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
+        $apiInstance    = new Api($keyId, $keySecret);
 
         return $apiInstance;
     }

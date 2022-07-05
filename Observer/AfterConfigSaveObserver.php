@@ -43,6 +43,7 @@ class AfterConfigSaveObserver implements ObserverInterface
         \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Razorpay\Magento\Model\PaymentMethod $paymentMethod,
         ModuleListInterface $moduleList,
+        TrackPluginInstrumentation $trackPluginInstrumentation,
         \Psr\Log\LoggerInterface $logger
     ) {
         $this->config = $config;
@@ -59,6 +60,8 @@ class AfterConfigSaveObserver implements ObserverInterface
         $this->paymentMethod = $paymentMethod;
 
         $this->rzp = $this->paymentMethod->setAndGetRzpApiInstance();
+
+        $this->trackPluginInstrumentation = $trackPluginInstrumentation;
 
         $this->webhookUrl = $this->_storeManager->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_WEB) . 'razorpay/payment/webhook';
 
@@ -200,13 +203,6 @@ class AfterConfigSaveObserver implements ObserverInterface
         $metaData = array("store_name" => $storeName);
 
         $eventData = array_merge($razorpayParamsFormattedArray, $metaData);
-
-        $this->trackPluginInstrumentation = new TrackPluginInstrumentation(
-                                                $this->config->getConfigData(Config::KEY_PUBLIC_KEY), 
-                                                $this->config->getConfigData(Config::KEY_PRIVATE_KEY),
-                                                $this->moduleList,
-                                                $this->logger
-                                            );
 
         $this->logger->info("Event : Save Config Clicked. In function " . __METHOD__);
 

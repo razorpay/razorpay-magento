@@ -19,13 +19,15 @@ class UpgradeSchema implements UpgradeSchemaInterface
 
     public function __construct(
         Config $config,
+        TrackPluginInstrumentation $trackPluginInstrumentation,
         ModuleListInterface $moduleList,
         LoggerInterface $logger
     )
     {
-        $this->config       = $config;
-        $this->moduleList   = $moduleList;
-        $this->logger       = $logger;
+        $this->config                       = $config;
+        $this->trackPluginInstrumentation   = $trackPluginInstrumentation;
+        $this->moduleList                   = $moduleList;
+        $this->logger                       = $logger;
     }
 
 	public function upgrade(
@@ -33,6 +35,8 @@ class UpgradeSchema implements UpgradeSchemaInterface
         ModuleContextInterface $context
     )
 	{
+        $this->pluginUpgrade();
+        
 		$setup->startSetup();
 
 		//remove older configs for current version
@@ -121,12 +125,6 @@ class UpgradeSchema implements UpgradeSchemaInterface
                         "store_name" => $storeName,
                     );
 
-        $this->trackPluginInstrumentation = new TrackPluginInstrumentation(
-                                                $this->config->getConfigData(Config::KEY_PUBLIC_KEY), 
-                                                $this->config->getConfigData(Config::KEY_PRIVATE_KEY),
-                                                $this->moduleList,
-                                                $this->logger
-                                            );
         $this->logger->info("Event : Plugin Upgrade. In function " . __METHOD__);
 
         $response = $this->trackPluginInstrumentation->rzpTrackSegment('Plugin Upgrade', $eventData);

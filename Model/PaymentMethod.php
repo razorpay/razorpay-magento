@@ -140,6 +140,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
         \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
         ModuleListInterface $moduleList,
+        TrackPluginInstrumentation $trackPluginInstrumentation,
         array $data = []
     ) {
         parent::__construct(
@@ -165,6 +166,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $this->key_secret = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
 
         $this->rzp = $this->rzp = $this->setAndGetRzpApiInstance();
+
+        $this->trackPluginInstrumentation = $trackPluginInstrumentation;
 
         $this->order = $order;
 
@@ -286,15 +289,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             "refund_online"             => true
         );
 
-        $this->trackPluginInstrumentation = new TrackPluginInstrumentation(
-                                                $this->config->getConfigData(Config::KEY_PUBLIC_KEY), 
-                                                $this->config->getConfigData(Config::KEY_PRIVATE_KEY),
-                                                $this->moduleList,
-                                                $this->logger
-                                            );
-
         $this->logger->info("Event : Refund Online Clicked. In function " . __METHOD__);
-        
+
         $response = $this->trackPluginInstrumentation->rzpTrackSegment('Refund Online Clicked', $eventData);
 
         $this->logger->info(json_encode($response));

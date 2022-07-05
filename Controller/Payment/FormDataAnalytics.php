@@ -33,6 +33,7 @@ class FormDataAnalytics extends \Razorpay\Magento\Controller\BaseController
      */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
+        TrackPluginInstrumentation $trackPluginInstrumentation,
         \Razorpay\Magento\Model\PaymentMethod $paymentMethod,
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Checkout\Model\Session $checkoutSession,
@@ -48,6 +49,7 @@ class FormDataAnalytics extends \Razorpay\Magento\Controller\BaseController
         );
         
         $this->config                       = $config;
+        $this->trackPluginInstrumentation   = $trackPluginInstrumentation;
         $this->paymentMethod                = $paymentMethod;
         $this->checkoutSession              = $checkoutSession;
         $this->customerSession              = $customerSession;
@@ -64,10 +66,6 @@ class FormDataAnalytics extends \Razorpay\Magento\Controller\BaseController
             
             $requestData    = $this->getPostData();
             $requestData    = is_array($requestData) ? $requestData : array($requestData);
-            $keyId          = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
-            $keySecret      = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
-
-            $this->trackPluginInstrumentation = new TrackPluginInstrumentation($keyId, $keySecret, $this->moduleList, $this->logger);
 
             if (array_key_exists('event', $requestData))
             {
