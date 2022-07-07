@@ -75,7 +75,9 @@ class CancelPendingOrders {
             $orders = $this->orderRepository->getList($searchCriteria);
             foreach ($orders->getItems() as $order)
             {
-                $this->cancelOrder($order);
+                if ($order->getPayment()->getMethod() === 'razorpay') {
+                    $this->cancelOrder($order);    
+                }
             }
         } else
         {
