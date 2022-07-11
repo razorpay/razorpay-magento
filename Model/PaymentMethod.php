@@ -9,7 +9,6 @@ use Magento\Sales\Model\ResourceModel\Order\Payment\Transaction\CollectionFactor
 use Magento\Sales\Model\Order\Payment\Transaction as PaymentTransaction;
 use Magento\Payment\Model\InfoInterface;
 use Razorpay\Magento\Model\Config;
-use Magento\Framework\Module\ModuleListInterface;
 use Razorpay\Magento\Model\TrackPluginInstrumentation;
 use Magento\Catalog\Model\Session;
 
@@ -99,8 +98,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
     protected $trackPluginInstrumentation;
 
-    protected $moduleList;
-
     //protected $_isOffline = true;
 
     /**
@@ -139,7 +136,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         \Razorpay\Magento\Controller\Payment\Order $order,
         \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
         \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
-        ModuleListInterface $moduleList,
         TrackPluginInstrumentation $trackPluginInstrumentation,
         array $data = []
     ) {
@@ -170,8 +166,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $this->trackPluginInstrumentation = $trackPluginInstrumentation;
 
         $this->order = $order;
-
-        $this->moduleList = $moduleList;
 
         $this->rzp->setHeader('User-Agent', 'Razorpay/'. $this->getChannel());
     }

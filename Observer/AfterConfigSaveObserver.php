@@ -8,7 +8,6 @@ use Magento\Sales\Model\Order\Payment;
 use Razorpay\Magento\Model\PaymentMethod;
 use Magento\Framework\Exception\LocalizedException;
 use Razorpay\Magento\Model\TrackPluginInstrumentation;
-use Magento\Framework\Module\ModuleListInterface;
 use Magento\Framework\App\Config\Storage\WriterInterface;
 use Magento\Framework\App\RequestInterface;
 use Razorpay\Magento\Model\Config;
@@ -28,7 +27,6 @@ class AfterConfigSaveObserver implements ObserverInterface
 
     private $request;
     private $configWriter;
-    protected $moduleList;
     protected $trackPluginInstrumentation;
 
     /**
@@ -42,7 +40,6 @@ class AfterConfigSaveObserver implements ObserverInterface
         WriterInterface $configWriter,
         \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Razorpay\Magento\Model\PaymentMethod $paymentMethod,
-        ModuleListInterface $moduleList,
         TrackPluginInstrumentation $trackPluginInstrumentation,
         \Psr\Log\LoggerInterface $logger
     ) {
@@ -73,8 +70,6 @@ class AfterConfigSaveObserver implements ObserverInterface
 
         $this->webhooks->entity = 'collection';
         $this->webhooks->items  = [];
-
-        $this->moduleList = $moduleList;
     }
 
     /**

@@ -3,7 +3,6 @@ namespace Razorpay\Magento\Controller\Payment;
 
 use Razorpay\Magento\Model\Config;
 use Magento\Framework\Controller\ResultFactory;
-use Magento\Framework\Module\ModuleListInterface;
 use Razorpay\Magento\Model\TrackPluginInstrumentation;
 use Razorpay\Magento\Model\PaymentMethod;
 
@@ -18,8 +17,6 @@ class FormDataAnalytics extends \Razorpay\Magento\Controller\BaseController
     protected $setup;
 
     protected PaymentMethod $paymentMethod;
-
-    protected ModuleListInterface $moduleList;
 
     protected TrackPluginInstrumentation $trackPluginInstrumentation;
 
@@ -38,7 +35,6 @@ class FormDataAnalytics extends \Razorpay\Magento\Controller\BaseController
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Checkout\Model\Session $checkoutSession,
         \Razorpay\Magento\Model\Config $config,
-        ModuleListInterface $moduleList,
         \Psr\Log\LoggerInterface $logger
     ) {
         parent::__construct(
@@ -53,7 +49,6 @@ class FormDataAnalytics extends \Razorpay\Magento\Controller\BaseController
         $this->paymentMethod                = $paymentMethod;
         $this->checkoutSession              = $checkoutSession;
         $this->customerSession              = $customerSession;
-        $this->moduleList                   = $moduleList;
         $this->logger                       = $logger;
     }
 

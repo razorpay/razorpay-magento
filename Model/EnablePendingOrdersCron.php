@@ -13,8 +13,6 @@ class EnablePendingOrdersCron extends \Magento\Config\Block\System\Config\Form\F
 {
 	const MODULE_NAME = 'Razorpay_Magento';
 
-	protected $moduleList;
-
 	public function __construct(
 		Context $context,
         array $data = [],

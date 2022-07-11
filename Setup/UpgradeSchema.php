@@ -7,26 +7,22 @@ use Magento\Framework\Setup\UpgradeSchemaInterface;
 use Magento\Framework\Setup\ModuleContextInterface;
 use Razorpay\Magento\Model\TrackPluginInstrumentation;
 use Magento\Framework\Setup\SchemaSetupInterface;
-use Magento\Framework\Module\ModuleListInterface;
 use \Psr\Log\LoggerInterface;
 
 class UpgradeSchema implements UpgradeSchemaInterface
 {
     protected $config;
     protected $trackPluginInstrumentation;
-    protected $moduleList;
     protected $logger;
 
     public function __construct(
         Config $config,
         TrackPluginInstrumentation $trackPluginInstrumentation,
-        ModuleListInterface $moduleList,
         LoggerInterface $logger
     )
     {
         $this->config                       = $config;
         $this->trackPluginInstrumentation   = $trackPluginInstrumentation;
-        $this->moduleList                   = $moduleList;
         $this->logger                       = $logger;
     }
 
