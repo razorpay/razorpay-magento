@@ -180,7 +180,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                     $orderId            = $post['payload']['payment']['entity']['notes']['merchant_order_id'];
                     $paymentId          = $post['payload']['payment']['entity']['id'];
                     $orderWebhookData   = $this->getOrderWebhookData($orderId);
-                    
+
                     if (empty($orderWebhookData['rzp_webhook_notified_at']) === true)
                     {
                         $this->setWebhookNotifiedAt($orderWebhookData['entity_id']);
@@ -568,7 +568,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             "amount"                    => $amount 
         );
         $webhookDataText = serialize($webhookData);
-        $this->logger->info($webhookDataText);
+
         $order = $this->order->load($entityId);
         $order->setRzpWebhookData($webhookDataText);
         $order->save();

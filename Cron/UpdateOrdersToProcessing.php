@@ -124,13 +124,9 @@ class UpdateOrdersToProcessing {
 
         $orders = $this->orderRepository->getList($searchCriteria);
 
-        // print_r($orders->getData());die;
         foreach ($orders->getItems() as $order)
         {
             if ($order->getPayment()->getMethod() === 'razorpay') {
-                // var_dump($order->getRzpWebhookData());
-                // var_dump( unserialize( $order->getRzpWebhookData() ) );
-                // die;
                 $rzpWebhookData = $order->getRzpWebhookData();
                 if (empty($rzpWebhookData) === false) // check if webhook cron has run and populated the rzp_webhook_data column
                 {
