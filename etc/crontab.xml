@@ -4,5 +4,8 @@
         <job name="razorpay_cancel_pending_orders" instance="Razorpay\Magento\Cron\CancelPendingOrders" method="execute">
             <schedule>*/5 * * * *</schedule>
         </job>
+        <job name="razorpay_update_order_to_processing" instance="Razorpay\Magento\Cron\UpdateOrdersToProcessing" method="execute">
+            <schedule>*/5 * * * *</schedule>
+        </job>
      </group>
 </config>

@@ -60,4 +60,9 @@
 	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
 	    </arguments>
 	</type>
+	<type name="Razorpay\Magento\Cron\UpdateOrdersToProcessing">
+	    <arguments>
+	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
+	    </arguments>
+	</type>
 </config>
