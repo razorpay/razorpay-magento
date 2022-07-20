@@ -103,7 +103,6 @@ class UpdateOrdersToProcessing {
 
     public function execute()
     {
-
         $this->logger->info("Cronjob: Update Orders To Processing Cron started.");
 
         $dateTimeCheck = date('Y-m-d H:i:s', strtotime('-' . static::PROCESS_ORDER_WAIT_TIME . ' minutes'));
@@ -126,7 +125,8 @@ class UpdateOrdersToProcessing {
 
         foreach ($orders->getItems() as $order)
         {
-            if ($order->getPayment()->getMethod() === 'razorpay') {
+            if ((empty($order) === false) && ($order->getPayment()->getMethod() === 'razorpay')) 
+            {
                 $rzpWebhookData = $order->getRzpWebhookData();
                 if (empty($rzpWebhookData) === false) // check if webhook cron has run and populated the rzp_webhook_data column
                 {
@@ -136,6 +136,10 @@ class UpdateOrdersToProcessing {
                     {
                         $this->updateOrderStatus($order, $rzpWebhookDataObj);
                     } 
+                }
+                else
+                {
+                    $this->logger->info('Razorpay Webhook code not triggered yet. \'rzp_webhook_data\' is empty');
                 }   
             }
         }
@@ -143,117 +147,123 @@ class UpdateOrdersToProcessing {
 
     private function updateOrderStatus($order, $rzpWebhookData)
     {
-        if ($order)
+        $this->logger->info("Cronjob: Updating to Processing for Order ID: " 
+                            . $order->getEntityId() 
+                            . " and Event :" 
+                            . $rzpWebhookData['event']
+                            . " started."
+                        );
+
+        $payment = $order->getPayment();
+        $paymentId = $rzpWebhookData['payment_id'];
+        $rzpOrderAmount = $rzpWebhookData['amount'];
+        $event = $rzpWebhookData['event'];
+
+        $payment->setLastTransId($paymentId)
+                ->setTransactionId($paymentId)
+                ->setIsTransactionClosed(true)
+                ->setShouldCloseParentTransaction(true);
+
+        $payment->setParentTransactionId($payment->getTransactionId());
+
+        if ($event === 'payment.authorized')
         {
-            $this->logger->info("Cronjob: Updating to Processing for Order ID: " 
-                                . $order->getEntityId() 
-                                . " and Event :" 
-                                . $rzpWebhookData['event']);
-
-            $payment = $order->getPayment();
-            $paymentId = $rzpWebhookData['payment_id'];
-            $rzpOrderAmount = $rzpWebhookData['amount'];
-            $event = $rzpWebhookData['event'];
-
-            $payment->setLastTransId($paymentId)
-                    ->setTransactionId($paymentId)
-                    ->setIsTransactionClosed(true)
-                    ->setShouldCloseParentTransaction(true);
-
-            $payment->setParentTransactionId($payment->getTransactionId());
-
-            if ($event === 'payment.authorized')
-            {
-                $payment->addTransactionCommentsToOrder(
-                    "$paymentId",
-                    (new AuthorizeCommand())->execute(
-                        $payment,
-                        $order->getGrandTotal(),
-                        $order
-                    ),
-                    ""
-                );
-            }
-            else
-            {
-                $payment->addTransactionCommentsToOrder(
-                    "$paymentId",
-                    (new CaptureCommand())->execute(
-                        $payment,
-                        $order->getGrandTotal(),
-                        $order
-                    ),
-                    ""
-                );
-            }
-
-            $transaction = $payment->addTransaction(\Magento\Sales\Model\Order\Payment\Transaction::TYPE_AUTH, null, true, "");
-
-            $transaction->setIsClosed(true);
-
-            $transaction->save();
-
-            $amountPaid = number_format($rzpOrderAmount / 100, 2, ".", "");
-
-            $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
-
-            $order->addStatusHistoryComment(
-                __(
-                    'Actual Amount %1 of %2, with Razorpay Offer/Fee applied.',
-                    "Authroized",
-                    $order->getBaseCurrency()->formatTxt($amountPaid)
-                )
+            $payment->addTransactionCommentsToOrder(
+                "$paymentId",
+                (new AuthorizeCommand())->execute(
+                    $payment,
+                    $order->getGrandTotal(),
+                    $order
+                ),
+                ""
             );
+        }
+        else
+        {
+            $payment->addTransactionCommentsToOrder(
+                "$paymentId",
+                (new CaptureCommand())->execute(
+                    $payment,
+                    $order->getGrandTotal(),
+                    $order
+                ),
+                ""
+            );
+        }
 
-            //update/disable the quote
-            $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-            $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
-            $quote->setIsActive(false)->save();
+        $transaction = $payment->addTransaction(\Magento\Sales\Model\Order\Payment\Transaction::TYPE_AUTH, null, true, "");
 
-            if ($event === 'order.paid')
+        $transaction->setIsClosed(true);
+
+        $transaction->save();
+
+        $amountPaid = number_format($rzpOrderAmount / 100, 2, ".", "");
+
+        $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
+
+        $order->addStatusHistoryComment(
+            __(
+                'Actual Amount %1 of %2, with Razorpay Offer/Fee applied.',
+                "Authroized",
+                $order->getBaseCurrency()->formatTxt($amountPaid)
+            )
+        );
+
+        //update/disable the quote
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
+        $quote->setIsActive(false)->save();
+
+        if ($event === 'order.paid')
+        {
+            if ($order->canInvoice() && $this->config->canAutoGenerateInvoice())
             {
-                if ($order->canInvoice() && $this->config->canAutoGenerateInvoice())
+                $invoice = $this->invoiceService->prepareInvoice($order);
+                $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
+                $invoice->setTransactionId($paymentId);
+                $invoice->register();
+                $invoice->save();
+
+                $transactionSave = $this->transaction
+                                        ->addObject($invoice)
+                                        ->addObject($invoice->getOrder());
+                $transactionSave->save();
+
+                $this->invoiceSender->send($invoice);
+
+                //send notification code
+                $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
+
+                $order->addStatusHistoryComment(
+                            __('Notified customer about invoice #%1.', $invoice->getId())
+                        )->setIsCustomerNotified(true);
+
+                //send Order email, after successfull payment
+                try
                 {
-                    $invoice = $this->invoiceService->prepareInvoice($order);
-                    $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
-                    $invoice->setTransactionId($paymentId);
-                    $invoice->register();
-                    $invoice->save();
-
-                    $transactionSave = $this->transaction
-                                            ->addObject($invoice)
-                                            ->addObject($invoice->getOrder());
-                    $transactionSave->save();
-
-                    $this->invoiceSender->send($invoice);
-
-                    //send notification code
-                    $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
-
-                    $order->addStatusHistoryComment(
-                                __('Notified customer about invoice #%1.', $invoice->getId())
-                            )->setIsCustomerNotified(true);
-
-                    //send Order email, after successfull payment
-                    try
-                    {
-                        $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
-                        $this->orderSender->send($order);
-                        $this->checkoutSession->unsRazorpayMailSentOnSuccess();
-                    }
-                    catch (\Magento\Framework\Exception\MailException $e)
-                    {
-                        $this->logger->critical($e);
-                    }
-                    catch (\Exception $e)
-                    {
-                        $this->logger->critical($e);
-                    }
+                    $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
+                    $this->orderSender->send($order);
+                    $this->checkoutSession->unsRazorpayMailSentOnSuccess();
+                }
+                catch (\Magento\Framework\Exception\MailException $e)
+                {
+                    $this->logger->critical($e);
+                }
+                catch (\Exception $e)
+                {
+                    $this->logger->critical($e);
                 }
             }
-
-            $order->save();
         }
+
+        $order->save();
+
+        $this->logger->info("Cronjob: Updating to Processing for Order ID: " 
+                            . $order->getEntityId() 
+                            . " and Event :" 
+                            . $rzpWebhookData['event']
+                            . " ended."
+                        );
     }
 
     // /**
