@@ -108,7 +108,6 @@ class UpdateOrdersToProcessing {
         $dateTimeCheck = time() - static::PROCESS_ORDER_WAIT_TIME; 
         $sortOrder = $this->sortOrderBuilder->setField('entity_id')->setDirection('DESC')->create();
 
-        $this->logger->info($dateTimeCheck);
         $searchCriteria = $this->searchCriteriaBuilder
                             ->addFilter(
                                 'rzp_update_order_cron_status',
