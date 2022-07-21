@@ -111,7 +111,7 @@ class UpdateOrdersToProcessing {
         $searchCriteria = $this->searchCriteriaBuilder
                             ->addFilter(
                                 'rzp_update_order_cron_status',
-                                6,
+                                5,
                                 'lt'
                             )->addFilter(
                                 'rzp_webhook_notified_at', //rzp_webhook_notified_at 
@@ -141,6 +141,10 @@ class UpdateOrdersToProcessing {
                 else
                 {
                     $this->logger->info('Razorpay Webhook code not triggered yet. \'rzp_webhook_data\' is empty');
+                    
+                    $cronRunCount = $order->getRzpUpdateOrderCronStatus();
+                    $order->setRzpUpdateOrderCronStatus($cronRunCount+1);
+                    $order->save();
                 }   
             }
         }
