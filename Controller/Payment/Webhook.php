@@ -317,7 +317,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                         $order->addStatusHistoryComment(
                             __(
                                 'Actual Amount %1 of %2, with Razorpay Offer/Fee applied.',
-                                "Authroized",
+                                "Authorized",
                                 $order->getBaseCurrency()->formatTxt($amountPaid)
                             )
                         );
@@ -477,11 +477,11 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                             }
                             catch (\Magento\Framework\Exception\MailException $e)
                             {
-                                $this->logger->critical($e);
+                                $this->logger->critical($e->getMessage());
                             }
                             catch (\Exception $e)
                             {
-                                $this->logger->critical($e);
+                                $this->logger->critical($e->getMessage());
                             }
                         }
 
@@ -567,6 +567,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             "event"                     => $event,
             "amount"                    => $amount 
         );
+        
         $webhookDataText = serialize($webhookData);
 
         $order = $this->order->load($entityId);

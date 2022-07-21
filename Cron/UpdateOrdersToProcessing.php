@@ -137,10 +137,7 @@ class UpdateOrdersToProcessing {
                 {
                     $rzpWebhookDataObj = unserialize($rzpWebhookData);
 
-                    if($rzpWebhookDataObj['webhook_verified_status'] === true)
-                    {
-                        $this->updateOrderStatus($order, $rzpWebhookDataObj);
-                    } 
+                    $this->updateOrderStatus($order, $rzpWebhookDataObj);
                 }
                 else
                 {
@@ -159,10 +156,10 @@ class UpdateOrdersToProcessing {
                         . " started."
                     );
 
-        $payment = $order->getPayment();
-        $paymentId = $rzpWebhookData['payment_id'];
+        $payment        = $order->getPayment();
+        $paymentId      = $rzpWebhookData['payment_id'];
         $rzpOrderAmount = $rzpWebhookData['amount'];
-        $event = $rzpWebhookData['event'];
+        $event          = $rzpWebhookData['event'];
 
         $payment->setLastTransId($paymentId)
                 ->setTransactionId($paymentId)
@@ -183,7 +180,7 @@ class UpdateOrdersToProcessing {
                 ""
             );
         }
-        else
+        else if ($event === 'order.paid')
         {
             $payment->addTransactionCommentsToOrder(
                 "$paymentId",
@@ -206,13 +203,26 @@ class UpdateOrdersToProcessing {
 
         $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
 
-        $order->addStatusHistoryComment(
-            __(
-                'Actual Amount %1 of %2, with Razorpay Offer/Fee applied.',
-                "Authroized",
-                $order->getBaseCurrency()->formatTxt($amountPaid)
-            )
-        );
+        if ($event === 'payment.authorized')
+        {
+            $order->addStatusHistoryComment(
+                __(
+                    'Actual Amount %1 of %2, with Razorpay Offer/Fee applied.',
+                    "Authorized",
+                    $order->getBaseCurrency()->formatTxt($amountPaid)
+                )
+            );
+        }
+        else if ($event === 'order.paid')
+        {
+            $order->addStatusHistoryComment(
+                __(
+                    '%1 amount of %2 online, with Razorpay Offer/Fee applied.',
+                    "Captured",
+                    $order->getBaseCurrency()->formatTxt($amountPaid)
+                )
+            );
+        }
 
         //update/disable the quote
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
