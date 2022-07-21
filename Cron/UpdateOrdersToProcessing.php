@@ -63,7 +63,7 @@ class UpdateOrdersToProcessing {
     protected const STATUS_CANCELED     = 'canceled';
     protected const STATE_NEW           = 'new';
 
-    protected const PROCESS_ORDER_WAIT_TIME = 5;
+    protected const PROCESS_ORDER_WAIT_TIME = 5 * 60;
 
     /**
      * CancelOrder constructor.
@@ -105,15 +105,20 @@ class UpdateOrdersToProcessing {
     {
         $this->logger->info("Cronjob: Update Orders To Processing Cron started.");
 
-        $dateTimeCheck = date('Y-m-d H:i:s', strtotime('-' . static::PROCESS_ORDER_WAIT_TIME . ' minutes'));
+        $dateTimeCheck = time() - static::PROCESS_ORDER_WAIT_TIME; 
         $sortOrder = $this->sortOrderBuilder->setField('entity_id')->setDirection('DESC')->create();
 
+        $this->logger->info($dateTimeCheck);
         $searchCriteria = $this->searchCriteriaBuilder
                             ->addFilter(
-                                'updated_at',
+                                'rzp_update_order_cron_status',
+                                6,
+                                'lt'
+                            )->addFilter(
+                                'rzp_webhook_notified_at', //rzp_webhook_notified_at 
                                 $dateTimeCheck,
-                                'lt')
-                            ->addFilter(
+                                'lt'
+                            )->addFilter(
                                 'status',
                                 static::STATUS_PENDING,
                                 'eq'
@@ -148,11 +153,11 @@ class UpdateOrdersToProcessing {
     private function updateOrderStatus($order, $rzpWebhookData)
     {
         $this->logger->info("Cronjob: Updating to Processing for Order ID: " 
-                            . $order->getEntityId() 
-                            . " and Event :" 
-                            . $rzpWebhookData['event']
-                            . " started."
-                        );
+                        . $order->getEntityId() 
+                        . " and Event :" 
+                        . $rzpWebhookData['event']
+                        . " started."
+                    );
 
         $payment = $order->getPayment();
         $paymentId = $rzpWebhookData['payment_id'];
@@ -255,7 +260,8 @@ class UpdateOrdersToProcessing {
                 }
             }
         }
-
+        $cronRunCount = $order->getRzpUpdateOrderCronStatus();
+        $order->setRzpUpdateOrderCronStatus($cronRunCount+1);
         $order->save();
 
         $this->logger->info("Cronjob: Updating to Processing for Order ID: " 
@@ -263,43 +269,6 @@ class UpdateOrdersToProcessing {
                             . " and Event :" 
                             . $rzpWebhookData['event']
                             . " ended."
-                        );
+                        );   
     }
-
-    // /**
-    //  * Get the Order from RZP
-    //  *
-    //  * @param string $orderId
-    //  */
-    // public function getRzpOrder($orderId)
-    // {
-    //     try
-    //     {
-    //         $order = $this->api->order->fetch($orderId);
-    //         return $order;
-    //     }
-    //     catch (\Razorpay\Api\Errors\Error $e)
-    //     {
-    //         $this->logger->critical("Razorpay Webhook: fetching RZP order "
-    //             . "data(id:$orderId) failed with error: ". $e->getMessage());
-    //         return;
-    //     }
-    //     catch (\Exception $e)
-    //     {
-    //         $this->logger->critical("Razorpay Webhook: fetching RZP order "
-    //             . "data(id:$orderId) failed with error: ". $e->getMessage());
-    //         return;
-    //     }
-    // }
-
-    // protected function getOrderWebhookData($orderId) : array
-    // {
-    //     $collection = $this->objectManagement->get('Magento\Sales\Model\Order')
-    //                        ->getCollection()
-    //                        ->addFieldToSelect('entity_id')
-    //                        ->addFieldToSelect('rzp_webhook_notified_at')
-    //                        ->addFilter('increment_id', $orderId)
-    //                        ->getFirstItem();
-    //     return $collection->getData();
-    // }
 }

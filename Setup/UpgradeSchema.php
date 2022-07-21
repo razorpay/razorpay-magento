@@ -73,6 +73,17 @@ class UpgradeSchema implements  UpgradeSchemaInterface
                     'comment'  => 'RZP Webhook Data'
                 ]
             );
+
+            $setup->getConnection()->addColumn(
+                $tableName,
+                'rzp_update_order_cron_status',
+                [
+                    'nullable' => false,
+                    'default'  => 0, 
+                    'type'     => \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
+                    'comment'  => 'RZP Update Order Processing Cron # of times executed'
+                ]
+            );
         }
 
 		$setup->endSetup();
