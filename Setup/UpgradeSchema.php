@@ -25,7 +25,7 @@ class UpgradeSchema implements  UpgradeSchemaInterface
 
         foreach ($setup->getConnection()->fetchAll($select) as $configRow)
         {
-            if (in_array($configRow['path'],  
+            if (in_array($configRow['path'],
                 ['payment/razorpay/payment_action',
                  'payment/razorpay/order_status',
                  'payment/razorpay/webhook_wait_time',
@@ -61,6 +61,27 @@ class UpgradeSchema implements  UpgradeSchemaInterface
                     'nullable' => true,
                     'type'     => \Magento\Framework\DB\Ddl\Table::TYPE_BIGINT,
                     'comment'  => 'RZP Webhook Notified Timestamp'
+                ]
+            );
+            
+            $setup->getConnection()->addColumn(
+                $tableName,
+                'rzp_webhook_data',
+                [
+                    'nullable' => true,
+                    'type'     => \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
+                    'comment'  => 'RZP Webhook Data'
+                ]
+            );
+
+            $setup->getConnection()->addColumn(
+                $tableName,
+                'rzp_update_order_cron_status',
+                [
+                    'nullable' => false,
+                    'default'  => 0, 
+                    'type'     => \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
+                    'comment'  => 'RZP Update Order Processing Cron # of times executed'
                 ]
             );
         }
