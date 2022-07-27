@@ -21,6 +21,11 @@ class UpdateOrdersToProcessing {
     protected $api;
 
     /**
+     * @var \Magento\Framework\DB\Transaction
+     */
+    protected $transaction;
+
+    /**
      * @var \Magento\Checkout\Model\Session
      */
     protected $checkoutSession;
@@ -81,6 +86,7 @@ class UpdateOrdersToProcessing {
         \Magento\Checkout\Model\Session $checkoutSession,
         \Magento\Sales\Api\OrderManagementInterface $orderManagement,
         \Magento\Sales\Model\Service\InvoiceService $invoiceService,
+        \Magento\Framework\DB\Transaction $transaction,
         \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender,
         \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
         \Razorpay\Magento\Model\Config $config,
@@ -94,6 +100,7 @@ class UpdateOrdersToProcessing {
         $this->orderRepository          = $orderRepository;
         $this->searchCriteriaBuilder    = $searchCriteriaBuilder;
         $this->sortOrderBuilder         = $sortOrderBuilder;
+        $this->transaction              = $transaction;
         $this->checkoutSession          = $checkoutSession;
         $this->invoiceService           = $invoiceService;
         $this->invoiceSender            = $invoiceSender;
