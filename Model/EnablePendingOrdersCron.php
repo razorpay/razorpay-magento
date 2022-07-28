@@ -36,7 +36,7 @@ class EnablePendingOrdersCron extends \Magento\Config\Block\System\Config\Form\F
 						//]]>
 						</script>
 						";
-        $element->setComment("Setup cronjob at server for moving pending orders to Cancel status after timeout. <br><br>*Please execute following command within Magento root directory to setup cronjob* <br><span style='width:300px;font-weight: bold;' class='rzp-pending-order-cron-job' >php bin/magento setup:cron:run --group=\"razorpay\"</span><br/>" . $copyButton);
+        $element->setComment("Setup cronjob at server for moving pending orders to Cancel status after timeout. <br><br>*Please execute following command within Magento root directory to setup cronjob* <br><span style='width:300px;font-weight: bold;' class='rzp-pending-order-cron-job' >php bin/magento cron:install</span><br/>" . $copyButton);
         return $element->getElementHtml();
     }
 }
