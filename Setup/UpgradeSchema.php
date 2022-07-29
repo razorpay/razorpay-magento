@@ -30,7 +30,6 @@ class UpgradeSchema implements  UpgradeSchemaInterface
                  'payment/razorpay/order_status',
                  'payment/razorpay/webhook_wait_time',
                  'payment/razorpay/enable_webhook',
-                 'payment/razorpay/webhook_secret',
                  'payment/razorpay/webhook_events'
                 ]))
             {
