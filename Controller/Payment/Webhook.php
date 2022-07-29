@@ -128,7 +128,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     public function execute()
     {
         $this->logger->info("Razorpay Webhook processing started.");
-
+        
         $this->config->setConfigData('webhook_triggered_at', time());
 
         $post = $this->getPostData();
@@ -182,21 +182,15 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                     $orderWebhookData   = $this->getOrderWebhookData($orderId);
                     $amountPaid         = $post['payload']['payment']['entity']['amount'];
 
+                    $this->setWebhookData($post, $orderWebhookData['entity_id'], true, $paymentId, $amountPaid);
+
                     if (empty($orderWebhookData['rzp_webhook_notified_at']) === true)
                     {
                         $this->setWebhookNotifiedAt($orderWebhookData['entity_id']);
 
-                        if ($post['event'] === 'payment.authorized')
-                        {
-                            $amountPaid = $post['payload']['payment']['entity']['amount'];
-                        }
-                        else if ($post['event'] === 'order.paid')
-                        {
-                            $amountPaid = $post['payload']['order']['entity']['amount_paid'];
-                        }
-                        $this->setWebhookData($orderWebhookData['entity_id'], true, $paymentId, $post['event'], $amountPaid);
-
                         $this->logger->info("Razorpay Webhook: Updated WebhookNotifiedAt.");
+
+                        $this->setWebhookData($post, $orderWebhookData['entity_id'], true, $paymentId, $amountPaid);
 
                         header('Status: ' . static::HTTP_CONFLICT_STATUS . ' Webhook conflicts due to early execution.', true, static::HTTP_CONFLICT_STATUS);
                         exit;
@@ -206,6 +200,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                     )
                     {
                         $this->logger->critical("Razorpay Webhook: Webhook conflicts due to early execution for OrderID: " . $orderId);
+
+                        $this->setWebhookData($post, $orderWebhookData['entity_id'], true, $paymentId, $amountPaid);
 
                         header('Status: ' . static::HTTP_CONFLICT_STATUS . ' Webhook conflicts due to early execution.', true, static::HTTP_CONFLICT_STATUS);
                         exit;
@@ -569,18 +565,40 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         $order->save();
     }
 
-    protected function setWebhookData($entityId, $webhookVerifiedStatus, $paymentId, $event, $amount)
+    protected function setWebhookData($post, $entityId, $webhookVerifiedStatus, $paymentId, $amount)
     {
+        $order                  = $this->order->load($entityId);
+        $existingWebhookData    = $order->getRzpWebhookData();
+
+        if ($post['event'] === 'payment.authorized')
+        {
+            $amount = $post['payload']['payment']['entity']['amount'];
+        }
+        else if ($post['event'] === 'order.paid')
+        {
+            $amount = $post['payload']['order']['entity']['amount_paid'];
+        }
         $webhookData = array(
             "webhook_verified_status"   => $webhookVerifiedStatus,
             "payment_id"                => $paymentId,
-            "event"                     => $event,
             "amount"                    => $amount 
         );
-        
-        $webhookDataText = serialize($webhookData);
 
-        $order = $this->order->load($entityId);
+        if (!empty($existingWebhookData))
+        {
+            $existingWebhookData = unserialize($existingWebhookData);
+            if (!array_key_exists($post['event'], $existingWebhookData))
+            {
+                // If webhook event data already saved, return
+                $existingWebhookData[$post['event']] = $webhookData;
+            }
+            $webhookDataText = serialize($existingWebhookData);
+        }
+        else
+        {
+            $eventArray = [$post['event'] => $webhookData];
+            $webhookDataText = serialize($eventArray);
+        }
         $order->setRzpWebhookData($webhookDataText);
         $order->save();
     }

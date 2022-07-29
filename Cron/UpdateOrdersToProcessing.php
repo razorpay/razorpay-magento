@@ -121,7 +121,11 @@ class UpdateOrdersToProcessing {
                                 5,
                                 'lt'
                             )->addFilter(
-                                'rzp_webhook_notified_at', //rzp_webhook_notified_at 
+                                'rzp_webhook_notified_at',
+                                null, 
+                                'neq'
+                            )->addFilter(
+                                'rzp_webhook_notified_at',
                                 $dateTimeCheck,
                                 'lt'
                             )->addFilter(
@@ -143,7 +147,15 @@ class UpdateOrdersToProcessing {
                 {
                     $rzpWebhookDataObj = unserialize($rzpWebhookData);
 
-                    $this->updateOrderStatus($order, $rzpWebhookDataObj);
+                    if (isset($rzpWebhookDataObj['payment.authorized']) === true)
+                    {
+                        $this->updateOrderStatus($order, 'payment.authorized', $rzpWebhookDataObj['payment.authorized']);
+                    }
+                    
+                    if (isset($rzpWebhookDataObj['order.paid']) === true)
+                    {
+                        $this->updateOrderStatus($order, 'order.paid', $rzpWebhookDataObj['order.paid']);
+                    }
                 }
                 else
                 {
@@ -157,19 +169,18 @@ class UpdateOrdersToProcessing {
         }
     }
 
-    private function updateOrderStatus($order, $rzpWebhookData)
+    private function updateOrderStatus($order, $event, $rzpWebhookData)
     {
         $this->logger->info("Cronjob: Updating to Processing for Order ID: " 
                         . $order->getEntityId() 
                         . " and Event :" 
-                        . $rzpWebhookData['event']
+                        . $event
                         . " started."
                     );
 
         $payment        = $order->getPayment();
         $paymentId      = $rzpWebhookData['payment_id'];
         $rzpOrderAmount = $rzpWebhookData['amount'];
-        $event          = $rzpWebhookData['event'];
 
         $payment->setLastTransId($paymentId)
                 ->setTransactionId($paymentId)
@@ -287,7 +298,7 @@ class UpdateOrdersToProcessing {
         $this->logger->info("Cronjob: Updating to Processing for Order ID: " 
                             . $order->getEntityId() 
                             . " and Event :" 
-                            . $rzpWebhookData['event']
+                            . $event
                             . " ended."
                         );   
     }
