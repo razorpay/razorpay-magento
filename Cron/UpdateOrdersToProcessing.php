@@ -124,10 +124,10 @@ class UpdateOrdersToProcessing {
                                 'rzp_webhook_notified_at',
                                 null, 
                                 'neq'
-                            )->addFilter(
-                                'rzp_webhook_notified_at',
-                                $dateTimeCheck,
-                                'lt'
+                            // )->addFilter(
+                            //     'rzp_webhook_notified_at',
+                            //     $dateTimeCheck,
+                            //     'lt'
                             )->addFilter(
                                 'status',
                                 static::STATUS_PENDING,
