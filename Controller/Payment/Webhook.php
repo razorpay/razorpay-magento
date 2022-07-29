@@ -589,7 +589,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             $existingWebhookData = unserialize($existingWebhookData);
             if (!array_key_exists($post['event'], $existingWebhookData))
             {
-                // If webhook event data already saved, return
                 $existingWebhookData[$post['event']] = $webhookData;
             }
             $webhookDataText = serialize($existingWebhookData);
