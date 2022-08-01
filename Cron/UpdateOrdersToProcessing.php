@@ -67,6 +67,8 @@ class UpdateOrdersToProcessing {
     protected const STATUS_PENDING      = 'pending';
     protected const STATUS_CANCELED     = 'canceled';
     protected const STATE_NEW           = 'new';
+    protected const PAYMENT_AUTHORIZED  = 'payment.authorized';
+    protected const ORDER_PAID          = 'order.paid';
 
     protected const PROCESS_ORDER_WAIT_TIME = 5 * 60;
 
@@ -121,7 +123,11 @@ class UpdateOrdersToProcessing {
                                 5,
                                 'lt'
                             )->addFilter(
-                                'rzp_webhook_notified_at', //rzp_webhook_notified_at 
+                                'rzp_webhook_notified_at',
+                                null, 
+                                'neq'
+                            )->addFilter(
+                                'rzp_webhook_notified_at',
                                 $dateTimeCheck,
                                 'lt'
                             )->addFilter(
@@ -143,7 +149,15 @@ class UpdateOrdersToProcessing {
                 {
                     $rzpWebhookDataObj = unserialize($rzpWebhookData);
 
-                    $this->updateOrderStatus($order, $rzpWebhookDataObj);
+                    if (isset($rzpWebhookDataObj[static::PAYMENT_AUTHORIZED]) === true)
+                    {
+                        $this->updateOrderStatus($order, static::PAYMENT_AUTHORIZED, $rzpWebhookDataObj[static::PAYMENT_AUTHORIZED]);
+                    }
+                    
+                    if (isset($rzpWebhookDataObj[static::ORDER_PAID]) === true)
+                    {
+                        $this->updateOrderStatus($order, static::ORDER_PAID, $rzpWebhookDataObj[static::ORDER_PAID]);
+                    }
                 }
                 else
                 {
@@ -157,19 +171,18 @@ class UpdateOrdersToProcessing {
         }
     }
 
-    private function updateOrderStatus($order, $rzpWebhookData)
+    private function updateOrderStatus($order, $event, $rzpWebhookData)
     {
         $this->logger->info("Cronjob: Updating to Processing for Order ID: " 
                         . $order->getEntityId() 
                         . " and Event :" 
-                        . $rzpWebhookData['event']
+                        . $event
                         . " started."
                     );
 
         $payment        = $order->getPayment();
         $paymentId      = $rzpWebhookData['payment_id'];
         $rzpOrderAmount = $rzpWebhookData['amount'];
-        $event          = $rzpWebhookData['event'];
 
         $payment->setLastTransId($paymentId)
                 ->setTransactionId($paymentId)
@@ -178,7 +191,7 @@ class UpdateOrdersToProcessing {
 
         $payment->setParentTransactionId($payment->getTransactionId());
 
-        if ($event === 'payment.authorized')
+        if ($event === static::PAYMENT_AUTHORIZED)
         {
             $payment->addTransactionCommentsToOrder(
                 "$paymentId",
@@ -190,7 +203,7 @@ class UpdateOrdersToProcessing {
                 ""
             );
         }
-        else if ($event === 'order.paid')
+        else if ($event === static::ORDER_PAID)
         {
             $payment->addTransactionCommentsToOrder(
                 "$paymentId",
@@ -213,7 +226,7 @@ class UpdateOrdersToProcessing {
 
         $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
 
-        if ($event === 'payment.authorized')
+        if ($event === static::PAYMENT_AUTHORIZED)
         {
             $order->addStatusHistoryComment(
                 __(
@@ -223,7 +236,7 @@ class UpdateOrdersToProcessing {
                 )
             );
         }
-        else if ($event === 'order.paid')
+        else if ($event === static::ORDER_PAID)
         {
             $order->addStatusHistoryComment(
                 __(
@@ -239,7 +252,7 @@ class UpdateOrdersToProcessing {
         $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
         $quote->setIsActive(false)->save();
 
-        if ($event === 'order.paid')
+        if ($event === static::ORDER_PAID)
         {
             if ($order->canInvoice() && $this->config->canAutoGenerateInvoice())
             {
@@ -287,7 +300,7 @@ class UpdateOrdersToProcessing {
         $this->logger->info("Cronjob: Updating to Processing for Order ID: " 
                             . $order->getEntityId() 
                             . " and Event :" 
-                            . $rzpWebhookData['event']
+                            . $event
                             . " ended."
                         );   
     }
