@@ -23,6 +23,20 @@ Go to `Admin -> Stores -> Configuration -> Payment Method -> Razorpay` to config
 If you do not see Razorpay in your gateway list, please clear your Magento Cache from your admin
 panel (System -> Cache Management).
 
+### Setting up the cron with Magento
+Setup cron with Magento to execute Razorpay cronjobs for following actions:
+
+#### Cancel pending orders
+It will cancel order created by Razorpay as per timeout saved in configuration if Cancel Pending Order is enabled.
+
+#### Update order to processing
+Accepts response from Razorpay Webhook for events `payment.authorized` and `order.paid` and updates pending order to processing.
+
+#### Magento cron can be installed using following command:
+```
+bin/magento cron:install
+```
+
 ### Working with GraphQL
 
 Razorpay GraphQL Support added with Magento ver. 2.3.6
