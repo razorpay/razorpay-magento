@@ -67,6 +67,8 @@ class UpdateOrdersToProcessing {
     protected const STATUS_PENDING      = 'pending';
     protected const STATUS_CANCELED     = 'canceled';
     protected const STATE_NEW           = 'new';
+    protected const PAYMENT_AUTHORIZED  = 'payment.authorized';
+    protected const ORDER_PAID          = 'order.paid';
 
     protected const PROCESS_ORDER_WAIT_TIME = 5 * 60;
 
@@ -147,14 +149,14 @@ class UpdateOrdersToProcessing {
                 {
                     $rzpWebhookDataObj = unserialize($rzpWebhookData);
 
-                    if (isset($rzpWebhookDataObj['payment.authorized']) === true)
+                    if (isset($rzpWebhookDataObj[static::PAYMENT_AUTHORIZED]) === true)
                     {
-                        $this->updateOrderStatus($order, 'payment.authorized', $rzpWebhookDataObj['payment.authorized']);
+                        $this->updateOrderStatus($order, static::PAYMENT_AUTHORIZED, $rzpWebhookDataObj[static::PAYMENT_AUTHORIZED]);
                     }
                     
-                    if (isset($rzpWebhookDataObj['order.paid']) === true)
+                    if (isset($rzpWebhookDataObj[static::ORDER_PAID]) === true)
                     {
-                        $this->updateOrderStatus($order, 'order.paid', $rzpWebhookDataObj['order.paid']);
+                        $this->updateOrderStatus($order, static::ORDER_PAID, $rzpWebhookDataObj[static::ORDER_PAID]);
                     }
                 }
                 else
@@ -189,7 +191,7 @@ class UpdateOrdersToProcessing {
 
         $payment->setParentTransactionId($payment->getTransactionId());
 
-        if ($event === 'payment.authorized')
+        if ($event === static::PAYMENT_AUTHORIZED)
         {
             $payment->addTransactionCommentsToOrder(
                 "$paymentId",
@@ -201,7 +203,7 @@ class UpdateOrdersToProcessing {
                 ""
             );
         }
-        else if ($event === 'order.paid')
+        else if ($event === static::ORDER_PAID)
         {
             $payment->addTransactionCommentsToOrder(
                 "$paymentId",
@@ -224,7 +226,7 @@ class UpdateOrdersToProcessing {
 
         $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
 
-        if ($event === 'payment.authorized')
+        if ($event === static::PAYMENT_AUTHORIZED)
         {
             $order->addStatusHistoryComment(
                 __(
@@ -234,7 +236,7 @@ class UpdateOrdersToProcessing {
                 )
             );
         }
-        else if ($event === 'order.paid')
+        else if ($event === static::ORDER_PAID)
         {
             $order->addStatusHistoryComment(
                 __(
@@ -250,7 +252,7 @@ class UpdateOrdersToProcessing {
         $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
         $quote->setIsActive(false)->save();
 
-        if ($event === 'order.paid')
+        if ($event === static::ORDER_PAID)
         {
             if ($order->canInvoice() && $this->config->canAutoGenerateInvoice())
             {
