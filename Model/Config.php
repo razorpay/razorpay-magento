@@ -20,6 +20,7 @@ class Config
     const WEBHOOK_SECRET = 'webhook_secret';
     const ENABLE_PENDING_ORDERS_CRON = 'enable_pending_orders_cron';
     const PENDING_ORDER_TIMEOUT = 'pending_orders_timeout';
+    const DISABLE_UPGRADE_NOTICE = 'disable_upgrade_notice';
 
     /**
      * @var string
