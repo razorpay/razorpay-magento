@@ -2,6 +2,17 @@
 # Change Log
 
 
+## [4.0.0] - 2022-09-19
+**This module can be used to place order before payment in Magento, in new state and pending status.**
+
+### Changed
+- [Now a notification will be displayed whenever a new version update is released.](https://github.com/razorpay/razorpay-magento/pull/380)
+- [Instructions have been updated to set up cron with Magento.](https://github.com/razorpay/razorpay-magento/pull/376)
+
+### Fixed
+- [Order status mismatch on Magento and Razorpay dashboard is resolved. Correct order status will reflect on both the dashboards.](https://github.com/razorpay/razorpay-magento/pull/222)
+- [Webhook secret will not be removed from core config data on version upgrade. Configuration of webhook will remain same.](https://github.com/razorpay/razorpay-magento/pull/377)
+
 ## [3.7.3] - 2021-01-07
 
 ### Changed
