@@ -171,7 +171,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                             'event' => 'razorpay.magento.signature.verify_failed'
                         ]
                     );
-                    header('Status: 400 Signature Verification failed', true, 400);
+                    header('Status: 400 Signature Verification failed', true, 400); // nosemgrep
                     exit;
                 }
 
@@ -192,7 +192,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
                         $this->setWebhookData($post, $orderWebhookData['entity_id'], true, $paymentId, $amountPaid);
 
-                        header('Status: ' . static::HTTP_CONFLICT_STATUS . ' Webhook conflicts due to early execution.', true, static::HTTP_CONFLICT_STATUS);
+                        header('Status: ' . static::HTTP_CONFLICT_STATUS . ' Webhook conflicts due to early execution.', true, static::HTTP_CONFLICT_STATUS); // nosemgrep
                         exit;
                     }
                     elseif (empty($orderWebhookData['rzp_webhook_notified_at']) === false and
@@ -203,7 +203,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
                         $this->setWebhookData($post, $orderWebhookData['entity_id'], true, $paymentId, $amountPaid);
 
-                        header('Status: ' . static::HTTP_CONFLICT_STATUS . ' Webhook conflicts due to early execution.', true, static::HTTP_CONFLICT_STATUS);
+                        header('Status: ' . static::HTTP_CONFLICT_STATUS . ' Webhook conflicts due to early execution.', true, static::HTTP_CONFLICT_STATUS); // nosemgrep
                         exit;
                     }
                 }
@@ -586,7 +586,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
         if (!empty($existingWebhookData))
         {
-            $existingWebhookData = unserialize($existingWebhookData);
+            $existingWebhookData = unserialize($existingWebhookData); // nosemgrep
             
             if (!array_key_exists($post['event'], $existingWebhookData))
             {

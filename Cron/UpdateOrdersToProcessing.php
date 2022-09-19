@@ -147,7 +147,7 @@ class UpdateOrdersToProcessing {
                 $rzpWebhookData = $order->getRzpWebhookData();
                 if (empty($rzpWebhookData) === false) // check if webhook cron has run and populated the rzp_webhook_data column
                 {
-                    $rzpWebhookDataObj = unserialize($rzpWebhookData);
+                    $rzpWebhookDataObj = unserialize($rzpWebhookData); // nosemgrep
 
                     if (isset($rzpWebhookDataObj[static::PAYMENT_AUTHORIZED]) === true)
                     {
