@@ -7,18 +7,12 @@
 -->
 
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
-    <type name="Magento\StoreGraphQl\Model\Resolver\Store\StoreConfigDataProvider">
-        <arguments>
-            <argument name="extendedConfigData" xsi:type="array">
-                <item name="razorpay_key_id" xsi:type="string">payment/razorpay/key_id</item>
-                <item name="razorpay_merchant_name_override" xsi:type="string">payment/razorpay/merchant_name_override</item>
-            </argument>
-        </arguments>
+    <type name="Magento\Sales\Model\Order\Email\Container\OrderIdentity">
+        <plugin name="change_is_enable_method" type="Razorpay\Magento\Plugin\Sales\Order\Email\Container\OrderIdentityPlugin" disabled="false"/>
     </type>
     <type name="Magento\Framework\App\Request\CsrfValidator">
         <plugin name="csrf_validator_skip" type="Razorpay\Magento\Plugin\CsrfValidatorSkip" />
     </type>
-
     <virtualType name="RazorpayLogger" type="Magento\Framework\Logger\Monolog">
 	    <arguments>
 	        <argument name="handlers" xsi:type="array">
@@ -26,38 +20,47 @@
 	        </argument>
 	    </arguments>
 	</virtualType>
-
-	<type name="Razorpay\Magento\Controller\Payment\Callback">
-	    <arguments>
-	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
-	    </arguments>
-	</type>
-
 	<type name="Razorpay\Magento\Controller\Payment\Order">
 	    <arguments>
 	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
 	    </arguments>
 	</type>
-
 	<type name="Razorpay\Magento\Controller\Payment\Webhook">
 	    <arguments>
 	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
 	    </arguments>
 	</type>
-
-	<type name="Razorpay\Magento\Controller\Payment\WebhookOrderCron">
+	<type name="Razorpay\Magento\Controller\Payment\ResetCart">
 	    <arguments>
 	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
 	    </arguments>
 	</type>
-
-	<type name="Razorpay\Magento\Cron\WebhookOrderCron">
+	<type name="Razorpay\Magento\Controller\Payment\Validate">
 	    <arguments>
 	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
 	    </arguments>
 	</type>
-
-	<type name="Razorpay\Magento\Observer\AfterConfigSaveObserver">
+	<type name="Razorpay\Magento\Model\Resolver\PlaceRazorpayOrder">
+	    <arguments>
+	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
+	    </arguments>
+	</type>
+	<type name="Razorpay\Magento\Model\Resolver\SetRzpPaymentDetailsForOrder">
+	    <arguments>
+	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
+	    </arguments>
+	</type>
+	<type name="Razorpay\Magento\Plugin\Sales\Order\Email\Container\OrderIdentityPlugin">
+	    <arguments>
+	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
+	    </arguments>
+	</type>
+	<type name="Razorpay\Magento\Cron\CancelPendingOrders">
+	    <arguments>
+	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
+	    </arguments>
+	</type>
+	<type name="Razorpay\Magento\Cron\UpdateOrdersToProcessing">
 	    <arguments>
 	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
 	    </arguments>

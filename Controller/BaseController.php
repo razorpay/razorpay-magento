@@ -2,7 +2,7 @@
 
 namespace Razorpay\Magento\Controller;
 
-if (class_exists('Razorpay\\Api\\Api')  === false)
+if(class_exists('Razorpay\\Api\\Api')  === false)
 {
    // require in case of zip installation without composer
     require_once __DIR__ . "/../../Razorpay/Razorpay.php"; 

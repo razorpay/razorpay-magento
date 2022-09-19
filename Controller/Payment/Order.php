@@ -12,31 +12,25 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
     protected $checkoutSession;
 
-    protected $cartManagement;
-
-    protected $cache;
-
-    protected $orderRepository;
+    protected $_currency = PaymentMethod::CURRENCY;
 
     protected $logger;
     /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession
+     * @param \Magento\Razorpay\Model\CheckoutFactory $checkoutFactory
      * @param \Magento\Razorpay\Model\Config\Payment $razorpayConfig
-     * @param \Magento\Framework\App\CacheInterface $cache
-     * @param \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
      * @param \Psr\Log\LoggerInterface $logger
      */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Checkout\Model\Session $checkoutSession,
-        \Razorpay\Magento\Model\Config $config,
-        \Magento\Quote\Api\CartManagementInterface $cartManagement,
         \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
-        \Magento\Framework\App\CacheInterface $cache,
-        \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
+        \Razorpay\Magento\Model\Config $config,
+        \Magento\Catalog\Model\Session $catalogSession,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Psr\Log\LoggerInterface $logger
     ) {
         parent::__construct(
@@ -46,298 +40,297 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             $config
         );
 
-        $this->config          = $config;
-        $this->cartManagement  = $cartManagement;
-        $this->customerSession = $customerSession;
         $this->checkoutFactory = $checkoutFactory;
-        $this->cache = $cache;
-        $this->orderRepository = $orderRepository;
+        $this->catalogSession  = $catalogSession;
+        $this->config          = $config;
         $this->logger          = $logger;
+        $this->webhookId       = null;
+        $this->active_events   = [];
+        $this->_storeManager   = $storeManager;
+        $this->webhookUrl      = $this->_storeManager
+                                    ->getStore()
+                                    ->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_WEB) .
+                                    'razorpay/payment/webhook';
 
-        $this->objectManagement   = \Magento\Framework\App\ObjectManager::getInstance();
+        $this->webhooks = (object)[];
+
+        $this->webhooks->entity = 'collection';
+        $this->webhooks->items  = [];
     }
 
     public function execute()
     {
-        $receipt_id = $this->getQuote()->getId();
-
-        if(empty($_POST['error']) === false)
+        if(empty($this->config->getConfigData('webhook_triggered_at')) === false)
         {
-            $this->messageManager->addError(__('Payment Failed'));
-            return $this->_redirect('checkout/cart');
-        }
+            $webhookTriggeredAt = (int) $this->config->getConfigData('webhook_triggered_at');
 
-        if (isset($_POST['order_check']))
-        {
-            if (empty($this->cache->load("quote_processing_".$receipt_id)) === false)
+            $domain    = parse_url($this->webhookUrl, PHP_URL_HOST);
+            $domain_ip = gethostbyname($domain);
+
+            if (!filter_var($domain_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE))
             {
-                $responseContent = [
-                'success'   => true,
-                'order_id'  => false,
-                'parameters' => []
-                ];
-
-                # fetch the related sales order and verify the payment ID with rzp payment id
-                # To avoid duplicate order entry for same quote
-                $collection = $this->_objectManager->get('Magento\Sales\Model\Order')
-                                                   ->getCollection()
-                                                   ->addFieldToSelect('entity_id')
-                                                   ->addFilter('quote_id', $receipt_id)
-                                                   ->getFirstItem();
-
-                $salesOrder = $collection->getData();
-
-                if (empty($salesOrder['entity_id']) === false)
+                $this->logger->info("Can't enable/disable webhook on $domain or private ip($domain_ip).");
+            }
+            else if(($webhookTriggeredAt + (24*60*60)) < time())
+            {
+                try
                 {
-                    $this->logger->info("Razorpay inside order already processed with webhook quoteID:" . $receipt_id
-                                    ." and OrderID:".$salesOrder['entity_id']);
+                    $webhookPresent = $this->getExistingWebhook();
 
-                    $this->checkoutSession
-                            ->setLastQuoteId($this->getQuote()->getId())
-                            ->setLastSuccessQuoteId($this->getQuote()->getId())
-                            ->clearHelperData();
+                    $razorpayParams['enable_webhook']                    = $this->config->getConfigData('enable_webhook');
+                    $razorpayParams['webhook_events']['value']           = explode (",", $this->config->getConfigData('webhook_events'));
+                    $razorpayParams['supported_webhook_events']['value'] = explode (",", $this->config->getConfigData('supported_webhook_events'));
 
-                    $order = $this->orderRepository->get($salesOrder['entity_id']);
-
-                    if ($order) {
-                        $this->checkoutSession->setLastOrderId($order->getId())
-                                           ->setLastRealOrderId($order->getIncrementId())
-                                           ->setLastOrderStatus($order->getStatus());
-                    }
-
-                    $responseContent['order_id'] = true;
-                }
-            }
-            else
-            {
-                if(empty($receipt_id) === false)
-                {
-                    //set the chache to stop webhook processing
-                    $this->cache->save("started", "quote_Front_processing_$receipt_id", ["razorpay"], 30);
-
-                    $this->logger->info("Razorpay front-end order processing started quoteID:" . $receipt_id);
-
-                    $responseContent = [
-                    'success'   => false,
-                    'parameters' => []
-                    ];
-                }
-                else
-                {
-                    $this->logger->info("Razorpay order already processed with quoteID:" . $this->checkoutSession
-                            ->getLastQuoteId());
-
-                    $responseContent = [
-                        'success'    => true,
-                        'order_id'   => true,
-                        'parameters' => []
-                    ];
-
-                }
-            }
-
-            $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
-            $response->setData($responseContent);
-            $response->setHttpResponseCode(200);
-
-            return $response;
-        }
-
-        //validate shipping and billing
-        $validationSuccess =  true;
-        $code = 200;
-
-        if(empty($_POST['email']) === true)
-        {
-            $this->logger->info("Email field is required");
-
-            $responseContent = [
-                'message'   => "Email field is required",
-                'parameters' => []
-            ];
-
-            $validationSuccess = false;
-        }
-
-        if(empty($this->getQuote()->getBillingAddress()->getPostcode()) === true)
-        {
-            $responseContent = [
-                'message'   => "Billing Address is required",
-                'parameters' => []
-            ];
-
-            $validationSuccess = false;
-        }
-
-        if(!$this->getQuote()->getIsVirtual())
-        {
-             //validate quote Shipping method
-            if(empty($this->getQuote()->getShippingAddress()->getShippingMethod()) === true)
-            {
-                $responseContent = [
-                    'message'   => "Shipping method is required",
-                    'parameters' => []
-                ];
-
-                $validationSuccess = false;
-            }
-
-            if(empty($this->getQuote()->getShippingAddress()->getPostcode()) === true)
-            {
-                $responseContent = [
-                    'message'   => "Shipping Address is required",
-                    'parameters' => []
-                ];
-
-                $validationSuccess = false;
-            }
-        }
-
-        if($validationSuccess)
-        {
-            $amount = (int) (number_format($this->getQuote()->getGrandTotal() * 100, 0, ".", ""));
-
-            $payment_action = $this->config->getPaymentAction();
-
-            $maze_version = $this->_objectManager->get('Magento\Framework\App\ProductMetadataInterface')->getVersion();
-            $module_version =  $this->_objectManager->get('Magento\Framework\Module\ModuleList')->getOne('Razorpay_Magento')['setup_version'];
-
-            $this->customerSession->setCustomerEmailAddress($_POST['email']);
-
-            if ($payment_action === 'authorize')
-            {
-                $payment_capture = 0;
-            }
-            else
-            {
-                $payment_capture = 1;
-            }
-
-            $code = 400;
-
-            try
-            {
-                //save to razorpay orderLink
-                $orderLinkCollection = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
-                                                       ->getCollection()
-                                                       ->addFilter('quote_id', $receipt_id)
-                                                       ->getFirstItem();
-
-                $orderLinkData = $orderLinkCollection->getData();
-
-                $createNewOrder = true;
-
-                if (empty($orderLinkData['entity_id']) === false)
-                {
-                    if (((int) $orderLinkData['rzp_order_amount'] === $amount)  and (isset($orderLinkData['rzp_order_id']) === true))
+                    if(empty($this->config->getConfigData('webhook_secret')) === false)
                     {
-                        $createNewOrder = false;
+                        $razorpayParams['webhook_secret']['value'] = $this->config->getConfigData('webhook_secret');
 
-                    }
-                }
-
-                if ($createNewOrder)
-                {
-                    $order = $this->rzp->order->create([
-                        'amount' => $amount,
-                        'receipt' => $receipt_id,
-                        'currency' => $this->getQuote()->getQuoteCurrencyCode(),
-                        'payment_capture' => $payment_capture,
-                        'app_offer' => ($this->getDiscount() > 0) ? 1 : 0
-                    ]);
-                }
-                else
-                {
-                    if (isset($orderLinkData['rzp_order_id']) === true)
-                    {
-                        $order = $this->rzp->order->fetch($orderLinkData['rzp_order_id']);
-                    }
-                }
-
-                $responseContent = [
-                    'message'   => 'Unable to create your order. Please contact support.',
-                    'parameters' => []
-                ];
-
-                if (null !== $order && !empty($order->id))
-                {
-                    $is_hosted = false;
-
-                    $merchantPreferences    = $this->getMerchantPreferences();
-
-                    $responseContent = [
-                        'success'           => true,
-                        'rzp_order'         => $order->id,
-                        'order_id'          => $receipt_id,
-                        'amount'            => $order->amount,
-                        'quote_currency'    => $this->getQuote()->getQuoteCurrencyCode(),
-                        'quote_amount'      => number_format($this->getQuote()->getGrandTotal(), 2, ".", ""),
-                        'maze_version'      => $maze_version,
-                        'module_version'    => $module_version,
-                        'is_hosted'         => $merchantPreferences['is_hosted'],
-                        'image'             => $merchantPreferences['image'],
-                        'embedded_url'      => $merchantPreferences['embedded_url'],
-                    ];
-
-                    $code = 200;
-
-                    $this->checkoutSession->setRazorpayOrderID($order->id);
-                    $this->checkoutSession->setRazorpayOrderAmount($amount);
-
-                    if (empty($orderLinkData['entity_id']) === false)
-                    {
-                        $orderLinkCollection->setRzpOrderId($order->id)
-                                            ->setRzpOrderAmount($amount)
-                                            ->setEmail($_POST['email'])
-                                            ->save();
+                        $this->logger->info("Razorpay Webhook with existing secret.");
                     }
                     else
                     {
-                        $orderLnik = $this->_objectManager->create('Razorpay\Magento\Model\OrderLink');
-                        $orderLnik->setQuoteId($receipt_id)
-                                  ->setRzpOrderId($order->id)
-                                  ->setRzpOrderAmount($amount)
-                                  ->setEmail($_POST['email'])
-                                  ->save();
+                        $secret = $this->generatePassword();
+
+                        $this->config->setConfigData('webhook_secret',$secret);
+
+                        $razorpayParams['webhook_secret']['value'] = $secret;
+
+                        $this->logger->info("Razorpay Webhook created new secret.");
                     }
 
+                    $events = [];
+
+                    foreach($razorpayParams['webhook_events']['value'] as $event)
+                    {
+                        $events[$event] = true;
+                    }
+
+                    foreach($this->active_events as $event)
+                    {
+                        if(in_array($event, $razorpayParams['supported_webhook_events']['value']))
+                        {
+                            $events[$event] = true;
+                        }
+                    }
+
+                    if(empty($this->webhookId) === false)
+                    {
+                        $webhook = $this->rzp->webhook->edit([
+                            "url" => $this->webhookUrl,
+                            "events" => $events,
+                            "secret" => $razorpayParams['webhook_secret']['value'],
+                            "active" => true,
+                        ], $this->webhookId);
+
+                        $this->config->setConfigData('webhook_triggered_at', time());
+
+                        $this->logger->info("Razorpay Webhook Updated by Admin.");
+                    }
+                    else
+                    {
+                        $webhook = $this->rzp->webhook->create([
+                            "url" => $this->webhookUrl,
+                            "events" => $events,
+                            "secret" => $razorpayParams['webhook_secret']['value'],
+                            "active" => true,
+                        ]);
+
+                        $this->config->setConfigData('webhook_triggered_at', time());
+
+                        $this->logger->info("Razorpay Webhook Created by Admin");
+                    }
                 }
-            }
-            catch(\Razorpay\Api\Errors\Error $e)
-            {
-                $responseContent = [
-                    'message'   => $e->getMessage(),
-                    'parameters' => []
-                ];
-            }
-            catch(\Exception $e)
-            {
-                $responseContent = [
-                    'message'   => $e->getMessage(),
-                    'parameters' => []
-                ];
+                catch(\Razorpay\Api\Errors\Error $e)
+                {
+                    $this->logger->info($e->getMessage());
+                }
+                catch(\Exception $e)
+                {
+                    $this->logger->info($e->getMessage());
+                }
             }
         }
 
-        //set the chache for race with webhook
-        $this->cache->save("started", "quote_Front_processing_$receipt_id", ["razorpay"], 300);
+        $mazeOrder = $this->checkoutSession->getLastRealOrder();
+
+        $amount = (int) (number_format($mazeOrder->getGrandTotal() * 100, 0, ".", ""));
+
+        $receipt_id = $mazeOrder->getIncrementId();
+
+        $payment_action = $this->config->getPaymentAction();
+
+        $maze_version = $this->_objectManager->get('Magento\Framework\App\ProductMetadataInterface')->getVersion();
+        $module_version =  $this->_objectManager->get('Magento\Framework\Module\ModuleList')->getOne('Razorpay_Magento')['setup_version'];
+
+
+        //if already order from same session , let make it's to pending state
+        $new_order_status = $this->config->getNewOrderStatus();
+
+        $orderModel = $this->_objectManager->get('Magento\Sales\Model\Order')->load($mazeOrder->getEntityId());
+
+        $orderModel->setState('new')
+                   ->setStatus($new_order_status)
+                   ->save();
+
+        if ($payment_action === 'authorize') 
+        {
+                $payment_capture = 0;
+        }
+        else
+        {
+                $payment_capture = 1;
+        }
+
+        $code = 400;
+
+        try
+        {
+            $this->logger->info("Razorpay Order: create order started with quoteID:" . $receipt_id
+                                    ." and amount:".$amount);
+            $order = $this->rzp->order->create([
+                'amount' => $amount,
+                'receipt' => $receipt_id,
+                'currency' => $mazeOrder->getOrderCurrencyCode(),
+                'payment_capture' => $payment_capture
+            ]);
+
+            $responseContent = [
+                'message'   => 'Unable to create your order. Please contact support.',
+                'parameters' => []
+            ];
+
+            if (null !== $order && !empty($order->id))
+            {
+                $this->logger->info("Razorpay Order: order created with rzp_order:" . $order->id);
+                $is_hosted = false;
+                $merchantPreferences    = $this->getMerchantPreferences();
+
+                $responseContent = [
+                    'success'           => true,
+                    'rzp_order'         => $order->id,
+                    'order_id'          => $receipt_id,
+                    'amount'            => $order->amount,
+                    'quote_currency'    => $mazeOrder->getOrderCurrencyCode(),
+                    'quote_amount'      => number_format($mazeOrder->getGrandTotal(), 2, ".", ""),
+                    'maze_version'      => $maze_version,
+                    'module_version'    => $module_version,
+                    'is_hosted'         => $merchantPreferences['is_hosted'],
+                    'image'             => $merchantPreferences['image'],
+                    'embedded_url'      => $merchantPreferences['embedded_url'],
+                ];
+
+                $code = 200;
+
+                $this->catalogSession->setRazorpayOrderID($order->id);
+
+                $orderModel->setRzpOrderId($order->id)
+                   ->save();
+            }
+        }
+        catch(\Razorpay\Api\Errors\Error $e)
+        {
+            $responseContent = [
+                'message'   => $e->getMessage(),
+                'parameters' => []
+            ];
+            $this->logger->critical("Razorpay Order: Error message:" . $e->getMessage());
+        }
+        catch(\Exception $e)
+        {
+            $responseContent = [
+                'message'   => $e->getMessage(),
+                'parameters' => []
+            ];
+            $this->logger->critical("Razorpay Order: Error message:" . $e->getMessage());
+        }
 
         $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
         $response->setData($responseContent);
         $response->setHttpResponseCode($code);
 
         return $response;
-
     }
 
     public function getOrderID()
     {
-        return $this->checkoutSession->getRazorpayOrderID();
+        return $this->catalogSession->getRazorpayOrderID();
     }
 
-    public function getRazorpayOrderAmount()
+    /**
+     * getExistingWebhook.
+     *
+     * @return return array
+     */
+    private function getExistingWebhook()
     {
-        return $this->checkoutSession->getRazorpayOrderAmount();
+        try
+        {
+            //fetch all the webhooks
+            $webhooks = $this->getWebhooks();
+
+            if(($webhooks->count) > 0 and (empty($this->webhookUrl) === false))
+            {
+                foreach ($webhooks->items as $key => $webhook)
+                {
+                    if($webhook->url === $this->webhookUrl)
+                    {
+                        $this->webhookId = $webhook->id;
+
+                        foreach($webhook->events as $eventKey => $eventActive)
+                        {
+                            if($eventActive)
+                            {
+                                $this->active_events[] = $eventKey;
+                            }
+                        }
+                        return ['id' => $webhook->id, 'active_events'=>$this->active_events];
+                    }
+                }
+            }
+        }
+        catch(\Razorpay\Api\Errors\Error $e)
+        {
+            $this->logger->info($e->getMessage());
+        }
+        catch(\Exception $e)
+        {
+            $this->logger->info($e->getMessage());
+        }
+
+        return ['id' => null,'active_events'=>null];
+    }
+
+    function getWebhooks($count=10, $skip=0)
+    {
+        $webhooks = $this->rzp->webhook->all(['count' => $count, 'skip' => $skip]);
+
+        if ($webhooks['count'] > 0)
+        {
+            $this->webhooks->items = array_merge($this->webhooks->items, $webhooks['items']);
+            $this->webhooks->count = count($this->webhooks->items);
+
+            $this->getWebhooks($count, $this->webhooks->count);
+        }
+
+        return $this->webhooks;
+    }
+
+    private function generatePassword()
+    {
+        $digits    = array_flip(range('0', '9'));
+        $lowercase = array_flip(range('a', 'z'));
+        $uppercase = array_flip(range('A', 'Z'));
+        $special   = array_flip(str_split('!@#$%^&*()_+=-}{[}]\|;:<>?/'));
+        $combined  = array_merge($digits, $lowercase, $uppercase, $special);
+
+        return str_shuffle( array_rand($digits) .
+                            array_rand($lowercase) .
+                            array_rand($uppercase) .
+                            array_rand($special) .
+                            implode(
+                                array_rand($combined, rand(8, 12))
+                            )
+                        );
     }
 
     protected function getMerchantPreferences()
@@ -367,8 +360,4 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         return $preferences;
     }
 
-    public function getDiscount()
-    {
-        return ($this->getQuote()->getBaseSubtotal() - $this->getQuote()->getBaseSubtotalWithDiscount());
-    }
 }

@@ -13,12 +13,14 @@ class Config
     const KEY_PUBLIC_KEY = 'key_id';
     const KEY_PRIVATE_KEY = 'key_secret';
     const KEY_MERCHANT_NAME_OVERRIDE = 'merchant_name_override';
-    const KEY_PAYMENT_ACTION = 'payment_action';
+    const KEY_PAYMENT_ACTION = 'rzp_payment_action';
+    const KEY_AUTO_INVOICE = 'auto_invoice';
+    const KEY_NEW_ORDER_STATUS = 'order_status';
     const ENABLE_WEBHOOK = 'enable_webhook';
     const WEBHOOK_SECRET = 'webhook_secret';
-    const WEBHOOK_WAIT_TIME = 'webhook_wait_time';
+    const ENABLE_PENDING_ORDERS_CRON = 'enable_pending_orders_cron';
+    const PENDING_ORDER_TIMEOUT = 'pending_orders_timeout';
     const DISABLE_UPGRADE_NOTICE = 'disable_upgrade_notice';
-    const SKIP_AMOUNT_MISMATCH_ORDER = 'skip_amount_mismatch_order';
 
     /**
      * @var string
@@ -71,14 +73,24 @@ class Config
         return $this->getConfigData(self::WEBHOOK_SECRET);
     }
     
+    public function isCancelPendingOrderCronEnabled()
+    {
+        return (bool) (int) $this->getConfigData(self::ENABLE_PENDING_ORDERS_CRON, $this->storeId);
+    }
+
+    public function getPendingOrderTimeout()
+    {
+        return (int) $this->getConfigData(self::PENDING_ORDER_TIMEOUT);
+    }
+
     public function getPaymentAction()
     {
         return $this->getConfigData(self::KEY_PAYMENT_ACTION);
     }
 
-    public function isSkipOrderEnabled()
+    public function getNewOrderStatus()
     {
-        return (bool) (int) $this->getConfigData(self::SKIP_AMOUNT_MISMATCH_ORDER, $this->storeId);
+        return $this->getConfigData(self::KEY_NEW_ORDER_STATUS);
     }
 
     /**
@@ -135,6 +147,14 @@ class Config
     public function isActive()
     {
         return (bool) (int) $this->getConfigData(self::KEY_ACTIVE, $this->storeId);
+    }
+
+    /**
+     * @return bool
+     */
+    public function canAutoGenerateInvoice()
+    {
+        return (bool) (int) $this->getConfigData(self::KEY_AUTO_INVOICE, $this->storeId);
     }
 
     /**

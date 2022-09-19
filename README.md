@@ -11,20 +11,6 @@ composer require razorpay/magento
 bin/magento module:enable Razorpay_Magento
 ```
 
-### Install through "code.zip" file
-
-Extract the attached code.zip from release
-
-Go to "app" folder
-
-Overwrite content of "code" folder with step one "code" folder (Note: if code folder not exist just place the code folder from step-1).
-
-Run from magento root folder.
-
-```
-bin/magento module:enable Razorpay_Magento
-bin/magento setup:upgrade
-```
 
 You can check if the module has been installed using `bin/magento module:status`
 
@@ -37,22 +23,25 @@ Go to `Admin -> Stores -> Configuration -> Payment Method -> Razorpay` to config
 If you do not see Razorpay in your gateway list, please clear your Magento Cache from your admin
 panel (System -> Cache Management).
 
-### Note: Don't mix composer and zip install.
+### Setting up the cron with Magento
+Setup cron with Magento to execute Razorpay cronjobs for following actions:
 
-### Note: Make sure "zipcode" must be required field for billing and shipping address.**
+#### Cancel pending orders
+It will cancel order created by Razorpay as per timeout saved in configuration if Cancel Pending Order is enabled.
 
-### Setting up the cron to process missing orders
+#### Update order to processing
+Accepts response from Razorpay Webhook for events `payment.authorized` and `order.paid` and updates pending order to processing.
 
-Razopray webhook cron is added under "razorpay" group, and can be run manually like below:
-
+#### Magento cron can be installed using following command:
 ```
-bin/magento cron:run --group="razorpay"
+bin/magento cron:install
 ```
-### Working with GraphQL 
 
-Razorpay GraphQL Support added with version 3.6.0 
+### Working with GraphQL
 
-Order flow for placing Magento Order using Razorpay as payment method with GraphQl
+Razorpay GraphQL Support added with Magento ver. 2.3.6
+
+Order flow for placing Magento Order using Razorpay as payment method with GraphQL
 
 1. set Payment Method on Cart
 ```
@@ -71,44 +60,7 @@ mutation {
   }
 }
 ```
-
-2. Create Razorpay Order ID against the cart 
-```
-mutation {
-  placeRazorpayOrder (
-    cart_id: "{{cartid}}"
-  ){
-    success
-    rzp_order_id
-    order_quote_id
-    amount
-    currency
-    message
-  }
-}
-```
-
-3. Use `rzp_order_id` and other details from step-2 and create from the Frontend/React/using razorpay's checkout.js , complete the payment and obtain razorpay_payment_id & razorpay_signature
-  https://razorpay.com/docs/payment-gateway/web-integration/standard/
-
-4. Save Razorpay Response Details against Cart after payment success with RZP paymentId , orderId and signature 
-```
-mutation {
-  setRzpPaymentDetailsOnCart (
-    input: {
-      cart_id: "{{cart_ID}}"
-      rzp_payment_id: "{{RAZORPAY_PAYMENT_ID}}"
-      rzp_order_id: "{{RAZORPAY_ORDER_ID}}"
-      rzp_signature: "{{RAZORPAY_SIGNATURE}}"
-    }
-  ){
-  cart{
-    id
-  }
-  }
-}
-```
-5. Finally Place Magento Order 
+2. Place Magento Order
 ```
 mutation {
   placeOrder(input: {cart_id: "{{cart_ID}}"}) {
@@ -119,10 +71,42 @@ mutation {
 }
 ```
 
+3. Create Razorpay Order ID against the Magento Order ID
+```
+mutation {
+  placeRazorpayOrder (
+      order_id: "{{order_ID}}"
+  ){
+    success
+    rzp_order_id
+    order_id
+    amount
+    currency
+    message
+  }
+}
+```
+
+4. Use Razorpay Order ID `rzp_order_id` and other details from step-3 and create frontend form using razorpay's checkout.js , complete the payment and obtain razorpay_payment_id & razorpay_signature
+  https://razorpay.com/docs/payment-gateway/web-integration/standard/
+
+5. Save Razorpay Response Details against Cart after payment success with Magento orderID, RZP paymentId , orderId and signature
+```
+mutation {
+  setRzpPaymentDetailsForOrder (
+    input: {
+      order_id: "{{order_ID}}"
+      rzp_payment_id: "{{RAZORPAY_PAYMENT_ID}}"
+      rzp_signature: "{{RAZORPAY_SIGNATURE}}"
+    }
+  ){
+  order{
+    order_id
+  }
+  }
+}
+```
+
 ### Support
 
 Visit [https://razorpay.com](https://razorpay.com) for support requests or email contact@razorpay.com.
-
-### DISCLAIMER
-
-In no event shall Razorpay.com/Razorpay be liable for any claim, damages or other liability, whether in an action of contract, tort or otherwise, arising from the information or code provided or the use of the information or code provided. This disclaimer of liability refers to any technical issue or damage caused by the use or non-use of the information or code provided or by the use of incorrect or incomplete information or code provided.

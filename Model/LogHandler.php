@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace Razorpay\Magento\Model;
 
@@ -10,7 +10,7 @@ use Monolog\Logger;
  *  Used to display webhook url link
  */
 class LogHandler extends \Magento\Framework\Logger\Handler\Base
-{    
+{
      /**
      * Logging level
      * @var int
@@ -39,15 +39,15 @@ class LogHandler extends \Magento\Framework\Logger\Handler\Base
         $filePath = null
     ) {
         $this->_localeDate = $localeDate;
-        $corefilesystem= $corefilesystem->getDirectoryWrite(\Magento\Framework\App\Filesystem\DirectoryList::VAR_DIR); 
+        $corefilesystem= $corefilesystem->getDirectoryWrite(\Magento\Framework\App\Filesystem\DirectoryList::VAR_DIR);
         $logpath = $corefilesystem->getAbsolutePath('log/Razorpay/');
 
 
-        // Custom log file name for each day because log will be full for optimization 
+        // Custom log file name for each day because log will be full for optimization
         $filename = 'rzp_'.Date('Y_m_d').'.log';
 
         $filepath = $logpath . $filename;
-        
+
         $this->cutomfileName = $filepath;
 
         parent::__construct(

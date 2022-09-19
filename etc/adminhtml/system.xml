@@ -10,12 +10,32 @@
                     <label>Enabled</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <config_path>payment/razorpay/active</config_path>
+                    <validate>required-entry</validate>
                 </field>
-                <field id="payment_action" translate="label" type="select" sortOrder="2" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="rzp_payment_action" translate="label" type="select" sortOrder="2" showInDefault="1" showInWebsite="1" showInStore="1" >
                     <label>Payment Action</label>
                     <source_model>Razorpay\Magento\Model\PaymentAction</source_model>
-                    <config_path>payment/razorpay/payment_action</config_path>
+                    <config_path>payment/razorpay/rzp_payment_action</config_path>
+                    <validate>required-entry</validate>
                 </field>
+
+                <field id="enable_pending_orders_cron" translate="label" type="select" sortOrder="5" showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Pending Orders Cron Enabled</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <frontend_model>Razorpay\Magento\Model\EnablePendingOrdersCron</frontend_model>
+                    <config_path>payment/razorpay/enable_pending_orders_cron</config_path>
+                </field>
+
+                <field id="pending_orders_timeout" translate="label" type="text" sortOrder="5" showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Pending Orders Timeout</label>
+                    <comment>Set timeout in minutes, (default: 30 minutes). Timeout can be updated between range of 20 minutes to 43200 minutes (30 days). This will enable cron for moving pending orders to Cancel status for given timeout.</comment>
+                    <config_path>payment/razorpay/pending_orders_timeout</config_path>
+                    <depends>
+                        <field id="enable_pending_orders_cron">1</field>
+                    </depends>
+                    <validate>required-entry validate-digits validate-not-negative-number validate-digits-range digits-range-20-43200</validate>
+                </field>
+
                 <field id="title" translate="label" type="text" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Title</label>
                     <config_path>payment/razorpay/title</config_path>
@@ -28,35 +48,44 @@
                     <label>API Key</label>
                     <comment>**Required (Enter test key ID for testing)**</comment>
                     <config_path>payment/razorpay/key_id</config_path>
+                    <validate>required-entry</validate>
                 </field>
                 <field id="key_secret" translate="label" type="text" sortOrder="4" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>API Key Secret</label>
                     <comment>**Required (Enter test key secret for testing)**</comment>
+                    <validate>required-entry</validate>
                     <config_path>payment/razorpay/key_secret</config_path>
                 </field>
-                <field id="skip_amount_mismatch_order" translate="label" type="select" sortOrder="2" showInDefault="1" showInWebsite="1" showInStore="0">
-                    <label>Skip Amount Mismatch Order Creation</label>
-                    <comment>** Don't Create Order in case of amount mismatch with Razorpay and cart total. Otherwise Order gets created with "Payment Review" Status. **</comment>
-                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                    <config_path>payment/razorpay/skip_amount_mismatch_order</config_path>
+                <field id="order_status" translate="label" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>New Order Status</label>
+                    <source_model>Magento\Sales\Model\Config\Source\Order\Status\NewStatus</source_model>
+                    <validate>required-entry</validate>
+                    <config_path>payment/razorpay/order_status</config_path>
                 </field>
-                <field id="enable_webhook" translate="label" type="select" sortOrder="5" showInDefault="1" showInWebsite="0" showInStore="0">
+                <field id="auto_invoice" translate="label" type="select" sortOrder="2" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Auto Generate Invoice</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <validate>required-entry</validate>
+                    <config_path>payment/razorpay/auto_invoice</config_path>
+                </field>
+                <field id="enable_webhook" translate="label" type="select" sortOrder="5" showInDefault="0" showInWebsite="0" showInStore="0">
                     <label>Webhook Enabled</label>
                     <comment>** {{base_url}} Copy the Webhook Url from below **</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <frontend_model>Razorpay\Magento\Model\WebhookUrl</frontend_model>
+                    <validate>required-entry</validate>
                     <config_path>payment/razorpay/enable_webhook</config_path>
                 </field>
-                <field id="webhook_secret" translate="label" type="text" sortOrder="5" showInDefault="1" showInWebsite="0" showInStore="0">
+                <field id="webhook_secret" translate="label" type="text" sortOrder="5" showInDefault="0" showInWebsite="0" showInStore="0">
                     <label>Webhook Secret</label>
                     <comment>This field has to match the one set in dashboard.razorpay.com/webhooks</comment>
                     <config_path>payment/razorpay/webhook_secret</config_path>
                     <validate>required-entry</validate>
-                    <depends> 
+                    <depends>
                         <field id="enable_webhook">1</field>
                     </depends>
                 </field>
-                <field id="webhook_events" translate="label" type="multiselect" sortOrder="5" showInDefault="1" showInWebsite="0" showInStore="0">
+                <field id="webhook_events" translate="label" type="multiselect" sortOrder="5" showInDefault="0" showInWebsite="0" showInStore="0">
                     <label>Webhook Events</label>
                     <source_model>Razorpay\Magento\Model\WebhookEvents</source_model>
                     <comment>List of Webhook Events that needs to be subscribed.</comment>
@@ -65,19 +94,6 @@
                     <depends> 
                         <field id="enable_webhook">1</field>
                     </depends>
-                </field>
-                <field id="webhook_wait_time" translate="label" type="text" sortOrder="6" showInDefault="1" showInWebsite="0" showInStore="0">
-                    <label>Webhook Wait Time</label>
-                    <comment>**Required (Set the time in seconds, that webhook wait before creating a order from the backend for missed orders. ) **</comment>
-                    <config_path>payment/razorpay/webhook_wait_time</config_path>
-                    <depends> 
-                        <field id="enable_webhook">1</field>
-                    </depends>
-                </field>
-                <field id="order_status" translate="label" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
-                    <label>New Order Status</label>
-                    <source_model>Magento\Sales\Model\Config\Source\Order\Status\Processing</source_model>
-                    <config_path>payment/razorpay/order_status</config_path>
                 </field>
                 <field id="allowspecific" translate="label" type="allowspecific" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Payment from Applicable Countries</label>
@@ -90,7 +106,7 @@
                     <can_be_empty>1</can_be_empty>
                     <config_path>payment/razorpay/specificcountry</config_path>
                 </field>
-                <field id="disable_upgrade_notice" translate="label" type="select" sortOrder="52" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="disable_upgrade_notice" translate="label" type="select" sortOrder="52" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Disable Razorpay Upgrade Notice</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <config_path>payment/razorpay/disable_upgrade_notice</config_path>

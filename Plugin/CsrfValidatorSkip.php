@@ -1,8 +1,11 @@
 <?php
 namespace Razorpay\Magento\Plugin;
+
 class CsrfValidatorSkip
 {
     /**
+     * CsrfValidator to skip validation for razorpay
+     *
      * @param \Magento\Framework\App\Request\CsrfValidator $subject
      * @param \Closure $proceed
      * @param \Magento\Framework\App\RequestInterface $request
@@ -13,7 +16,7 @@ class CsrfValidatorSkip
         \Closure $proceed,
         $request,
         $action
-    ) { 
+    ) {
         if ($request->getModuleName() == 'razorpay') {
             return; // Skip CSRF check
         }

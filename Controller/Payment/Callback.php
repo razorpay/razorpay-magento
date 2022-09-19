@@ -1,247 +1,294 @@
 <?php
-
 namespace Razorpay\Magento\Controller\Payment;
-
+use Razorpay\Magento\Model\Config;
 use Razorpay\Api\Api;
-use Razorpay\Magento\Model\PaymentMethod;
+use Magento\Sales\Api\OrderRepositoryInterface;
+use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
+use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
 use Magento\Framework\Controller\ResultFactory;
-use Magento\Framework\App\Action\Context;
-use Magento\Framework\App\RequestInterface;
+use Razorpay\Magento\Model\PaymentMethod;
 
+/**
+ * CancelPendingOrders controller to cancel Magento order
+ *
+ * ...
+ */
 class Callback extends \Razorpay\Magento\Controller\BaseController
 {
-    protected $quote;
+    /**
+     * @var \Magento\Sales\Api\Data\OrderInterface
+     */
+    protected $setup;
 
-    protected $checkoutSession;
+    /**
+     * @var \Magento\Sales\Model\Service\InvoiceService
+     */
+    protected $_invoiceService;
+    protected $orderSender;
 
-    protected $cartManagement;
+    /**
+     * @var \Magento\Framework\DB\Transaction
+     */
+    protected $_transaction;
 
-    protected $cache;
-
-    protected $orderRepository;
-
-    protected $logger;
+    const STATUS_APPROVED = 'APPROVED';
+    const STATUS_PROCESSING = 'processing';
     /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession
-     * @param \Magento\Razorpay\Model\Config\Payment $razorpayConfig
-     * @param \Magento\Framework\App\CacheInterface $cache
-     * @param \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
+     * @param \Razorpay\Magento\Model\Config $config
      * @param \Psr\Log\LoggerInterface $logger
+     * @param \Magento\Sales\Api\Data\OrderInterface $order
+     * @param \Magento\Catalog\Model\Session $catalogSession
      */
-    public function __construct(
-        \Magento\Framework\App\Action\Context $context,
-        \Magento\Customer\Model\Session $customerSession,
-        \Magento\Checkout\Model\Session $checkoutSession,
-        \Razorpay\Magento\Model\Config $config,
-        \Magento\Quote\Api\CartManagementInterface $cartManagement,
-        \Razorpay\Magento\Model\CheckoutFactory $checkoutFactory,
-        \Magento\Framework\App\CacheInterface $cache,
-        \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
-        \Magento\Quote\Model\QuoteRepository $quoteRepository,
-        \Magento\Quote\Model\QuoteManagement $quoteManagement,
-        \Magento\Customer\Model\CustomerFactory $customerFactory,
-        \Psr\Log\LoggerInterface $logger
-    ) {
-        parent::__construct(
-            $context,
-            $customerSession,
-            $checkoutSession,
-            $config
-        );
+    public function __construct(\Magento\Framework\App\Action\Context $context, \Magento\Customer\Model\Session $customerSession, \Magento\Checkout\Model\Session $checkoutSession, \Razorpay\Magento\Model\Config $config, \Psr\Log\LoggerInterface $logger, OrderRepositoryInterface $orderRepository, \Magento\Framework\DB\Transaction $transaction, \Magento\Sales\Model\Service\InvoiceService $invoiceService, \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender, \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender, \Magento\Catalog\Model\Session $catalogSession, \Magento\Sales\Api\Data\OrderInterface $order
+)
+    {
+        parent::__construct($context, $customerSession, $checkoutSession, $config);
 
-        $this->config          = $config;
-        $this->cartManagement  = $cartManagement;
-        $this->customerSession = $customerSession;
-        $this->checkoutFactory = $checkoutFactory;
-        $this->orderRepository = $orderRepository;
-        $this->quoteRepository = $quoteRepository;
-        $this->quoteManagement = $quoteManagement;
-        $this->customerFactory = $customerFactory;
-        $this->logger          = $logger;
+        $this->config           = $config;
+        $this->checkoutSession  = $checkoutSession;
+        $this->customerSession  = $customerSession;
+        $this->logger           = $logger;
+        $this->orderRepository  = $orderRepository;
+        $this->objectManagement = \Magento\Framework\App\ObjectManager::getInstance();
+        $this->_transaction     = $transaction;
+        $this->orderSender      = $orderSender;
+        $this->_invoiceService  = $invoiceService;
+        $this->_invoiceSender   = $invoiceSender;
+        $this->catalogSession   = $catalogSession;
+        $this->order            = $order;
 
-        $this->objectManagement   = \Magento\Framework\App\ObjectManager::getInstance();
     }
-
     public function execute()
     {
-        $params = $this->getRequest()->getParams();
-                
-        $quoteId = strip_tags($params["order_id"]);
 
-        if(empty($quoteId) === true)
+        $params = $this->getRequest()
+            ->getParams();
+
+        $orderId = strip_tags($params["order_id"]);
+        try
         {
-            $this->messageManager->addError(__('Razorpay front-end callback: Payment Failed, As no active cart ID found.'));
+            $collection = $this
+                ->objectManagement
+                ->get('Magento\Sales\Model\Order')
+                ->getCollection()
+                ->addFieldToSelect('entity_id')
+                ->addFieldToSelect('rzp_order_id')
+                ->addFilter('increment_id', $orderId)->getFirstItem();
+
+            $this->razorpayOrderID = $collection->getRzpOrderId();
+            $order = $this
+                ->order
+                ->load($collection->getEntityId());
+
+        }
+        catch(\Exception $e)
+        {
+            $this
+                ->logger
+                ->critical("Callback Error: " . $e->getMessage());
+        }
+
+        if (empty($orderId) === true)
+        {
+            $this
+                ->messageManager
+                ->addError(__('Razorpay front-end callback: Payment Failed, As no active cart ID found.'));
 
             return $this->_redirect('checkout/cart');
         }
-        
-        $quote = $this->getQuoteObject($params, $quoteId);
 
-        if(!$this->customerSession->isLoggedIn())
+        if (isset($params['razorpay_payment_id']))
         {
-            $customerId = $quote->getCustomer()->getId();
-
-            if(!empty($customerId))
+            try
             {
-                $customer = $this->customerFactory->create()->load($customerId);
+                $this->validateSignature($params);
 
-                $this->customerSession->setCustomerAsLoggedIn($customer);
-            }
-        }
+                $orderId = $order->getIncrementId();
 
-        if(isset($params['razorpay_payment_id']))
-        {
-            if(isset($quoteId) and
-               (empty($quoteId) === false))
-            {
+                $order->setState(static ::STATUS_PROCESSING)
+                    ->setStatus(static ::STATUS_PROCESSING);
+
+                $payment = $order->getPayment();
+                $paymentId = $params['razorpay_payment_id'];
+
+                $payment->setLastTransId($paymentId)->setTransactionId($paymentId)->setIsTransactionClosed(true)
+                    ->setShouldCloseParentTransaction(true);
+
+                $payment->setParentTransactionId($payment->getTransactionId());
+
+                if ($this
+                    ->config
+                    ->getPaymentAction() === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE)
+                {
+                    $payment->addTransactionCommentsToOrder("$paymentId", (new CaptureCommand())->execute($payment, $order->getGrandTotal() , $order) , "");
+                }
+                else
+                {
+                    $payment->addTransactionCommentsToOrder("$paymentId", (new AuthorizeCommand())->execute($payment, $order->getGrandTotal() , $order) , "");
+                }
+
+                $transaction = $payment->addTransaction(\Magento\Sales\Model\Order\Payment\Transaction::TYPE_AUTH, null, true, "");
+                $transaction->setIsClosed(true);
+                $transaction->save();
+
+                $order->save();
+
+                $this
+                    ->orderRepository
+                    ->save($order);
+
+                //update/disable the quote
+                $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+                $quote = $objectManager->get('Magento\Quote\Model\Quote')
+                    ->load($order->getQuoteId());
+                $quote->setIsActive(false)
+                    ->save();
+
+                if ($order->canInvoice() and ($this
+                    ->config
+                    ->getPaymentAction() === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE) and $this
+                    ->config
+                    ->canAutoGenerateInvoice())
+                {
+                    $invoice = $this
+                        ->_invoiceService
+                        ->prepareInvoice($order);
+                    $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
+                    $invoice->setTransactionId($paymentId);
+                    $invoice->register();
+                    $invoice->save();
+                    $transactionSave = $this
+                        ->_transaction
+                        ->addObject($invoice)->addObject($invoice->getOrder());
+                    $transactionSave->save();
+
+                    $this
+                        ->_invoiceSender
+                        ->send($invoice);
+                    //send notification code
+                    $order->setState(static ::STATUS_PROCESSING)
+                        ->setStatus(static ::STATUS_PROCESSING);
+                    $order->addStatusHistoryComment(__('Notified customer about invoice #%1.', $invoice->getId()))
+                        ->setIsCustomerNotified(true)
+                        ->save();
+                }
+
+                //send Order email, after successfull payment
                 try
                 {
-                    $this->logger->info('Razorpay front-end callback: for cartId- ' . $quoteId);
+                    $this
+                        ->checkoutSession
+                        ->setRazorpayMailSentOnSuccess(true);
+                    $this
+                        ->orderSender
+                        ->send($order);
+                    $this
+                        ->checkoutSession
+                        ->unsRazorpayMailSentOnSuccess();
 
-                    $quote->getPayment()->setMethod(PaymentMethod::METHOD_CODE);
-
-                    if(!$this->customerSession->isLoggedIn())
-                    {
-                        $quote->setCheckoutMethod($this->cartManagement::METHOD_GUEST);
-                    }
-
-                    if($quote->getIsActive())
-                    {
-                        $order = $this->quoteManagement->submit($quote);
-
-                        $this->logger->info(__('Razorpay front-end callback: order Id- ' . $order->getId()));
-
-                        $this->checkoutSession->setLastSuccessQuoteId($quote->getId())
-                                              ->setLastQuoteId($quote->getId())
-                                              ->clearHelperData();
-
-                        if(empty($order) === false)
-                        {
-                            $quote->setIsActive(false)->save();
-
-                            $this->checkoutSession->replaceQuote($quote);
-
-                            $this->checkoutSession->setLastOrderId($order->getId())
-                                                  ->setLastRealOrderId($order->getIncrementId())
-                                                  ->setLastOrderStatus($order->getStatus());
-                        }
-                    }
-                    else
-                    {
-                        $this->logger->info("Razorpay front-end callback: Quote order is inactive for quoteID: $quoteId");
-                    }
-
-                    return $this->_redirect('checkout/onepage/success');
-
-                    exit;
+                }
+                catch(\Magento\Framework\Exception\MailException $exception)
+                {
+                    $this
+                        ->logger
+                        ->critical("Validate: MailException Error message:" . $exception->getMessage());
                 }
                 catch(\Exception $e)
                 {
-                    $quote->setIsActive(1)->setReservedOrderId(null)->save();
-
-                    $this->logger->critical(__('Razorpay front-end callback: ' . $e->getMessage()));
-                    
-                    $this->messageManager->addError(__($e->getMessage()));
-
-                    return $this->_redirect('checkout/cart');
+                    $this
+                        ->logger
+                        ->critical("Validate: Exception Error message:" . $e->getMessage());
                 }
+
+                $this
+                    ->checkoutSession
+                    ->setLastSuccessQuoteId($order->getQuoteId())
+                    ->setLastQuoteId($order->getQuoteId())
+                    ->clearHelperData();
+                if (empty($order) === false)
+                {
+                    $this
+                        ->checkoutSession
+                        ->setLastOrderId($order->getId())
+                        ->setLastRealOrderId($order->getIncrementId())
+                        ->setLastOrderStatus($order->getStatus());
+                }
+                return $this->_redirect('checkout/onepage/success');
+
             }
-            else
+            catch(\Razorpay\Api\Errors\Error $e)
             {
-                $this->logger->critical(__('Razorpay front-end callback: Quote ID missing on callback from RZP.' ));
+
+                $this
+                    ->logger
+                    ->critical("Validate: Razorpay Error message:" . $e->getMessage());
+                $responseContent['message'] = $e->getMessage();
+
+                $code = $e->getCode();
+            }
+            catch(\Exception $e)
+            {
+
+                $this
+                    ->logger
+                    ->critical("Validate: Exception Error message:" . $e->getMessage());
+                $responseContent['message'] = $e->getMessage();
+
+                $code = $e->getCode();
             }
         }
         else
         {
-            $quote->setIsActive(1)->setReservedOrderId(null)->save();
+            $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+            $quote = $objectManager->get('Magento\Quote\Model\Quote')
+                ->load($order->getQuoteId());
+            $quote->setIsActive(1)
+                ->setReservedOrderId(null)
+                ->save();
 
-            $this->checkoutSession->replaceQuote($quote);
+            $this
+                ->checkoutSession
+                ->replaceQuote($quote);
 
-            $this->logger->critical(__('Razorpay front-end callback: Payment Failed with response:  ' . json_encode($params, 1) ));
-            
-            $this->messageManager->addError(__('Payment Failed.'));
+            $this
+                ->logger
+                ->critical(__('Razorpay front-end callback: Payment Failed with response:  ' . json_encode($params, 1)));
+
+            $this
+                ->messageManager
+                ->addError(__('Payment Failed.'));
 
             return $this->_redirect('checkout/cart');
-        }
 
+        }
     }
 
-    protected function getQuoteObject($post, $quoteId)
+    protected function validateSignature($request)
     {
-        try
+        if (empty($request['error']) === false)
         {
-            $quote = $this->quoteRepository->get($quoteId);
-
-            $firstName = $quote->getBillingAddress()->getFirstname() ?? 'null';
-            $lastName  = $quote->getBillingAddress()->getLastname() ?? 'null';
-            $email     = $quote->getBillingAddress()->getEmail() ?? 'null';
-
-            $quote->getPayment()->setMethod(PaymentMethod::METHOD_CODE);
-
-            $store = $quote->getStore();
-
-            if(empty($store) === true)
-            {
-                $store = $this->storeManagement->getStore();
-            }
-
-            $websiteId = $store->getWebsiteId();
-
-            $customer = $this->objectManagement->create('Magento\Customer\Model\Customer');
-
-            $customer->setWebsiteId($websiteId);
-
-            $orderLinkCollection = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
-                                                       ->getCollection()
-                                                       ->addFilter('quote_id', $quote->getId())
-                                                       ->getFirstItem();
-
-            $orderLinkData = $orderLinkCollection->getData();
-
-            if (empty($orderLinkData['entity_id']) === false)
-            {
-                $email = $orderLinkData['email'] ?? $email;
-            }
-
-            //get customer from quote , otherwise from payment email
-            $customer = $customer->loadByEmail($email);
-
-            //if quote billing address doesn't contains address, set it as customer default billing address
-            if ((empty($quote->getBillingAddress()->getFirstname()) === true) and
-                (empty($customer->getEntityId()) === false))
-            {
-                $quote->getBillingAddress()->setCustomerAddressId($customer->getDefaultBillingAddress()['id']);
-            }
-
-            //If need to insert new customer as guest
-            if ((empty($customer->getEntityId()) === true) or
-                (empty($quote->getBillingAddress()->getCustomerId()) === true))
-            {
-                $quote->setCustomerFirstname($firstName);
-                $quote->setCustomerLastname($lastName);
-                $quote->setCustomerEmail($email);
-                $quote->setCustomerIsGuest(true);
-            }
-
-            //skip address validation as some time billing/shipping address not set for the quote
-            $quote->getBillingAddress()->setShouldIgnoreValidation(true);
-            $quote->getShippingAddress()->setShouldIgnoreValidation(true);
-
-            $quote->setStore($store);
-
-            $quote->collectTotals();
-
-            $quote->save();
-
-            return $quote;
+            $this
+                ->logger
+                ->critical("Validate: Payment Failed or error from gateway");
+            $this
+                ->messageManager
+                ->addError(__('Payment Failed'));
+            throw new \Exception("Payment Failed or error from gateway");
         }
-        catch (\Exception $e)
-        {
-            $this->logger->critical("Razorpay front-end callback: Unable to update/get quote with quoteID:$quoteId, failed with error: ". $e->getMessage());
-            return;
-        }
+
+        $attributes = array(
+            'razorpay_payment_id' => $request['razorpay_payment_id'],
+            'razorpay_order_id' => $this->razorpayOrderID,
+            'razorpay_signature' => $request['razorpay_signature'],
+        );
+
+        $this
+            ->rzp
+            ->utility
+            ->verifyPaymentSignature($attributes);
     }
-
 }
+

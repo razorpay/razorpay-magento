@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace Razorpay\Magento\Model;
 
@@ -7,7 +7,7 @@ use \Magento\Framework\Option\ArrayInterface;
 class WebhookEvents implements ArrayInterface
 {
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
     public function toOptionArray()
     {
