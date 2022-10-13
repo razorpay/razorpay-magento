@@ -36,7 +36,7 @@ class AfterConfigSaveObserver implements ObserverInterface
      */
     public function __construct(
         \Razorpay\Magento\Model\Config $config,
-        RequestInterface $request, 
+        RequestInterface $request,
         WriterInterface $configWriter,
         \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Razorpay\Magento\Model\PaymentMethod $paymentMethod,
@@ -48,7 +48,7 @@ class AfterConfigSaveObserver implements ObserverInterface
         $this->configWriter = $configWriter;
         $this->_storeManager = $storeManager;
         $this->logger          = $logger;
-        
+
         $this->config = $config;
 
         $this->key_id = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
@@ -76,9 +76,9 @@ class AfterConfigSaveObserver implements ObserverInterface
      * {@inheritdoc}
      */
     public function execute(Observer $observer)
-    { 
+    {
         $razorpayParams = $this->request->getParam('groups')['razorpay']['fields'];
-        
+
         $this->saveConfigData($razorpayParams);
 
         $razorpayParams['enable_webhook']                    = $this->config->getConfigData('enable_webhook');
@@ -170,9 +170,9 @@ class AfterConfigSaveObserver implements ObserverInterface
                 $this->logger->info($e->getMessage());
             }
         }
-        
+
         return;
-        
+
     }
 
     /**
@@ -188,9 +188,12 @@ class AfterConfigSaveObserver implements ObserverInterface
             $razorpayParamsFormattedArray = array('config_settings' => array());
             foreach($razorpayParams as $key=>$value)
             {
-                $razorpayParamsFormattedArray['config_settings'][$key] = empty(array_values($value)) === false? 
-                                                                            array_values($value)[0] :
-                                                                            null;
+                if ($key != "key_id" && $key != "key_secret")
+                {
+                    $razorpayParamsFormattedArray['config_settings'][$key] = empty(array_values($value)) === false?
+                        array_values($value)[0] :
+                        null;
+                }
             }
             $storeName = $razorpayParamsFormattedArray['config_settings']['merchant_name_override'];
         }
@@ -279,7 +282,7 @@ class AfterConfigSaveObserver implements ObserverInterface
             $this->logger->info("Razorpay Webhook Disabled by Admin.");
         }
         catch(\Razorpay\Api\Errors\Error $e)
-        {            
+        {
             $this->logger->info($e->getMessage());
         }
         catch(\Exception $e)
