@@ -4,8 +4,6 @@ namespace Razorpay\Magento\Controller\Payment;
 use Razorpay\Magento\Model\Config;
 use Magento\Framework\Controller\ResultFactory;
 use Razorpay\Magento\Model\TrackPluginInstrumentation;
-use Razorpay\Magento\Model\PaymentMethod;
-
 
 /**
  * Using TrackPluginInstrumentation and sending events to Segment
@@ -16,9 +14,7 @@ class FormDataAnalytics extends \Razorpay\Magento\Controller\BaseController
 {
     protected $setup;
 
-    protected PaymentMethod $paymentMethod;
-
-    protected TrackPluginInstrumentation $trackPluginInstrumentation;
+    protected $trackPluginInstrumentation;
 
     /**
      * @param \Magento\Framework\App\Action\Context $context
@@ -31,7 +27,6 @@ class FormDataAnalytics extends \Razorpay\Magento\Controller\BaseController
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
         TrackPluginInstrumentation $trackPluginInstrumentation,
-        \Razorpay\Magento\Model\PaymentMethod $paymentMethod,
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Checkout\Model\Session $checkoutSession,
         \Razorpay\Magento\Model\Config $config,
@@ -43,10 +38,9 @@ class FormDataAnalytics extends \Razorpay\Magento\Controller\BaseController
             $checkoutSession,
             $config
         );
-        
+
         $this->config                       = $config;
         $this->trackPluginInstrumentation   = $trackPluginInstrumentation;
-        $this->paymentMethod                = $paymentMethod;
         $this->checkoutSession              = $checkoutSession;
         $this->customerSession              = $customerSession;
         $this->logger                       = $logger;
@@ -58,27 +52,27 @@ class FormDataAnalytics extends \Razorpay\Magento\Controller\BaseController
         {
             // Api logic here
             $this->logger->info("FormDataAnalyticsController controller started");
-            
+
             $requestData    = $this->getPostData();
             $requestData    = is_array($requestData) ? $requestData : array($requestData);
 
             if (array_key_exists('event', $requestData))
             {
                 $event = $requestData['event'];
-            } 
+            }
             else
             {
                 throw new \Exception("Empty field passed for event name payload to Segment");
             }
-            
+
             if (array_key_exists('properties', $requestData))
             {
                 $properties = $requestData['properties'];
-            } 
+            }
             else
             {
                 throw new \Exception("Empty field passed for event properties payload to Segment");
-            }                            
+            }
 
             $this->logger->info("Event : ". $event .". In function " . __METHOD__);
 
@@ -109,13 +103,13 @@ class FormDataAnalytics extends \Razorpay\Magento\Controller\BaseController
      */
     protected function getPostData()
     {
-        $request = $this->getRequest()->getPostValue(); 
-        
+        $request = $this->getRequest()->getPostValue();
+
         if (!isset($request) || empty($request))
         {
             $request = "{}";
         }
-        
+
         return $request;
     }
 }
