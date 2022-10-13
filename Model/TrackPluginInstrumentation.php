@@ -18,7 +18,7 @@ class TrackPluginInstrumentation
 
     protected $mode;
 
-    protected ModuleListInterface $moduleList;
+    protected $moduleList;
 
     public function __construct(
         \Razorpay\Magento\Model\Config $config,
