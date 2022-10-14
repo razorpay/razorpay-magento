@@ -7,6 +7,7 @@ use Magento\Framework\Event\ObserverInterface;
 use Magento\Sales\Model\Order\Payment;
 use Razorpay\Magento\Model\PaymentMethod;
 use Magento\Framework\Exception\LocalizedException;
+use Razorpay\Magento\Model\TrackPluginInstrumentation;
 use Magento\Framework\App\Config\Storage\WriterInterface;
 use Magento\Framework\App\RequestInterface;
 use Razorpay\Magento\Model\Config;
@@ -18,7 +19,6 @@ use Razorpay\Magento\Model\Config;
  */
 class AfterConfigSaveObserver implements ObserverInterface
 {
-
     /**
      * Store key
      */
@@ -27,6 +27,7 @@ class AfterConfigSaveObserver implements ObserverInterface
 
     private $request;
     private $configWriter;
+    protected $trackPluginInstrumentation;
 
     /**
      * StatusAssignObserver constructor.
@@ -35,10 +36,11 @@ class AfterConfigSaveObserver implements ObserverInterface
      */
     public function __construct(
         \Razorpay\Magento\Model\Config $config,
-        RequestInterface $request, 
+        RequestInterface $request,
         WriterInterface $configWriter,
         \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Razorpay\Magento\Model\PaymentMethod $paymentMethod,
+        TrackPluginInstrumentation $trackPluginInstrumentation,
         \Psr\Log\LoggerInterface $logger
     ) {
         $this->config = $config;
@@ -46,7 +48,7 @@ class AfterConfigSaveObserver implements ObserverInterface
         $this->configWriter = $configWriter;
         $this->_storeManager = $storeManager;
         $this->logger          = $logger;
-        
+
         $this->config = $config;
 
         $this->key_id = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
@@ -55,6 +57,8 @@ class AfterConfigSaveObserver implements ObserverInterface
         $this->paymentMethod = $paymentMethod;
 
         $this->rzp = $this->paymentMethod->setAndGetRzpApiInstance();
+
+        $this->trackPluginInstrumentation = $trackPluginInstrumentation;
 
         $this->webhookUrl = $this->_storeManager->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_WEB) . 'razorpay/payment/webhook';
 
@@ -72,10 +76,11 @@ class AfterConfigSaveObserver implements ObserverInterface
      * {@inheritdoc}
      */
     public function execute(Observer $observer)
-    { 
-
+    {
         $razorpayParams = $this->request->getParam('groups')['razorpay']['fields'];
-        
+
+        $this->saveConfigData($razorpayParams);
+
         $razorpayParams['enable_webhook']                    = $this->config->getConfigData('enable_webhook');
         $razorpayParams['webhook_events']['value']           = explode (",", $this->config->getConfigData('webhook_events'));
         $razorpayParams['supported_webhook_events']['value'] = explode (",", $this->config->getConfigData('supported_webhook_events'));
@@ -165,9 +170,43 @@ class AfterConfigSaveObserver implements ObserverInterface
                 $this->logger->info($e->getMessage());
             }
         }
-        
+
         return;
-        
+
+    }
+
+    /**
+     * Create and track admin form data on Save Config click
+     */
+    public function saveConfigData($razorpayParams)
+    {
+        $storeName = "";
+
+        $firstElement = array_values($razorpayParams)[0];
+        if (empty($firstElement) === false and array_keys($firstElement)[0] === "value")
+        {
+            $razorpayParamsFormattedArray = array('config_settings' => array());
+            foreach($razorpayParams as $key=>$value)
+            {
+                if ($key != "key_id" && $key != "key_secret")
+                {
+                    $razorpayParamsFormattedArray['config_settings'][$key] = empty(array_values($value)) === false?
+                        array_values($value)[0] :
+                        null;
+                }
+            }
+            $storeName = $razorpayParamsFormattedArray['config_settings']['merchant_name_override'];
+        }
+
+        $metaData = array("store_name" => $storeName);
+
+        $eventData = array_merge($razorpayParamsFormattedArray, $metaData);
+
+        $this->logger->info("Event : Save Config Clicked. In function " . __METHOD__);
+
+        $response = $this->trackPluginInstrumentation->rzpTrackSegment('Save Config Clicked', ($eventData));
+
+        $this->logger->info(json_encode($response));
     }
 
     /**
@@ -243,7 +282,7 @@ class AfterConfigSaveObserver implements ObserverInterface
             $this->logger->info("Razorpay Webhook Disabled by Admin.");
         }
         catch(\Razorpay\Api\Errors\Error $e)
-        {            
+        {
             $this->logger->info($e->getMessage());
         }
         catch(\Exception $e)

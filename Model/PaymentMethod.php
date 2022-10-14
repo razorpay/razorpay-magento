@@ -9,6 +9,7 @@ use Magento\Sales\Model\ResourceModel\Order\Payment\Transaction\CollectionFactor
 use Magento\Sales\Model\Order\Payment\Transaction as PaymentTransaction;
 use Magento\Payment\Model\InfoInterface;
 use Razorpay\Magento\Model\Config;
+use Razorpay\Magento\Model\TrackPluginInstrumentation;
 use Magento\Catalog\Model\Session;
 
 /**
@@ -95,6 +96,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      */
     protected $orderRepository;
 
+    protected $trackPluginInstrumentation;
+
     //protected $_isOffline = true;
 
     /**
@@ -133,6 +136,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         \Razorpay\Magento\Controller\Payment\Order $order,
         \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
         \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
+        TrackPluginInstrumentation $trackPluginInstrumentation,
         array $data = []
     ) {
         parent::__construct(
@@ -158,6 +162,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $this->key_secret = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
 
         $this->rzp = $this->rzp = $this->setAndGetRzpApiInstance();
+
+        $this->trackPluginInstrumentation = $trackPluginInstrumentation;
 
         $this->order = $order;
 
@@ -211,6 +217,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      */
     public function refund(InfoInterface $payment, $amount)
     {
+        $this->refundOnline();
+
         $order = $payment->getOrder();
 
         $creditmemo = $this->request->getPost('creditmemo');
@@ -261,6 +269,25 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         }
 
         return $this;
+    }
+
+    /**
+     * Track Refund online clicked
+     */
+    public function refundOnline()
+    {
+        $storeName = $this->config->getMerchantNameOverride();
+
+        $eventData = array(
+            "store_name"                => $storeName,
+            "refund_online"             => true
+        );
+
+        $this->logger->info("Event : Refund Online Clicked. In function " . __METHOD__);
+
+        $response = $this->trackPluginInstrumentation->rzpTrackSegment('Refund Online Clicked', $eventData);
+
+        $this->logger->info(json_encode($response));
     }
 
     public function capture(InfoInterface $payment, $amount)

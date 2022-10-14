@@ -2,16 +2,37 @@
 
 namespace Razorpay\Magento\Setup;
 
+use Razorpay\Magento\Model\Config;
 use Magento\Framework\Setup\UpgradeSchemaInterface;
 use Magento\Framework\Setup\ModuleContextInterface;
+use Razorpay\Magento\Model\TrackPluginInstrumentation;
 use Magento\Framework\Setup\SchemaSetupInterface;
+use \Psr\Log\LoggerInterface;
 
-class UpgradeSchema implements  UpgradeSchemaInterface
+class UpgradeSchema implements UpgradeSchemaInterface
 {
-	public function upgrade(SchemaSetupInterface $setup,
-							ModuleContextInterface $context
-						)
+    protected $config;
+    protected $trackPluginInstrumentation;
+    protected $logger;
+
+    public function __construct(
+        Config $config,
+        TrackPluginInstrumentation $trackPluginInstrumentation,
+        LoggerInterface $logger
+    )
+    {
+        $this->config                       = $config;
+        $this->trackPluginInstrumentation   = $trackPluginInstrumentation;
+        $this->logger                       = $logger;
+    }
+
+	public function upgrade(
+        SchemaSetupInterface $setup,
+        ModuleContextInterface $context
+    )
 	{
+        $this->pluginUpgrade();
+        
 		$setup->startSetup();
 
 		//remove older configs for current version
@@ -87,4 +108,22 @@ class UpgradeSchema implements  UpgradeSchemaInterface
 
 		$setup->endSetup();
 	}
+
+    /**
+     * Plugin upgrade event track
+     */
+    public function pluginUpgrade()
+    {
+        $storeName = $this->config->getMerchantNameOverride();
+
+        $eventData = array(
+                        "store_name" => $storeName,
+                    );
+
+        $this->logger->info("Event : Plugin Upgrade. In function " . __METHOD__);
+
+        $response = $this->trackPluginInstrumentation->rzpTrackSegment('Plugin Upgrade', $eventData);
+
+        $this->logger->info(json_encode($response));
+    }
 }
