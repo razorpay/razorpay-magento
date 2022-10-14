@@ -78,6 +78,8 @@ class FormDataAnalytics extends \Razorpay\Magento\Controller\BaseController
 
             $trackResponse = $this->trackPluginInstrumentation->rzpTrackSegment($event, $properties);
 
+            $trackResponseDatalake = $this->trackPluginInstrumentation->rzpTrackDataLake($event, $properties);
+
             $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
             $response->setData($trackResponse);
             $response->setHttpResponseCode(200);

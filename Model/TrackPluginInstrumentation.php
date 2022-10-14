@@ -9,6 +9,28 @@ use Razorpay\Magento\Model\PaymentMethod;
 use Razorpay\Magento\Model\Config;
 
 use function PHPSTORM_META\type;
+use Requests;
+
+// Include Requests only if not already defined
+if (class_exists('WpOrg\Requests\Autoload') === false)
+{
+    require_once __DIR__.'../../Razorpay/Razorpay.php';
+}
+
+try
+{
+    \WpOrg\Requests\Autoload::register();
+
+    if (version_compare(Requests::VERSION, '1.6.0') === -1)
+    {
+        throw new Exception('Requests class found but did not match');
+    }
+}
+catch (\Exception $e)
+{
+    throw new Exception('Requests class found but did not match');
+}
+
 
 class TrackPluginInstrumentation
 {
@@ -88,19 +110,70 @@ class TrackPluginInstrumentation
         }
     }
 
-    public function rzpTrackDataLake($properties)
+    public function rzpTrackDataLake($event, $properties)
     {
         try
         {
+            if (empty($event) === true or is_string($event) === false)
+            {
+                throw new \Exception("Empty field passed for event name payload to Datalake");
+            }
+            if (empty($properties) === true)
+            {
+                throw new \Exception("Empty field passed for event properties payload to Datalake");
+            }
 
+            if (is_string($properties))
+            {
+                $properties = json_decode($properties);
+            }
+
+            $defaultProperties = $this->getDefaultProperties();
+
+            $mode = $defaultProperties['mode'];
+            unset($defaultProperties['mode']);
+
+            $properties = array_merge($properties, $defaultProperties);
+
+            $headers = [
+                'Content-Type'  => 'application/json'
+            ];
+
+            $data = json_encode(
+                [
+                    'mode'   => $mode,
+                    'key'    => '0c08FC07b3eF5C47Fc19B6544afF4A98',
+                    'events' => [
+                        [
+                            'event_type'    => 'plugin-events',
+                            'event_version' => 'v1',
+                            'timestamp'     => time(),
+                            'event'         => str_replace(' ', '.', $event),
+                            'properties'    => $properties
+                        ]
+                    ]
+                ]
+            );
+
+            $options = [
+                'timeout'   => 45
+            ];
+
+            $request = Requests::post("https://lumberjack.stage.razorpay.in/v1/track", $headers, $data, $options);
+
+            return ['status' => 'success'];
         }
         catch (\Razorpay\Api\Errors\Error $e)
         {
-            $this->logger->info($e->getMessage());
+            $this->logger->critical("Error:" . $e->getMessage());
+            $response = ['status' => 'error', 'message' => $e->getMessage()];
+            return $response;
         }
         catch (\Exception $e)
         {
-            $this->logger->info($e->getMessage());
+            $this->logger->critical("Error:" . $e->getMessage());
+            $response = ['status' => 'error', 'message' => $e->getMessage()];
+            return $response;
         }
     }
 
