@@ -17,5 +17,15 @@
                 <value id="razorpay_api" type="host">api.razorpay.com</value>
             </values>
         </policy>
+        <policy id="connect-src">
+            <values>
+                <value id="razorpay_lumberjack" type="host">lumberjack.razorpay.com</value>
+            </values>
+        </policy>
+        <policy id="connect-src">
+            <values>
+                <value id="razorpay_lumberjack_metrics" type="host">lumberjack-metrics.razorpay.com</value>
+            </values>
+        </policy>
     </policies>
 </csp_whitelist>
