@@ -76,9 +76,9 @@ class FormDataAnalytics extends \Razorpay\Magento\Controller\BaseController
 
             $this->logger->info("Event : ". $event .". In function " . __METHOD__);
 
-            $trackResponse = $this->trackPluginInstrumentation->rzpTrackSegment($event, $properties);
+            $trackResponse['segment'] = $this->trackPluginInstrumentation->rzpTrackSegment($event, $properties);
 
-            $trackResponseDatalake = $this->trackPluginInstrumentation->rzpTrackDataLake($event, $properties);
+            $trackResponse['datalake'] = $this->trackPluginInstrumentation->rzpTrackDataLake($event, $properties);
 
             $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
             $response->setData($trackResponse);
