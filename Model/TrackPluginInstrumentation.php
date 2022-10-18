@@ -194,8 +194,15 @@ class TrackPluginInstrumentation
         $defaultProperties['platform_version']  = $magentoVersion;
         $defaultProperties['plugin']            = 'Razorpay';
         $defaultProperties['plugin_version']    = $razorpayPluginVersion;
-        $defaultProperties['ip_address']        = $_SERVER['HTTP_HOST'];
         $defaultProperties['mode']              = $this->mode;
+        if(isset($_SERVER['HTTP_HOST']))
+        {
+            $defaultProperties['ip_address']    = $_SERVER['HTTP_HOST'];
+        }
+        else
+        {
+            $defaultProperties['ip_address']    = "";
+        }
 
         return $defaultProperties;
     }
