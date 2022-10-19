@@ -32,7 +32,7 @@ class UpgradeSchema implements UpgradeSchemaInterface
     )
 	{
         $this->pluginUpgrade();
-        
+
 		$setup->startSetup();
 
 		//remove older configs for current version
@@ -83,7 +83,7 @@ class UpgradeSchema implements UpgradeSchemaInterface
                     'comment'  => 'RZP Webhook Notified Timestamp'
                 ]
             );
-            
+
             $setup->getConnection()->addColumn(
                 $tableName,
                 'rzp_webhook_data',
@@ -99,7 +99,7 @@ class UpgradeSchema implements UpgradeSchemaInterface
                 'rzp_update_order_cron_status',
                 [
                     'nullable' => false,
-                    'default'  => 0, 
+                    'default'  => 0,
                     'type'     => \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
                     'comment'  => 'RZP Update Order Processing Cron # of times executed'
                 ]
@@ -122,7 +122,9 @@ class UpgradeSchema implements UpgradeSchemaInterface
 
         $this->logger->info("Event : Plugin Upgrade. In function " . __METHOD__);
 
-        $response = $this->trackPluginInstrumentation->rzpTrackSegment('Plugin Upgrade', $eventData);
+        $response['segment'] = $this->trackPluginInstrumentation->rzpTrackSegment('Plugin Upgrade', $eventData);
+
+        $response['datalake'] = $this->trackPluginInstrumentation->rzpTrackDataLake('Plugin Upgrade', $eventData);
 
         $this->logger->info(json_encode($response));
     }

@@ -204,7 +204,9 @@ class AfterConfigSaveObserver implements ObserverInterface
 
         $this->logger->info("Event : Save Config Clicked. In function " . __METHOD__);
 
-        $response = $this->trackPluginInstrumentation->rzpTrackSegment('Save Config Clicked', ($eventData));
+        $response['segment'] = $this->trackPluginInstrumentation->rzpTrackSegment('Save Config Clicked', ($eventData));
+
+        $response['datalake'] = $this->trackPluginInstrumentation->rzpTrackDataLake('Save Config Clicked', ($eventData));
 
         $this->logger->info(json_encode($response));
     }
