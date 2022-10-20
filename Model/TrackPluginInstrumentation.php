@@ -159,7 +159,7 @@ class TrackPluginInstrumentation
                 'timeout'   => 45
             ];
 
-            $request = Requests::post("https://lumberjack.stage.razorpay.in/v1/track", $headers, $data, $options);
+            $request = Requests::post("https://lumberjack.razorpay.com/v1/track", $headers, $data, $options);
 
             return ['status' => 'success'];
         }
