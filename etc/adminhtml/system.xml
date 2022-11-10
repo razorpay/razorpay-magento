@@ -5,7 +5,8 @@
             
                 <label><![CDATA[Razorpay&nbsp;&nbsp;<i>Accept and process multiple payments.</i>]]></label>
                 <comment>
-                    <![CDATA[<a href="https://razorpay.com/" target="_blank">Click here to sign up for Razorpay account</a>]]>
+                    <![CDATA[First <a href="https://easy.razorpay.com/onboarding?recommended_product=payment_gateway&source=woocommerce" target="_blank">signup</a> for a Razorpay account or 
+                            <a href="https://dashboard.razorpay.com/signin?screen=sign_in&source=woocommerce" target="_blank">login</a> if you have an existing account.]]>
                 </comment>
                 <field id="active" translate="label" type="select" sortOrder="2" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Enabled</label>
