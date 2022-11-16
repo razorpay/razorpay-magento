@@ -228,6 +228,7 @@ define(
                         integration: 'magento',
                         integration_version: data.module_version,
                         integration_parent_version: data.maze_version,
+                        integration_type: 'plugin',
                     }
                 };
 
