@@ -134,8 +134,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         \Magento\Directory\Model\RegionFactory $regionFactory,
         \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
         \Razorpay\Magento\Controller\Payment\Order $order,
-        \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
-        \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
+        AbstractResourceMethod $resource = null,
+        AbstractDbMethod $resourceCollection = null,
         TrackPluginInstrumentation $trackPluginInstrumentation,
         array $data = []
     ) {
