@@ -67,6 +67,10 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
      */
     protected $logger;
 
+    protected $enableCustomPaidOrderStatus;
+
+    protected $orderStatus;
+
     protected const STATUS_PROCESSING = 'processing';
 
     /**
@@ -104,6 +108,15 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
         $this->invoiceSender   = $invoiceSender;
         $this->orderSender     = $orderSender;
         $this->logger          = $logger;
+        $this->orderStatus     = static::STATUS_PROCESSING;
+
+        $this->enableCustomPaidOrderStatus = $this->config->isCustomPaidOrderStatusEnabled();
+
+        if ($this->enableCustomPaidOrderStatus === true
+            && empty($this->config->getCustomPaidOrderStatus()) === false)
+        {
+            $this->orderStatus = $this->config->getCustomPaidOrderStatus();
+        }
     }
 
     /**
@@ -218,9 +231,9 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
                 $amountPaid = number_format($rzpOrderAmount / 100, 2, ".", "");
                 if ($order->getStatus() === 'pending')
                 {
-                    $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
+                    $order->setState(static::STATUS_PROCESSING)->setStatus($this->orderStatus);
 
-                    $this->logger->info('graphQL: Order Status Updated to ' . static::STATUS_PROCESSING);
+                    $this->logger->info('graphQL: Order Status Updated to ' . $this->orderStatus);
                 }
 
                 $payment = $order->getPayment();

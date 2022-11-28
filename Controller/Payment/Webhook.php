@@ -61,6 +61,10 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
      */
     protected $orderSender;
 
+    protected $enableCustomPaidOrderStatus;
+
+    protected $orderStatus;
+
     /**
      * @var STATUS_PROCESSING
      */
@@ -120,6 +124,15 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         $this->transaction        = $transaction;
         $this->invoiceSender      = $invoiceSender;
         $this->orderSender        = $orderSender;
+        $this->orderStatus        = static::STATUS_PROCESSING;
+
+        $this->enableCustomPaidOrderStatus = $this->config->isCustomPaidOrderStatusEnabled();
+
+        if ($this->enableCustomPaidOrderStatus === true
+            && empty($this->config->getCustomPaidOrderStatus()) === false)
+        {
+            $this->orderStatus = $this->config->getCustomPaidOrderStatus();
+        }
     }
 
     /**
@@ -318,7 +331,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
                         $amountPaid = number_format($rzpOrderAmount / 100, 2, ".", "");
 
-                        $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
+                        $order->setState(static::STATUS_PROCESSING)->setStatus($this->orderStatus);
 
                         $order->addStatusHistoryComment(
                             __(
@@ -391,7 +404,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
                 if ($order)
                 {
-                    if (in_array($order->getStatus(), [static::STATUS_PENDING, static::STATUS_PROCESSING]) or
+                    if (in_array($order->getStatus(), [static::STATUS_PENDING, $this->orderStatus]) or
                         ($order->getState() === static::STATE_NEW and
                          $order->getStatus() === static::STATUS_CANCELED)
                     )
@@ -410,7 +423,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                             $order->getStatus() === static::STATUS_PENDING)
                         )
                         {
-                            $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
+                            $order->setState(static::STATUS_PROCESSING)->setStatus($this->orderStatus);
                         }
 
                         $payment = $order->getPayment();
@@ -468,7 +481,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                             $this->invoiceSender->send($invoice);
 
                             //send notification code
-                            $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
+                            $order->setState(static::STATUS_PROCESSING)->setStatus($this->orderStatus);
 
                             $order->addStatusHistoryComment(
                                 __('Notified customer about invoice #%1.', $invoice->getId())

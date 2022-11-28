@@ -60,6 +60,10 @@ class UpdateOrdersToProcessing {
      */
     protected $orderManagement;
 
+    protected $enableCustomPaidOrderStatus;
+
+    protected $orderStatus;
+
     /**
      * @var STATUS_PROCESSING
      */
@@ -108,6 +112,15 @@ class UpdateOrdersToProcessing {
         $this->invoiceSender            = $invoiceSender;
         $this->orderSender              = $orderSender;
         $this->logger                   = $logger;
+        $this->orderStatus              = static::STATUS_PROCESSING;
+
+        $this->enableCustomPaidOrderStatus = $this->config->isCustomPaidOrderStatusEnabled();
+
+        if ($this->enableCustomPaidOrderStatus === true
+            && empty($this->config->getCustomPaidOrderStatus()) === false)
+        {
+            $this->orderStatus = $this->config->getCustomPaidOrderStatus();
+        }
     }
 
     public function execute()
@@ -224,7 +237,7 @@ class UpdateOrdersToProcessing {
 
         $amountPaid = number_format($rzpOrderAmount / 100, 2, ".", "");
 
-        $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
+        $order->setState(static::STATUS_PROCESSING)->setStatus($this->orderStatus);
 
         if ($event === static::PAYMENT_AUTHORIZED)
         {
@@ -270,7 +283,7 @@ class UpdateOrdersToProcessing {
                 $this->invoiceSender->send($invoice);
 
                 //send notification code
-                $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
+                $order->setState(static::STATUS_PROCESSING)->setStatus($this->orderStatus);
 
                 $order->addStatusHistoryComment(
                             __('Notified customer about invoice #%1.', $invoice->getId())

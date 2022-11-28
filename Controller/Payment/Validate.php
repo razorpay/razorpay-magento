@@ -34,6 +34,10 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
 
     protected $orderSender;
 
+    protected $enableCustomPaidOrderStatus;
+
+    protected $orderStatus;
+
     const STATUS_APPROVED = 'APPROVED';
     const STATUS_PROCESSING = 'processing';
 
@@ -95,11 +99,19 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
         $this->catalogSession     = $catalogSession;
         $this->orderRepository    = $orderRepository;
         $this->orderSender        = $orderSender;
+        $this->_invoiceService    = $invoiceService;
+        $this->_invoiceSender     = $invoiceSender;
+        $this->_transaction       = $transaction;
+        $this->logger             = $logger;
+        $this->orderStatus        = static::STATUS_PROCESSING;
 
-        $this->_invoiceService = $invoiceService;
-        $this->_invoiceSender = $invoiceSender;
-        $this->_transaction = $transaction;
-        $this->logger       = $logger;
+        $this->enableCustomPaidOrderStatus = $this->config->isCustomPaidOrderStatusEnabled();
+
+        if ($this->enableCustomPaidOrderStatus === true
+            && empty($this->config->getCustomPaidOrderStatus()) === false)
+        {
+            $this->orderStatus = $this->config->getCustomPaidOrderStatus();
+        }
     }
 
     /**
@@ -145,7 +157,7 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
             $this->validateSignature($post);
 
             $orderId = $order->getIncrementId();
-            $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
+            $order->setState(static::STATUS_PROCESSING)->setStatus($this->orderStatus);
             
 
             $payment = $order->getPayment();        
@@ -212,7 +224,7 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
 
                 $this->_invoiceSender->send($invoice);
                 //send notification code
-                $order->setState(static::STATUS_PROCESSING)->setStatus(static::STATUS_PROCESSING);
+                $order->setState(static::STATUS_PROCESSING)->setStatus($this->orderStatus);
                 $order->addStatusHistoryComment(
                     __('Notified customer about invoice #%1.', $invoice->getId())
                 )
