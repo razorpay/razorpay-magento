@@ -3,7 +3,6 @@
 namespace Razorpay\Magento\Model;
 
 use Magento\Backend\Block\Template\Context;
-use Magento\Framework\View\Helper\SecureHtmlRenderer;
 use Magento\Framework\Data\Form\Element\AbstractElement;
 
 
@@ -11,17 +10,19 @@ class FormFieldTrack extends \Magento\Config\Block\System\Config\Form\Field
 {
     public function __construct(
         Context $context,
-        array $data = [],
-        ?SecureHtmlRenderer $secureRenderer = null
+        array $data = []
         )
     {
-        parent::__construct($context, $data, $secureRenderer);
+        parent::__construct($context, $data);
     }
 
     protected function _getElementHtml(AbstractElement $element)
     {		
         $baseUrl = $this->_storeManager->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_WEB);
-        $copyButton = "<script type='text/javascript'>
+
+        $comment = $element->getComment();
+
+        $copyButton = $comment . "<script type='text/javascript'>
 						//<![CDATA[
 						require([
 						    'jquery'
