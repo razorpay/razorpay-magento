@@ -3,7 +3,6 @@
 namespace Razorpay\Magento\Model;
 
 use Magento\Backend\Block\Template\Context;
-use Magento\Framework\View\Helper\SecureHtmlRenderer;
 use Magento\Framework\Data\Form\Element\AbstractElement;
 
 /**
@@ -15,10 +14,9 @@ class EnablePendingOrdersCron extends \Magento\Config\Block\System\Config\Form\F
 
 	public function __construct(
 		Context $context,
-        array $data = [],
-        ?SecureHtmlRenderer $secureRenderer = null
+        array $data = []
 	) {
-		parent::__construct($context, $data, $secureRenderer);
+		parent::__construct($context, $data);
 	}
 
     protected function _getElementHtml(AbstractElement $element)
