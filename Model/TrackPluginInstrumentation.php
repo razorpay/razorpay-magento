@@ -14,7 +14,7 @@ use Requests;
 // Include Requests only if not already defined
 if (class_exists('WpOrg\Requests\Autoload') === false)
 {
-    require_once __DIR__.'../../Razorpay/Razorpay.php';
+    require_once __DIR__.'/../../Razorpay/Razorpay.php';
 }
 
 try
