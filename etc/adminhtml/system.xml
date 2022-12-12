@@ -72,6 +72,24 @@
                     <validate>required-entry</validate>
                     <config_path>payment/razorpay/order_status</config_path>
                 </field>
+
+                <field id="enable_custom_paid_order_status" translate="label" type="select" sortOrder="21" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Enable Custom Paid Order Status</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <config_path>payment/razorpay/enable_custom_paid_order_status</config_path>
+                </field>
+
+                <field id="custom_paid_order_status" translate="label" type="text" sortOrder="22" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Custom Paid Order Status</label>
+                    <comment>This value will be updated at order status when payement is completed successfully. (default: processing).</comment>
+                    <config_path>payment/razorpay/custom_paid_order_status</config_path>
+                    <depends>
+                        <field id="enable_custom_paid_order_status">1</field>
+                    </depends>
+                    <frontend_model>Razorpay\Magento\Model\FormFieldTrack</frontend_model>
+                    <validate>required-entry</validate>
+                </field>
+
                 <field id="auto_invoice" translate="label" type="select" sortOrder="2" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Auto Generate Invoice</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>

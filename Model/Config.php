@@ -21,6 +21,8 @@ class Config
     const ENABLE_PENDING_ORDERS_CRON = 'enable_pending_orders_cron';
     const PENDING_ORDER_TIMEOUT = 'pending_orders_timeout';
     const DISABLE_UPGRADE_NOTICE = 'disable_upgrade_notice';
+    const ENABLE_CUSTOM_PAID_ORDER_STATUS = 'enable_custom_paid_order_status';
+    const CUSTOM_PAID_ORDER_STATUS = 'custom_paid_order_status';
 
     /**
      * @var string
@@ -81,6 +83,16 @@ class Config
     public function getPendingOrderTimeout()
     {
         return (int) $this->getConfigData(self::PENDING_ORDER_TIMEOUT);
+    }
+
+    public function isCustomPaidOrderStatusEnabled()
+    {
+        return (bool) (int) $this->getConfigData(self::ENABLE_CUSTOM_PAID_ORDER_STATUS, $this->storeId);
+    }
+
+    public function getCustomPaidOrderStatus()
+    {
+        return $this->getConfigData(self::CUSTOM_PAID_ORDER_STATUS);
     }
 
     public function getPaymentAction()
