@@ -288,24 +288,25 @@ class UpdateOrdersToProcessing {
                 $order->addStatusHistoryComment(
                             __('Notified customer about invoice #%1.', $invoice->getId())
                         )->setIsCustomerNotified(true);
-
-                //send Order email, after successfull payment
-                try
-                {
-                    $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
-                    $this->orderSender->send($order);
-                    $this->checkoutSession->unsRazorpayMailSentOnSuccess();
-                }
-                catch (\Magento\Framework\Exception\MailException $e)
-                {
-                    $this->logger->critical($e);
-                }
-                catch (\Exception $e)
-                {
-                    $this->logger->critical($e);
-                }
             }
         }
+
+        //send Order email, after successfull payment
+        try
+        {
+            $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
+            $this->orderSender->send($order);
+            $this->checkoutSession->unsRazorpayMailSentOnSuccess();
+        }
+        catch (\Magento\Framework\Exception\MailException $e)
+        {
+            $this->logger->critical($e);
+        }
+        catch (\Exception $e)
+        {
+            $this->logger->critical($e);
+        }
+
         $cronRunCount = $order->getRzpUpdateOrderCronStatus();
         $order->setRzpUpdateOrderCronStatus($cronRunCount+1);
         $order->save();
