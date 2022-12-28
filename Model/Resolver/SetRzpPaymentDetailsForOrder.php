@@ -300,16 +300,21 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
                     )->setIsCustomerNotified(true);
                 }
 
-                try {
+                try
+                {
                     $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
                     $this->orderSender->send($order);
                     $this->checkoutSession->unsRazorpayMailSentOnSuccess();
-                } catch (\Magento\Framework\Exception\MailException $e) {
+                }
+                catch (\Magento\Framework\Exception\MailException $e)
+                {
                     $this->logger->critical('graphQL: '
                     . 'Razorpay Error:' . $e->getMessage());
 
                     throw new GraphQlInputException(__('Razorpay Error: %1.', $e->getMessage()));
-                } catch (\Exception $e) {
+                }
+                catch (\Exception $e)
+                {
                     $this->logger->critical('graphQL: '
                     . 'Error:' . $e->getMessage());
 
