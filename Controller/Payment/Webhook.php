@@ -341,6 +341,22 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                             )
                         );
 
+                        //send Order email, after successfull payment
+                        try
+                        {
+                            $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
+                            $this->orderSender->send($order);
+                            $this->checkoutSession->unsRazorpayMailSentOnSuccess();
+                        }
+                        catch (\Magento\Framework\Exception\MailException $e)
+                        {
+                            $this->logger->critical($e->getMessage());
+                        }
+                        catch (\Exception $e)
+                        {
+                            $this->logger->critical($e->getMessage());
+                        }
+
                         $order->save();
 
                         //update/disable the quote
@@ -486,22 +502,22 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                             $order->addStatusHistoryComment(
                                 __('Notified customer about invoice #%1.', $invoice->getId())
                             )->setIsCustomerNotified(true);
+                        }
 
-                            //send Order email, after successfull payment
-                            try
-                            {
-                                $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
-                                $this->orderSender->send($order);
-                                $this->checkoutSession->unsRazorpayMailSentOnSuccess();
-                            }
-                            catch (\Magento\Framework\Exception\MailException $e)
-                            {
-                                $this->logger->critical($e->getMessage());
-                            }
-                            catch (\Exception $e)
-                            {
-                                $this->logger->critical($e->getMessage());
-                            }
+                        //send Order email, after successfull payment
+                        try
+                        {
+                            $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
+                            $this->orderSender->send($order);
+                            $this->checkoutSession->unsRazorpayMailSentOnSuccess();
+                        }
+                        catch (\Magento\Framework\Exception\MailException $e)
+                        {
+                            $this->logger->critical($e->getMessage());
+                        }
+                        catch (\Exception $e)
+                        {
+                            $this->logger->critical($e->getMessage());
                         }
 
                         $order->save();

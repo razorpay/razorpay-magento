@@ -298,22 +298,29 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
                     $order->addStatusHistoryComment(
                         __('Notified customer about invoice #%1.', $invoice->getId())
                     )->setIsCustomerNotified(true);
-                    try {
-                        $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
-                        $this->orderSender->send($order);
-                        $this->checkoutSession->unsRazorpayMailSentOnSuccess();
-                    } catch (\Magento\Framework\Exception\MailException $e) {
-                        $this->logger->critical('graphQL: '
-                        . 'Razorpay Error:' . $e->getMessage());
-
-                        throw new GraphQlInputException(__('Razorpay Error: %1.', $e->getMessage()));
-                    } catch (\Exception $e) {
-                        $this->logger->critical('graphQL: '
-                        . 'Error:' . $e->getMessage());
-
-                        throw new GraphQlInputException(__('Error: %1.', $e->getMessage()));
-                    }
                 }
+
+                try
+                {
+                    $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
+                    $this->orderSender->send($order);
+                    $this->checkoutSession->unsRazorpayMailSentOnSuccess();
+                }
+                catch (\Magento\Framework\Exception\MailException $e)
+                {
+                    $this->logger->critical('graphQL: '
+                    . 'Razorpay Error:' . $e->getMessage());
+
+                    throw new GraphQlInputException(__('Razorpay Error: %1.', $e->getMessage()));
+                }
+                catch (\Exception $e)
+                {
+                    $this->logger->critical('graphQL: '
+                    . 'Error:' . $e->getMessage());
+
+                    throw new GraphQlInputException(__('Error: %1.', $e->getMessage()));
+                }
+
                 $order->save();
             }
         } catch (\Razorpay\Api\Errors\Error $e)
