@@ -14,7 +14,7 @@ inputs:
 
   test_command:
     required: true
-    default: phpunit .
+    default: composer run test
     description: "The test command"
 
   composer_auth:
