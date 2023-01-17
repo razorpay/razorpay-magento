@@ -1,0 +1,18 @@
+name: Unit Test
+
+on: [push,pull]
+
+jobs:
+  unit-test:
+    strategy:
+      matrix:
+        php_version:
+          - 7.4
+          - 8.1
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: ./unit-test
+      with:
+        source_folder: _test/demo-package
+        php_version: ${{ matrix.php_version }}
