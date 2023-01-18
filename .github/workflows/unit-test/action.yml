@@ -1,6 +1,6 @@
 name: "Unit Test"
 author: "Razorpay"
-description: "A Github Action that runs the Unit Tests of a Magento Package"
+description: "A Github Action that runs the Unit Tests of a Razorpay Magento module"
 inputs:
   php_version: 
     required: true

@@ -7,6 +7,7 @@ jobs:
     strategy:
       matrix:
         php_version:
+          - 7.3
           - 7.4
           - 8.1
     runs-on: ubuntu-latest
