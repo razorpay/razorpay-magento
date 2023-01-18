@@ -32,7 +32,7 @@
     "homepage": "https://razorpay.com",
     "suggest": {
         "magento/module-checkout-agreements": "100.0.*"
-    }
+    },
     "type": "magento2-module",
     "license": ["MIT"],
     "autoload": {
