@@ -309,7 +309,7 @@ define(
                         require('Magento_Customer/js/customer-data').reload(['cart']);
 
                         if (response.success) {
-                            window.location.replace(url.build(response.redirect_url));
+                            window.location.reload();
                         }
                     },
 
