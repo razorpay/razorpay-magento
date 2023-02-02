@@ -1,7 +1,8 @@
 #!/bin/sh -l
 
-echo "hello your setup is $INPUT_PHP & $INPUT_PROCESS & $INPUT_OVERRIDE_SETTINGS"
-
+echo "This setup is $INPUT_PHP"
+echo "Process is $INPUT_PROCESS"
+echo "Override Settings is $INPUT_OVERRIDE_SETTINGS"
 
 if [ $INPUT_PHP = 'auto' ]
 then
