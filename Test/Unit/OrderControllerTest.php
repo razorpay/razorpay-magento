@@ -11,7 +11,7 @@ class OrderControllerTest extends TestCase {
     private $storeManager;
     public function setUp():void
     {
-        $this->order2 = \Mockery::mock(Razorpay\Magento\Controller\Payment\Order::class)->makePartial();
+        $this->order2 = \Mockery::mock(Razorpay\Magento\Controller\Payment\Order::class)->makePartial()->shouldAllowMockingProtectedMethods();
         //print_r($this->order2);
         $this->password = $this->order2->generatePassword();
         //var_dump($this->order2->api);
