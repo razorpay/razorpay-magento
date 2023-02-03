@@ -315,7 +315,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         return $this->webhooks;
     }
 
-    private function generatePassword()
+    public function generatePassword()
     {
         $digits    = array_flip(range('0', '9'));
         $lowercase = array_flip(range('a', 'z'));
