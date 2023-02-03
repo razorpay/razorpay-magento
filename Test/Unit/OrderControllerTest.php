@@ -15,7 +15,44 @@ class OrderControllerTest extends TestCase {
         //print_r($this->order2);
         $this->password = $this->order2->generatePassword();
         //var_dump($this->order2->api);
+
+        // $this->api = $this->createStub(Razorpay\Api\Api::class);
+        $this->api = $this->getMockBuilder(Razorpay\Api\Api::class)
+                     ->disableOriginalConstructor()
+                     ->disableOriginalClone()
+                     ->disableArgumentCloning()
+                     ->disallowMockingUnknownTypes()
+                     ->getMock();
     }
+
+    public function testMockApiMethod() 
+    {
+        $this->api->method('getAppsDetails')->willReturn('foo');
+        $this->assertSame('foo', $this->api->getAppsDetails());
+    }
+
+    public function testWebhook()
+    {
+        $this->api->expects($this->once())
+                   ->method('__get')
+                   ->with($this->equalTo('webhook'))
+                   ->will($this->returnValue(['snickers']));
+
+        $response = $this->api->webhook;
+        $this->assertEquals(['snickers'], $response);
+    }
+
+    public function testWebhookAll()
+    {
+        $this->api->expects($this->once())
+                   ->method('__get')
+                   ->with($this->equalTo('webhook_all'))
+                   ->will($this->returnValue('snickers'));
+
+        $response = $this->api->webhook_all;
+        $this->assertEquals('snickers', $response);
+    }
+
     public function testGeneratePasswordEmpty()
     {
         
