@@ -9,12 +9,10 @@ use Magento\Framework\UrlInterface;
 
 class OrderControllerTest extends TestCase {
     private $storeManager;
+
     public function setUp():void
     {
-        $this->order2 = \Mockery::mock(Razorpay\Magento\Controller\Payment\Order::class)->makePartial()->shouldAllowMockingProtectedMethods();
-        //print_r($this->order2);
-        $this->password = $this->order2->generatePassword();
-        //var_dump($this->order2->api);
+        $this->order = \Mockery::mock(Razorpay\Magento\Controller\Payment\Order::class)->makePartial()->shouldAllowMockingProtectedMethods();
 
         // $this->api = $this->createStub(Razorpay\Api\Api::class);
         $this->api = $this->getMockBuilder(Razorpay\Api\Api::class)
@@ -55,13 +53,23 @@ class OrderControllerTest extends TestCase {
 
     public function testGeneratePasswordEmpty()
     {
-        
+        $this->password = $this->order->generatePassword();
+
         $this->assertNotEmpty($this->password);
     }
+
     public function testGeneratePasswordLength()
     {
-        
+        $this->password = $this->order->generatePassword();
+
         $this->assertGreaterThanOrEqual(12, strlen($this->password));
         $this->assertLessThanOrEqual(16, strlen($this->password));
+    }
+
+    public function testWebhooksIsArray() {
+        $this->order->setMockInit('rzp_key', 'rzp_secret');
+        $this->order->getWebhooks();
+
+        $this->assertIsArray($this->order->webhooks->items);
     }
 }

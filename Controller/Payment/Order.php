@@ -300,6 +300,15 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         return ['id' => null,'active_events'=>null];
     }
 
+    function setMockInit($rzp_key,$rzp_secret)
+    {
+        $this->rzp = new Api($rzp_key, $rzp_secret);
+
+        $this->webhooks = (object)[];
+        $this->webhooks->entity = 'collection';
+        $this->webhooks->items  = [];
+    }
+
     function getWebhooks($count=10, $skip=0)
     {
         $webhooks = $this->rzp->webhook->all(['count' => $count, 'skip' => $skip]);
