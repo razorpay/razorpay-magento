@@ -77,6 +77,10 @@ class AfterConfigSaveObserver implements ObserverInterface
      */
     public function execute(Observer $observer)
     {
+        if(isset($this->request->getParam('groups')['razorpay']) === false) {
+            return;
+        }
+
         $razorpayParams = $this->request->getParam('groups')['razorpay']['fields'];
 
         $this->saveConfigData($razorpayParams);
