@@ -261,7 +261,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
      *
      * @return return array
      */
-    private function getExistingWebhook()
+    protected function getExistingWebhook()
     {
         try
         {
@@ -303,6 +303,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     function setMockInit($rzp_key,$rzp_secret)
     {
         $this->rzp = new Api($rzp_key, $rzp_secret);
+
+        $this->webhookUrl = null;
 
         $this->webhooks = (object)[];
         $this->webhooks->entity = 'collection';

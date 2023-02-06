@@ -12,6 +12,9 @@ class OrderControllerTest extends TestCase {
 
     public function setUp():void
     {
+        $this->rzp_key    = 'rzp_key';
+        $this->rzp_secret = 'rzp_secret';
+
         $this->order = \Mockery::mock(Razorpay\Magento\Controller\Payment\Order::class)->makePartial()->shouldAllowMockingProtectedMethods();
 
         // $this->api = $this->createStub(Razorpay\Api\Api::class);
@@ -67,9 +70,31 @@ class OrderControllerTest extends TestCase {
     }
 
     public function testWebhooksIsArray() {
-        $this->order->setMockInit('rzp_key', 'rzp_secret');
+        $this->order->setMockInit($this->rzp_key, $this->rzp_secret);
         $this->order->getWebhooks();
 
         $this->assertIsArray($this->order->webhooks->items);
+    }
+
+    public function testGetExistingWebhookSuccess() {
+        $expected_id = 'LDATzQq2wsYwFh';
+
+        $this->order->setMockInit($this->rzp_key, $this->rzp_secret);
+
+        $this->order->webhookUrl = 'http://example.com/razorpay/payment/webhook';
+
+        $response = $this->order->getExistingWebhook();
+
+        $this->assertEquals($expected_id,$response['id']);
+    }
+
+    public function testGetExistingWebhookFailed() {
+        $this->order->setMockInit($this->rzp_key, $this->rzp_secret);
+
+        $this->order->webhookUrl = 'http://example.com/razorpay/payment/webhook-not-avalable';
+
+        $response = $this->order->getExistingWebhook();
+
+        $this->assertNull($response['id']);
     }
 }
