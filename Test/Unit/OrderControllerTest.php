@@ -7,6 +7,7 @@ use Magento\Store\Model\StoreManagerInterface;
 use Magento\Framework\UrlInterface;
 use Razorpay\Magento\Test\MockFactory\MockApi;
 use Razorpay\Api\Api;
+use Magento\Framework\Controller\Result\Json;
 /**
  * @covers Razorpay\Magento\Controller\Payment\Order
  */
@@ -50,6 +51,13 @@ class OrderControllerTest extends TestCase {
         ];
 
 
+    }
+    function getProperty($object, $propertyName)
+    {
+    $reflection = new \ReflectionClass($object);
+    $property = $reflection->getProperty($propertyName);
+    $property->setAccessible(true);
+    return $property->getValue($object);
     }
     function testExecuteSuccess()
     {
@@ -103,18 +111,12 @@ class OrderControllerTest extends TestCase {
         $resultFactoryMock = \Mockery::mock(
             Magento\Framework\Controller\ResultFactory::class
         )->makePartial()->shouldAllowMockingProtectedMethods();
-        $serializerJson = \Mockery::mock(
-            \Magento\Framework\Serialize\Serializer\Json::class
-        )->makePartial()->shouldAllowMockingProtectedMethods();
+        $serializerJson = new \Magento\Framework\Serialize\Serializer\Json;
         $translateInline = \Mockery::mock(
             \Magento\Framework\Translate\InlineInterface::class
         );
-        $json = \Mockery::mock(
-            Magento\Framework\Controller\Result\Json::class, [
-                $translateInline,
-                $serializerJson
-            ]
-        )->makePartial()->shouldAllowMockingProtectedMethods();
+        $json = new Json($translateInline,
+        $serializerJson);
         $HttpInterface = \Mockery::mock(
             Magento\Framework\App\Response\HttpInterface::class
         );
@@ -187,7 +189,7 @@ class OrderControllerTest extends TestCase {
         );
         $orderApi->shouldReceive('create')->andReturn(
                                                     (object) [
-                                                        'id' => 'yash123',
+                                                        'id' => 'order_test',
                                                         'entity' => 'order',
                                                         'amount' => 10000,
                                                         'amount_paid' => 0,
@@ -216,13 +218,7 @@ class OrderControllerTest extends TestCase {
         //var_dump($this->order->getWebhooks());
         //var_dump($this->order->_objectManager);
         $response = $this->order->execute();
-            
-        $json->shouldReceive('render',$HttpInterface)->andReturn('ssss');
-        
-        // $r = $resultInterface->renderResult('',$response->renderResult());
-
-        // print_r($response->renderResult($resultInterface));
-        
-        $this->assertEmpty('');
+        $expectedResponse = '{"success":true,"rzp_order":"order_test","order_id":"000012","amount":10000,"quote_currency":"INR","quote_amount":"1000.00","maze_version":"2.4.5-p1","module_version":"4.0.2","is_hosted":false,"image":null,"embedded_url":"https:\/\/api.razorpay.com\/v1\/checkout\/embedded"}';
+        $this->assertSame($expectedResponse, $this->getProperty($response, 'json'));
     }
 }
