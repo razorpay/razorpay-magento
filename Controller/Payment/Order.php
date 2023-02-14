@@ -166,11 +166,11 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         //if already order from same session , let make it's to pending state
         $new_order_status = $this->config->getNewOrderStatus();
 
-        $orderModel = $this->_objectManager->get('Magento\Sales\Model\Order')->load($mazeOrder->getEntityId());
+        //$orderModel = $this->_objectManager->get('Magento\Sales\Model\Order')->load($mazeOrder->getEntityId());
 
-        $orderModel->setState('new')
-                   ->setStatus($new_order_status)
-                   ->save();
+        // $orderModel->setState('new')
+        //            ->setStatus($new_order_status)
+        //            ->save();
 
         if ($payment_action === 'authorize') 
         {
@@ -223,8 +223,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
                 $this->catalogSession->setRazorpayOrderID($order->id);
 
-                $orderModel->setRzpOrderId($order->id)
-                   ->save();
+                // $orderModel->setRzpOrderId($order->id)
+                //    ->save();
             }
         }
         catch(\Razorpay\Api\Errors\Error $e)
@@ -237,6 +237,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         }
         catch(\Exception $e)
         {
+            echo $e->getMessage();
             $responseContent = [
                 'message'   => $e->getMessage(),
                 'parameters' => []
@@ -300,9 +301,10 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         return ['id' => null,'active_events'=>null];
     }
 
-    function setMockInit($_objectManager)
+    function setMockInit($_objectManager, $resultFactory)
     {
         $this->_objectManager = $_objectManager;
+        $this->resultFactory = $resultFactory;
     }
 
     function getWebhooks($count=10, $skip=0)
