@@ -43,6 +43,13 @@ class OrderControllerTest extends TestCase {
         $this->logger = $this->createMock(
             \Psr\Log\LoggerInterface::class
         );
+        $this->orderModel = $this->createMock(
+            \Magento\Sales\Model\Order::class
+        );
+
+        $this->orderModel->method('load')->with($this->equalTo('000012'))->will($this->returnValue($this->orderModel));
+        $this->orderModel->method('setState')->with($this->equalTo('new'))->will($this->returnValue($this->orderModel));
+        $this->orderModel->method('setStatus')->with($this->equalTo('pending'))->will($this->returnValue($this->orderModel));
         //$this->logger->expects('info')->with("Razorpay Webhook with existing secret.");
         $this->store = \Mockery::mock(
             \Magento\Store\Model\Store::class
@@ -77,9 +84,10 @@ class OrderControllerTest extends TestCase {
         
         $this->config->shouldReceive('getConfigData')->with('key_id')->andReturn('key_id');
         $this->config->shouldReceive('getConfigData')->with('key_secret')->andReturn('key_secret');
+        $this->config->shouldReceive('getKeyId')->andReturn('key_id');
 
         $this->storeManager->shouldReceive('getStore')->andReturn($this->store);
-        $this->store->shouldReceive('getBaseUrl')->with('web')->andReturn('https://example.com/');
+        $this->store->shouldReceive('getBaseUrl')->with('web')->andReturn('https://www.example.com/');
 
         $this->order = \Mockery::mock(Razorpay\Magento\Controller\Payment\Order::class, [$this->context, 
                                                                                         $this->customerSession,
@@ -90,7 +98,6 @@ class OrderControllerTest extends TestCase {
                                                                                         $this->storeManager,
                                                                                         $this->logger])->makePartial()->shouldAllowMockingProtectedMethods();
         
-        // $this->api = $this->createStub(Razorpay\Api\Api::class);
         $this->api = $this->getMockBuilder(Razorpay\Api\Api::class)
                      ->disableOriginalConstructor()
                      ->disableOriginalClone()
@@ -101,7 +108,23 @@ class OrderControllerTest extends TestCase {
         $this->webhookData = ['entity' => 'collection',
                             'count' => 1,
                             'items' => [
-                                [
+                               (object) [
+                                    'id' => 'LDATzQq2wsBBBB',
+                                    'url' => 'https://www.example.com/razorpay/payment/webhook',
+                                    'entity' => 'webhook',
+                                    'active' => true,
+                                    'events' => [
+                                        'payment.authorized' => true,
+                                        'order.paid' => true,
+                                    ]
+                                ],
+                            ]
+                            ];
+        
+        $this->webhookData2 = ['entity' => 'collection',
+                            'count' => 1,
+                            'items' => [
+                                (object)[
                                     'id' => 'LDATzQq2wsBBBB',
                                     'url' => 'https://www.example-two.com/razorpay/payment/webhook',
                                     'entity' => 'webhook',
@@ -113,11 +136,6 @@ class OrderControllerTest extends TestCase {
                                 ],
                             ]
                             ];
-        $this->merchantPreferences = [
-            'embedded_url' => 'https://api.razorpay.com/v1/checkout/embedded',
-            'is_hosted' => false,
-            'image' => null
-        ];
         $this->orderData = [
             'id' => 'order_test',
             'entity' => 'order',
@@ -129,9 +147,7 @@ class OrderControllerTest extends TestCase {
             'offer_id' => null,
             'status' => 'created',
             'attempts' => 0,
-            'notes' => [
-                'woocommerce_order_number' => '11'
-            ],
+            'notes' => [],
             'created_at' => 1666097548
         ];
 
@@ -156,7 +172,6 @@ class OrderControllerTest extends TestCase {
         $this->config->shouldReceive('getConfigData')->with('webhook_secret')->andReturn('1daswefjwgkjb21ldsvn');
         $this->config->shouldReceive('getPaymentAction')->andReturn('authorize');
         $this->config->shouldReceive('getNewOrderStatus')->andReturn('pending');
-        $this->config->shouldReceive('getKeyId')->andReturn('rzp_test_1F4C1VMZlSBWcy');
 
         
 
@@ -169,7 +184,7 @@ class OrderControllerTest extends TestCase {
 
         $this->_objectManager->shouldReceive('get')->with('Magento\Framework\App\ProductMetadataInterface')->andReturn($this->productMetadataInterfac);
         $this->_objectManager->shouldReceive('get')->with('Magento\Framework\Module\ModuleList')->andReturn($this->moduleList);
-        $this->_objectManager->shouldReceive('get')->with('Magento\Sales\Model\Order')->andReturn($this->order);
+        $this->_objectManager->shouldReceive('get')->with('Magento\Sales\Model\Order')->andReturn($this->orderModel);
 
         $this->productMetadataInterfac->shouldReceive('getVersion')->andReturn('2.4.5-p1');
         $this->moduleList->shouldReceive('getOne')->with('Razorpay_Magento')->andReturn(['setup_version' => '4.0.2']);
@@ -177,20 +192,45 @@ class OrderControllerTest extends TestCase {
         $this->context->shouldReceive('getResultFactory')->andReturn($this->resultFactoryMock);
         
         
-        $this->order->shouldReceive('getWebhooks')->andReturn((object)$this->webhookData);
-        $this->order->shouldReceive('getMerchantPreferences')->andReturn($this->merchantPreferences);
         
         $this->orderApi = \Mockery::mock(
             Razorpay\Api\Order::class
         );
+        $this->webhookApi = \Mockery::mock(
+            Razorpay\Api\Webhook::class
+        );
+        $this->requestApi = \Mockery::mock(
+            Razorpay\Api\Request::class
+        );
         $this->orderApi->shouldReceive('create')->andReturn((object) $this->orderData);
        
+        $this->webhookApi->shouldReceive('edit')->andReturn("hehe");
+        $this->webhookApi->shouldReceive('create')->andReturn("hehe2");
+        $this->webhookApi->shouldReceive('all')->with(['count' => 10, 'skip' => 0])->andReturn($this->webhookData);
+        $this->webhookApi->shouldReceive('all')->with(['count' => 10, 'skip' => 1])->andReturn(['count' => 0]);
+        $this->webhookApi->shouldReceive('all')->with(['count' => 10, 'skip' => 2])->andReturn(['count' => 0]);
+        $this->requestApi->shouldReceive('request')->with("GET", "preferences")->andReturn(["options" => [
+            "image"=> "https://cdn.razorpay.com/logos/IjFWzUIxXibcjw_medium.jpeg",
+
+            "redirect"=> true
+        ]]);
+
         $this->api->method('__get')
-        ->with($this->equalTo('order'))
-        ->will($this->returnValue($this->orderApi));
+        ->willReturnCallback(function ($propertyName) {
+                switch($propertyName) {
+                    case 'webhook':
+                        return $this->webhookApi;
+                    case 'order':
+                        return $this->orderApi;
+                    case 'request':
+                        return $this->requestApi;
+                }
+            }
+        );
         // $api = new Api('rzp_test_1F4C1VMZlSBWcy', 'Y5LcmGVRfwicofmUo2SfI0iE');
 
         $this->order->rzp = $this->api;
+        $this->order->api = $this->api;
         $this->resultFactory = $this->context->getResultFactory();
         // var_dump($resultFactory);
         $this->order->setMockInit($this->_objectManager, $this->resultFactory);
@@ -198,10 +238,11 @@ class OrderControllerTest extends TestCase {
         //var_dump($this->order->_objectManager);
         
         $response = $this->order->execute();
-        $expectedResponse = '{"success":true,"rzp_order":"order_test","order_id":"000012","amount":10000,"quote_currency":"INR","quote_amount":"1000.00","maze_version":"2.4.5-p1","module_version":"4.0.2","is_hosted":false,"image":null,"embedded_url":"https:\/\/api.razorpay.com\/v1\/checkout\/embedded"}';
+        $expectedResponse = '{"success":true,"rzp_order":"order_test","order_id":"000012","amount":10000,"quote_currency":"INR","quote_amount":"1000.00","maze_version":"2.4.5-p1","module_version":"4.0.2","is_hosted":true,"image":"https:\/\/cdn.razorpay.com\/logos\/IjFWzUIxXibcjw_medium.jpeg","embedded_url":"https:\/\/api.razorpay.com\/v1\/checkout\/embedded"}';
+                            //'{"success":true,"rzp_order":"order_test","order_id":"000012","amount":10000,"quote_currency":"INR","quote_amount":"1000.00","maze_version":"2.4.5-p1","module_version":"4.0.2","is_hosted":true,"image":"https:\/\/cdn.razorpay.com\/logos\/IjFWzUIxXibcjw_medium.jpeg","embedded_url":"https:\/\/api.razorpay.com\/v1\/checkout\/embedded"}'
         $this->assertSame($expectedResponse, $this->getProperty($response, 'json'));
     }
-    function testExecuteSuccess2()
+    function testExecuteOrderApiFailure()
     {
 
         $this->resultFactoryMock->shouldReceive('create')->with('json')->andReturn($this->json);
@@ -214,8 +255,8 @@ class OrderControllerTest extends TestCase {
         $this->config->shouldReceive('getConfigData')->with('webhook_secret')->andReturn(null);
         $this->config->shouldReceive('getPaymentAction')->andReturn('authorize_capture');
         $this->config->shouldReceive('getNewOrderStatus')->andReturn('pending');
-        $this->config->shouldReceive('getKeyId')->andReturn('rzp_test_1F4C1VMZlSBWcy');
-
+        
+        $this->config->shouldReceive('setConfigData');
         
 
         $this->order->shouldReceive('getGrandTotal')->andReturn(1000);
@@ -227,7 +268,7 @@ class OrderControllerTest extends TestCase {
 
         $this->_objectManager->shouldReceive('get')->with('Magento\Framework\App\ProductMetadataInterface')->andReturn($this->productMetadataInterfac);
         $this->_objectManager->shouldReceive('get')->with('Magento\Framework\Module\ModuleList')->andReturn($this->moduleList);
-        $this->_objectManager->shouldReceive('get')->with('Magento\Sales\Model\Order')->andReturn($this->order);
+        $this->_objectManager->shouldReceive('get')->with('Magento\Sales\Model\Order')->andReturn($this->orderModel);
 
         $this->productMetadataInterfac->shouldReceive('getVersion')->andReturn('2.4.5-p1');
         $this->moduleList->shouldReceive('getOne')->with('Razorpay_Magento')->andReturn(['setup_version' => '4.0.2']);
@@ -235,29 +276,320 @@ class OrderControllerTest extends TestCase {
         $this->context->shouldReceive('getResultFactory')->andReturn($this->resultFactoryMock);
         
         
-        $this->order->shouldReceive('getWebhooks')->andReturn($this->webhookData);
-        $this->order->shouldReceive('getMerchantPreferences')->andReturn($this->merchantPreferences);
+        
         
         $this->orderApi = \Mockery::mock(
             Razorpay\Api\Order::class
         );
-        $this->orderApi->shouldReceive('create')->andReturn((object) $this->orderData);
-       
-        $this->api->method('__get')
-        ->with($this->equalTo('order'))
-        ->will($this->returnValue($this->orderApi));
-        // $api = new Api('rzp_test_1F4C1VMZlSBWcy', 'Y5LcmGVRfwicofmUo2SfI0iE');
+        $this->webhookApi = \Mockery::mock(
+            Razorpay\Api\Webhook::class
+        );
+        $this->requestApi = \Mockery::mock(
+            Razorpay\Api\Request::class
+        );
+        $this->apiError = \Mockery::mock(
+            Razorpay\Api\Errors\Error::class,['Test Api error message', 0, 0]
+        );
+        $this->orderApi->shouldReceive('create')->andThrow($this->apiError);
+        $this->webhookApi->shouldReceive('edit')->andReturn("hehe");
+        $this->webhookApi->shouldReceive('create')->andReturn("hehe2");
+        $this->webhookApi->shouldReceive('all')->with(['count' => 10, 'skip' => 0])->andReturn($this->webhookData2);
+        $this->webhookApi->shouldReceive('all')->with(['count' => 10, 'skip' => 1])->andReturn(['count' => 0]);
+        $this->webhookApi->shouldReceive('all')->with(['count' => 10, 'skip' => 2])->andReturn(['count' => 0]);
+        $this->requestApi->shouldReceive('request')->with("GET", "preferences")->andReturn(["options" => [
+            "image"=> "https://cdn.razorpay.com/logos/IjFWzUIxXibcjw_medium.jpeg",
 
+            "redirect"=> true
+        ]]);
+
+        $this->api->method('__get')
+        ->willReturnCallback(function ($propertyName) {
+                switch($propertyName) {
+                    case 'webhook':
+                        return $this->webhookApi;
+                    case 'order':
+                        return $this->orderApi;
+                    case 'request':
+                        return $this->requestApi;
+                }
+            }
+        );
+        
         $this->order->rzp = $this->api;
+        $this->order->api = $this->api;
         $this->resultFactory = $this->context->getResultFactory();
         // var_dump($resultFactory);
         $this->order->setMockInit($this->_objectManager, $this->resultFactory);
-        //var_dump($this->order->getWebhooks());
-        //var_dump($this->order->_objectManager);
-        $tl = new TestLogger();
+        
         $response = $this->order->execute();
-        //$tl->hasRecord("Razorpay Webhook with existing secret.");
-        $expectedResponse = '{"success":true,"rzp_order":"order_test","order_id":"000012","amount":10000,"quote_currency":"INR","quote_amount":"1000.00","maze_version":"2.4.5-p1","module_version":"4.0.2","is_hosted":false,"image":null,"embedded_url":"https:\/\/api.razorpay.com\/v1\/checkout\/embedded"}';
+        $expectedResponse = '{"message":"Test Api error message","parameters":[]}';
         $this->assertSame($expectedResponse, $this->getProperty($response, 'json'));
     }
+    function testExecuteOrderCreationException()
+    {
+
+        $this->resultFactoryMock->shouldReceive('create')->with('json')->andReturn($this->json);
+
+        $this->config->shouldReceive('getConfigData')->with('webhook_triggered_at')->andReturn('1645263824');
+        
+        $this->config->shouldReceive('getConfigData')->with('webhook_events')->andReturn('order.paid,payment.authorized');
+        $this->config->shouldReceive('getConfigData')->with('supported_webhook_events')->andReturn('order.paid,payment.authorized');
+        $this->config->shouldReceive('getConfigData')->with('enable_webhook')->andReturn(1);
+        $this->config->shouldReceive('getConfigData')->with('webhook_secret')->andReturn(null);
+        $this->config->shouldReceive('getPaymentAction')->andReturn('authorize_capture');
+        $this->config->shouldReceive('getNewOrderStatus')->andReturn('pending');
+        $this->config->shouldReceive('setConfigData');
+        
+
+        $this->order->shouldReceive('getGrandTotal')->andReturn(1000);
+        $this->order->shouldReceive('getIncrementId')->andReturn('000012');
+        $this->order->shouldReceive('getOrderCurrencyCode')->andReturn('INR');
+        $this->order->shouldReceive('getEntityId')->andReturn('000012');
+
+        
+        $this->checkoutSession->shouldReceive('getLastRealOrder')->andReturn($this->order);
+
+        $this->_objectManager->shouldReceive('get')->with('Magento\Framework\App\ProductMetadataInterface')->andReturn($this->productMetadataInterfac);
+        $this->_objectManager->shouldReceive('get')->with('Magento\Framework\Module\ModuleList')->andReturn($this->moduleList);
+        $this->_objectManager->shouldReceive('get')->with('Magento\Sales\Model\Order')->andReturn($this->orderModel);
+
+        $this->productMetadataInterfac->shouldReceive('getVersion')->andReturn('2.4.5-p1');
+        $this->moduleList->shouldReceive('getOne')->with('Razorpay_Magento')->andReturn(['setup_version' => '4.0.2']);
+
+        $this->context->shouldReceive('getResultFactory')->andReturn($this->resultFactoryMock);
+        
+        $this->orderApi = \Mockery::mock(
+            Razorpay\Api\Order::class
+        );
+        $this->webhookApi = \Mockery::mock(
+            Razorpay\Api\Webhook::class
+        );
+        $this->requestApi = \Mockery::mock(
+            Razorpay\Api\Request::class
+        );
+        $this->orderApi->shouldReceive('create')->andThrow(new Exception("Test exception message"));
+        $this->webhookApi->shouldReceive('edit')->andReturn("hehe");
+        $this->webhookApi->shouldReceive('create')->andReturn("hehe2");
+        $this->webhookApi->shouldReceive('all')->with(['count' => 10, 'skip' => 0])->andReturn($this->webhookData);
+        $this->webhookApi->shouldReceive('all')->with(['count' => 10, 'skip' => 1])->andReturn(['count' => 0]);
+        $this->webhookApi->shouldReceive('all')->with(['count' => 10, 'skip' => 2])->andReturn(['count' => 0]);
+        $this->requestApi->shouldReceive('request')->with("GET", "preferences")->andReturn(["options" => [
+            "image"=> "https://cdn.razorpay.com/logos/IjFWzUIxXibcjw_medium.jpeg",
+            "redirect"=> true
+        ]]);
+
+
+        $this->api->method('__get')
+        ->willReturnCallback(function ($propertyName) {
+                switch($propertyName) {
+                    case 'webhook':
+                        return $this->webhookApi;
+                    case 'order':
+                        return $this->orderApi;
+                    case 'request':
+                        return $this->requestApi;
+                }
+            }
+        );
+
+        $this->order->rzp = $this->api;
+        $this->order->api = $this->api;
+        $this->resultFactory = $this->context->getResultFactory();
+        // var_dump($resultFactory);
+        $this->order->setMockInit($this->_objectManager, $this->resultFactory);
+        
+        $response = $this->order->execute();
+        $expectedResponse = '{"message":"Test exception message","parameters":[]}';
+        $this->assertSame($expectedResponse, $this->getProperty($response, 'json'));
+        //print_r(get_class_methods($this->_objectManager->get('Magento\Sales\Model\Order')->load('000012')));
+    }
+    function testGetWebhooksApiFailure()
+    {
+
+        $this->resultFactoryMock->shouldReceive('create')->with('json')->andReturn($this->json);
+
+        $this->config->shouldReceive('getConfigData')->with('webhook_triggered_at')->andReturn('1645263824');
+        
+        $this->config->shouldReceive('getConfigData')->with('webhook_events')->andReturn('order.paid,payment.authorized');
+        $this->config->shouldReceive('getConfigData')->with('supported_webhook_events')->andReturn('order.paid,payment.authorized');
+        $this->config->shouldReceive('getConfigData')->with('enable_webhook')->andReturn(1);
+        $this->config->shouldReceive('getConfigData')->with('webhook_secret')->andReturn(null);
+        $this->config->shouldReceive('getPaymentAction')->andReturn('authorize_capture');
+        $this->config->shouldReceive('getNewOrderStatus')->andReturn('pending');
+        
+        $this->config->shouldReceive('setConfigData');
+        
+
+        $this->order->shouldReceive('getGrandTotal')->andReturn(1000);
+        $this->order->shouldReceive('getIncrementId')->andReturn('000012');
+        $this->order->shouldReceive('getOrderCurrencyCode')->andReturn('INR');
+        $this->order->shouldReceive('getEntityId')->andReturn('000012');
+
+        $this->checkoutSession->shouldReceive('getLastRealOrder')->andReturn($this->order);
+
+        $this->_objectManager->shouldReceive('get')->with('Magento\Framework\App\ProductMetadataInterface')->andReturn($this->productMetadataInterfac);
+        $this->_objectManager->shouldReceive('get')->with('Magento\Framework\Module\ModuleList')->andReturn($this->moduleList);
+        $this->_objectManager->shouldReceive('get')->with('Magento\Sales\Model\Order')->andReturn($this->orderModel);
+
+        $this->productMetadataInterfac->shouldReceive('getVersion')->andReturn('2.4.5-p1');
+        $this->moduleList->shouldReceive('getOne')->with('Razorpay_Magento')->andReturn(['setup_version' => '4.0.2']);
+
+        $this->context->shouldReceive('getResultFactory')->andReturn($this->resultFactoryMock);
+        
+        
+        
+        
+        $this->orderApi = \Mockery::mock(
+            Razorpay\Api\Order::class
+        );
+        $this->webhookApi = \Mockery::mock(
+            Razorpay\Api\Webhook::class
+        );
+        $this->requestApi = \Mockery::mock(
+            Razorpay\Api\Request::class
+        );
+        $this->apiError = \Mockery::mock(
+            Razorpay\Api\Errors\Error::class,['Test Api error message', 0, 0]
+        );
+        $this->orderApi->shouldReceive('create')->andThrow($this->apiError);
+        $this->webhookApi->shouldReceive('edit')->andReturn("hehe");
+        $this->webhookApi->shouldReceive('create')->andReturn("hehe2");
+        $this->webhookApi->shouldReceive('all')->with(['count' => 10, 'skip' => 0])->andThrow($this->apiError);
+        $this->webhookApi->shouldReceive('all')->with(['count' => 10, 'skip' => 1])->andReturn(['count' => 0]);
+        $this->webhookApi->shouldReceive('all')->with(['count' => 10, 'skip' => 2])->andReturn(['count' => 0]);
+        $this->requestApi->shouldReceive('request')->with("GET", "preferences")->andReturn(["options" => [
+            "image"=> "https://cdn.razorpay.com/logos/IjFWzUIxXibcjw_medium.jpeg",
+
+            "redirect"=> true
+        ]]);
+
+        $this->api->method('__get')
+        ->willReturnCallback(function ($propertyName) {
+                switch($propertyName) {
+                    case 'webhook':
+                        return $this->webhookApi;
+                    case 'order':
+                        return $this->orderApi;
+                    case 'request':
+                        return $this->requestApi;
+                }
+            }
+        );
+        
+        $this->order->rzp = $this->api;
+        $this->order->api = $this->api;
+        $this->resultFactory = $this->context->getResultFactory();
+        // var_dump($resultFactory);
+        $this->order->setMockInit($this->_objectManager, $this->resultFactory);
+        
+        $response = $this->order->execute();
+        $expectedResponse = '{"message":"Test Api error message","parameters":[]}';
+        $this->assertSame($expectedResponse, $this->getProperty($response, 'json'));
+    }
+    function testGetWebhooksException()
+    {
+
+        $this->resultFactoryMock->shouldReceive('create')->with('json')->andReturn($this->json);
+
+        $this->config->shouldReceive('getConfigData')->with('webhook_triggered_at')->andReturn('1645263824');
+        
+        $this->config->shouldReceive('getConfigData')->with('webhook_events')->andReturn('order.paid,payment.authorized');
+        $this->config->shouldReceive('getConfigData')->with('supported_webhook_events')->andReturn('order.paid,payment.authorized');
+        $this->config->shouldReceive('getConfigData')->with('enable_webhook')->andReturn(1);
+        $this->config->shouldReceive('getConfigData')->with('webhook_secret')->andReturn(null);
+        $this->config->shouldReceive('getPaymentAction')->andReturn('authorize_capture');
+        $this->config->shouldReceive('getNewOrderStatus')->andReturn('pending');
+        $this->config->shouldReceive('setConfigData');
+        
+
+        $this->order->shouldReceive('getGrandTotal')->andReturn(1000);
+        $this->order->shouldReceive('getIncrementId')->andReturn('000012');
+        $this->order->shouldReceive('getOrderCurrencyCode')->andReturn('INR');
+        $this->order->shouldReceive('getEntityId')->andReturn('000012');
+
+        
+        $this->checkoutSession->shouldReceive('getLastRealOrder')->andReturn($this->order);
+
+        $this->_objectManager->shouldReceive('get')->with('Magento\Framework\App\ProductMetadataInterface')->andReturn($this->productMetadataInterfac);
+        $this->_objectManager->shouldReceive('get')->with('Magento\Framework\Module\ModuleList')->andReturn($this->moduleList);
+        $this->_objectManager->shouldReceive('get')->with('Magento\Sales\Model\Order')->andReturn($this->orderModel);
+
+        $this->productMetadataInterfac->shouldReceive('getVersion')->andReturn('2.4.5-p1');
+        $this->moduleList->shouldReceive('getOne')->with('Razorpay_Magento')->andReturn(['setup_version' => '4.0.2']);
+
+        $this->context->shouldReceive('getResultFactory')->andReturn($this->resultFactoryMock);
+        
+        $this->orderApi = \Mockery::mock(
+            Razorpay\Api\Order::class
+        );
+        $this->webhookApi = \Mockery::mock(
+            Razorpay\Api\Webhook::class
+        );
+        $this->requestApi = \Mockery::mock(
+            Razorpay\Api\Request::class
+        );
+        $this->orderApi->shouldReceive('create')->andThrow(new Exception("Test exception message"));
+        $this->webhookApi->shouldReceive('edit')->andReturn("hehe");
+        $this->webhookApi->shouldReceive('create')->andReturn("hehe2");
+        $this->webhookApi->shouldReceive('all')->with(['count' => 10, 'skip' => 0])->andThrow(new Exception("Test exception message"));
+        $this->webhookApi->shouldReceive('all')->with(['count' => 10, 'skip' => 1])->andReturn(['count' => 0]);
+        $this->webhookApi->shouldReceive('all')->with(['count' => 10, 'skip' => 2])->andReturn(['count' => 0]);
+        $this->requestApi->shouldReceive('request')->with("GET", "preferences")->andReturn(["options" => [
+            "image"=> "https://cdn.razorpay.com/logos/IjFWzUIxXibcjw_medium.jpeg",
+            "redirect"=> true
+        ]]);
+
+
+        $this->api->method('__get')
+        ->willReturnCallback(function ($propertyName) {
+                switch($propertyName) {
+                    case 'webhook':
+                        return $this->webhookApi;
+                    case 'order':
+                        return $this->orderApi;
+                    case 'request':
+                        return $this->requestApi;
+                }
+            }
+        );
+
+        $this->order->rzp = $this->api;
+        $this->order->api = $this->api;
+        $this->resultFactory = $this->context->getResultFactory();
+        // var_dump($resultFactory);
+        $this->order->setMockInit($this->_objectManager, $this->resultFactory);
+        
+        $response = $this->order->execute();
+        $expectedResponse = '{"message":"Test exception message","parameters":[]}';
+        $this->assertSame($expectedResponse, $this->getProperty($response, 'json'));
+        //print_r(get_class_methods($this->_objectManager->get('Magento\Sales\Model\Order')->load('000012')));
+    }
+    // function testGetPreferencesApiFailure()
+    // {
+    //     $this->requestApi = \Mockery::mock(
+    //         Razorpay\Api\Request::class
+    //     );
+    //     $this->apiError = \Mockery::mock(
+    //                 Razorpay\Api\Errors\Error::class,['Test Api error message', 0, 0]
+    //             );
+    //     $this->api->method('__get')
+    //     ->willReturnCallback(function ($propertyName) {
+    //             switch($propertyName) {
+    //                 case 'webhook':
+    //                     return $this->webhookApi;
+    //                 case 'order':
+    //                     return $this->orderApi;
+    //                 case 'request':
+    //                     return $this->requestApi;
+    //             }
+    //         }
+    //     );
+    //     $this->requestApi->shouldReceive('request')->with("GET", "preferences")->andThrow($this->apiError);
+    //     $this->order->api = $this->api;
+    //     ob_start();
+    //     $this->order->getMerchantPreferences();
+    //     $result = ob_get_contents();
+    //     ob_end_clean();
+    //     var_dump($result);
+    // }
 }
