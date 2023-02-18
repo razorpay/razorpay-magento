@@ -41,6 +41,24 @@
                     <validate>required-entry validate-digits validate-not-negative-number validate-digits-range digits-range-20-43200</validate>
                 </field>
 
+                <field id="enable_reset_cart_cron" translate="label" type="select" sortOrder="6" showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Reset cart cron enabled</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <frontend_model>Razorpay\Magento\Model\EnableResetCartOrdersCron</frontend_model>
+                    <config_path>payment/razorpay/enable_reset_cart_cron</config_path>
+                </field>
+
+                <field id="reset_cart_orders_timeout" translate="label" type="text" sortOrder="6" showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Reset cart timeout</label>
+                    <comment>Set timeout in minutes (default : 30 minutes). Timeout can be updated between the range of 20 minutes and 43200 minutes (30 days). This will enable cron for resetting the cart from new to canceled status for a given timeout.</comment>
+                    <config_path>payment/razorpay/reset_cart_orders_timeout</config_path>
+                    <depends>
+                        <field id="enable_reset_cart_cron">1</field>
+                    </depends>
+                    <frontend_model>Razorpay\Magento\Model\FormFieldTrack</frontend_model>
+                    <validate>required-entry validate-digits validate-not-negative-number validate-digits-range digits-range-20-43200</validate>
+                </field>
+
                 <field id="title" translate="label" type="text" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Title</label>
                     <frontend_model>Razorpay\Magento\Model\FormFieldTrack</frontend_model>
