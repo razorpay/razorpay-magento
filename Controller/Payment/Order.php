@@ -373,7 +373,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         }
         catch (\Razorpay\Api\Errors\Error $e)
         {
-            echo 'Magento Error : ' . $e->getMessage();
+            $this->logger->critical('Razorpay Order: Magento Error : ' . $e->getMessage());
         }
 
         $preferences = [];
