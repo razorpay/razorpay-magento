@@ -23,6 +23,16 @@ class CancelPendingOrders {
     protected const STATUS_PENDING = 'pending';
 
     /**
+     * @var STATUS_CANCELED
+     */
+    protected const STATUS_CANCELED = 'canceled';
+
+    /**
+     * @var STATE_NEW
+     */
+    protected const STATE_NEW = 'new';
+
+    /**
      * CancelOrder constructor.
      * @param \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
      * @param \Magento\Framework\Api\SearchCriteriaBuilder $searchCriteriaBuilder
@@ -48,6 +58,8 @@ class CancelPendingOrders {
         $this->logger                          = $logger;
         $this->isCancelPendingOrderCronEnabled = $this->config->isCancelPendingOrderCronEnabled();
         $this->pendingOrderTimeout             = ($this->config->getPendingOrderTimeout() > 0) ? $this->config->getPendingOrderTimeout() : 30;
+        $this->isCancelResetCartCronEnabled    = $this->config->isCancelResetCartOrderCronEnabled();
+        $this->resetCartOrderTimeout           = ($this->config->getResetCartOrderTimeout() > 0) ? $this->config->getResetCartOrderTimeout() : 30;
     }
 
     public function execute()
@@ -84,6 +96,45 @@ class CancelPendingOrders {
             $this->logger->critical('Cronjob: isCancelPendingOrderCronEnabled:'
              . $this->isCancelPendingOrderCronEnabled . ', '
             . 'pendingOrderTimeout:' . $this->pendingOrderTimeout);
+        }
+
+        // Execute only if Reset Cart Cron is Enabled
+        if ($this->isCancelResetCartCronEnabled === true
+            && $this->resetCartOrderTimeout > 0)
+        {
+            $this->logger->info("Cronjob: Cancel Reset Cart Order Cron started.");
+            $dateTimeCheck = date('Y-m-d H:i:s', strtotime('-' . $this->resetCartOrderTimeout . ' minutes'));
+            $sortOrder = $this->sortOrderBuilder->setField('entity_id')->setDirection('DESC')->create();
+            $searchCriteria = $this->searchCriteriaBuilder
+            ->addFilter(
+                'updated_at',
+                $dateTimeCheck,
+                'lt'
+            )->addFilter(
+               'state',
+               static::STATE_NEW,
+               'eq'
+            )->addFilter(
+               'status',
+               static::STATUS_CANCELED,
+               'eq'
+            )->setSortOrders(
+                [$sortOrder]
+            )->create();
+
+            $orders = $this->orderRepository->getList($searchCriteria);
+
+            foreach ($orders->getItems() as $order)
+            {
+                if ($order->getPayment()->getMethod() === 'razorpay') {
+                    $this->cancelOrder($order);
+                }
+            }
+        } else
+        {
+            $this->logger->critical('Cronjob: isCancelResetCartCronEnabled:'
+             . $this->isCancelResetCartCronEnabled . ', '
+            . 'resetCartOrderTimeout:' . $this->resetCartOrderTimeout);
         }
     }
 

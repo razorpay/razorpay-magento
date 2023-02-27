@@ -20,6 +20,8 @@ class Config
     const WEBHOOK_SECRET = 'webhook_secret';
     const ENABLE_PENDING_ORDERS_CRON = 'enable_pending_orders_cron';
     const PENDING_ORDER_TIMEOUT = 'pending_orders_timeout';
+    const ENABLE_RESET_CART_CRON = 'enable_reset_cart_cron';
+    const RESET_CART_ORDERS_TIMEOUT = 'reset_cart_orders_timeout';
     const DISABLE_UPGRADE_NOTICE = 'disable_upgrade_notice';
     const ENABLE_CUSTOM_PAID_ORDER_STATUS = 'enable_custom_paid_order_status';
     const CUSTOM_PAID_ORDER_STATUS = 'custom_paid_order_status';
@@ -83,6 +85,16 @@ class Config
     public function getPendingOrderTimeout()
     {
         return (int) $this->getConfigData(self::PENDING_ORDER_TIMEOUT);
+    }
+
+    public function isCancelResetCartOrderCronEnabled()
+    {
+        return (bool) (int) $this->getConfigData(self::ENABLE_RESET_CART_CRON, $this->storeId);
+    }
+
+    public function getResetCartOrderTimeout()
+    {
+        return (int) $this->getConfigData(self::RESET_CART_ORDERS_TIMEOUT);
     }
 
     public function isCustomPaidOrderStatusEnabled()
