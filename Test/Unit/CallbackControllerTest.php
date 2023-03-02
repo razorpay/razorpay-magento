@@ -364,7 +364,7 @@ class CallbackControllerTest extends TestCase {
                      ->disallowMockingUnknownTypes()
                      ->getMock();
         $this->utilityApi = \Mockery::mock(
-            Razorpay\Api\Order::class
+            Razorpay\Api\Utility::class
         );
         $this->utilityApi->shouldReceive('verifyPaymentSignature');
         $this->api->method('__get')
