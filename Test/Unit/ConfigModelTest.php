@@ -19,6 +19,8 @@ class ConfigModelTest extends TestCase {
     const WEBHOOK_SECRET                  = 'webhook_secret';
     const ENABLE_PENDING_ORDERS_CRON      = 'enable_pending_orders_cron';
     const PENDING_ORDER_TIMEOUT           = 'pending_orders_timeout';
+    const ENABLE_RESET_CART_CRON          = 'enable_reset_cart_cron';
+    const RESET_CART_ORDERS_TIMEOUT       = 'reset_cart_orders_timeout';
     const ENABLE_CUSTOM_PAID_ORDER_STATUS = 'enable_custom_paid_order_status';
     const CUSTOM_PAID_ORDER_STATUS        = 'custom_paid_order_status';
 
@@ -89,8 +91,16 @@ class ConfigModelTest extends TestCase {
 		                  ->andReturn(30);
 
 		$this->configModel->shouldReceive('getConfigData')
+		                  ->with(self::ENABLE_RESET_CART_CRON, null)
+		                  ->andReturn(true);
+
+		$this->configModel->shouldReceive('getConfigData')
 		                  ->with(self::ENABLE_CUSTOM_PAID_ORDER_STATUS, null)
 		                  ->andReturn(true);
+
+		$this->configModel->shouldReceive('getConfigData')
+		                  ->with(self::RESET_CART_ORDERS_TIMEOUT)
+		                  ->andReturn(30);
 
 		$this->configModel->shouldReceive('getConfigData')
 		                  ->with(self::CUSTOM_PAID_ORDER_STATUS)
@@ -154,6 +164,24 @@ class ConfigModelTest extends TestCase {
 		$pendingOrderTimeout = $this->configModel->getPendingOrderTimeout();
 
 		$this->assertSame($expectedResult, $pendingOrderTimeout);
+	}
+
+	function testIsCancelResetCartOrderCronEnabled()
+	{
+		$expectedResult = true;
+
+		$cancelResetCartOrderCronEnabled = $this->configModel->isCancelResetCartOrderCronEnabled();
+
+		$this->assertSame($expectedResult, $cancelResetCartOrderCronEnabled);
+	}
+
+	function testGetResetCartOrderTimeout()
+	{
+		$expectedResult = 30;
+
+		$resetCartOrderTimeout = $this->configModel->getResetCartOrderTimeout();
+
+		$this->assertSame($expectedResult, $resetCartOrderTimeout);
 	}
 
 	function testIsCustomPaidOrderStatusEnabled()
