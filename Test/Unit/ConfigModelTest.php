@@ -242,7 +242,7 @@ class ConfigModelTest extends TestCase {
 	{
 		$this->configModel->shouldReceive('getConfigData')
 		                  ->with(self::KEY_SPECIFIC_COUNTRY)
-		                  ->andReturn(null);
+		                  ->andReturn('US');
 
 		$expectedResult = false;
 
