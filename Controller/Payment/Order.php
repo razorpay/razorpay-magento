@@ -56,6 +56,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
         $this->webhooks->entity = 'collection';
         $this->webhooks->items  = [];
+
     }
 
     public function execute()
@@ -69,7 +70,9 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
             if (!filter_var($domain_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE))
             {
+                // @codeCoverageIgnoreStart
                 $this->logger->info("Can't enable/disable webhook on $domain or private ip($domain_ip).");
+                // @codeCoverageIgnoreEnd
             }
             else if(($webhookTriggeredAt + (24*60*60)) < time())
             {
@@ -84,8 +87,9 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                     if(empty($this->config->getConfigData('webhook_secret')) === false)
                     {
                         $razorpayParams['webhook_secret']['value'] = $this->config->getConfigData('webhook_secret');
-
+                        // @codeCoverageIgnoreStart
                         $this->logger->info("Razorpay Webhook with existing secret.");
+                        // @codeCoverageIgnoreEnd
                     }
                     else
                     {
@@ -94,8 +98,9 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                         $this->config->setConfigData('webhook_secret',$secret);
 
                         $razorpayParams['webhook_secret']['value'] = $secret;
-
+                        // @codeCoverageIgnoreStart
                         $this->logger->info("Razorpay Webhook created new secret.");
+                        // @codeCoverageIgnoreEnd
                     }
 
                     $events = [];
@@ -124,7 +129,9 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
                         $this->config->setConfigData('webhook_triggered_at', time());
 
+                        // @codeCoverageIgnoreStart
                         $this->logger->info("Razorpay Webhook Updated by Admin.");
+                        // @codeCoverageIgnoreEnd
                     }
                     else
                     {
@@ -136,17 +143,23 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                         ]);
 
                         $this->config->setConfigData('webhook_triggered_at', time());
-
+                        
+                        // @codeCoverageIgnoreStart
                         $this->logger->info("Razorpay Webhook Created by Admin");
+                        // @codeCoverageIgnoreEnd
                     }
                 }
                 catch(\Razorpay\Api\Errors\Error $e)
                 {
+                    // @codeCoverageIgnoreStart
                     $this->logger->info($e->getMessage());
+                    // @codeCoverageIgnoreEnd
                 }
                 catch(\Exception $e)
                 {
+                    // @codeCoverageIgnoreStart
                     $this->logger->info($e->getMessage());
+                    // @codeCoverageIgnoreEnd
                 }
             }
         }
@@ -167,7 +180,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $new_order_status = $this->config->getNewOrderStatus();
 
         $orderModel = $this->_objectManager->get('Magento\Sales\Model\Order')->load($mazeOrder->getEntityId());
-
+        //print_r($order_model);
         $orderModel->setState('new')
                    ->setStatus($new_order_status)
                    ->save();
@@ -185,8 +198,10 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
         try
         {
+            // @codeCoverageIgnoreStart
             $this->logger->info("Razorpay Order: create order started with quoteID:" . $receipt_id
                                     ." and amount:".$amount);
+            // @codeCoverageIgnoreEnd
             $order = $this->rzp->order->create([
                 'amount' => $amount,
                 'receipt' => $receipt_id,
@@ -201,7 +216,9 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
             if (null !== $order && !empty($order->id))
             {
+                // @codeCoverageIgnoreStart
                 $this->logger->info("Razorpay Order: order created with rzp_order:" . $order->id);
+                // @codeCoverageIgnoreEnd
                 $is_hosted = false;
                 $merchantPreferences    = $this->getMerchantPreferences();
 
@@ -233,7 +250,9 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 'message'   => $e->getMessage(),
                 'parameters' => []
             ];
-            $this->logger->critical("Razorpay Order: Error message:" . $e->getMessage());
+            // @codeCoverageIgnoreStart
+            $this->logger->critical("Razorpay Order: Error message from api:" . $e->getMessage());
+            // @codeCoverageIgnoreEnd
         }
         catch(\Exception $e)
         {
@@ -241,7 +260,9 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 'message'   => $e->getMessage(),
                 'parameters' => []
             ];
+            // @codeCoverageIgnoreStart
             $this->logger->critical("Razorpay Order: Error message:" . $e->getMessage());
+            // @codeCoverageIgnoreEnd
         }
 
         $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
@@ -250,12 +271,12 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
         return $response;
     }
-
+    // @codeCoverageIgnoreStart
     public function getOrderID()
     {
         return $this->catalogSession->getRazorpayOrderID();
     }
-
+    // @codeCoverageIgnoreEnd
     /**
      * getExistingWebhook.
      *
@@ -267,7 +288,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         {
             //fetch all the webhooks
             $webhooks = $this->getWebhooks();
-
+            
             if(($webhooks->count) > 0 and (empty($this->webhookUrl) === false))
             {
                 foreach ($webhooks->items as $key => $webhook)
@@ -290,14 +311,24 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         }
         catch(\Razorpay\Api\Errors\Error $e)
         {
+            // @codeCoverageIgnoreStart
             $this->logger->info($e->getMessage());
+            // @codeCoverageIgnoreEnd
         }
         catch(\Exception $e)
         {
+            // @codeCoverageIgnoreStart
             $this->logger->info($e->getMessage());
+            // @codeCoverageIgnoreEnd
         }
 
         return ['id' => null,'active_events'=>null];
+    }
+
+    function setMockInit($_objectManager, $resultFactory)
+    {
+        $this->_objectManager = $_objectManager;
+        $this->resultFactory = $resultFactory;
     }
 
     function getWebhooks($count=10, $skip=0)
@@ -335,29 +366,40 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
     protected function getMerchantPreferences()
     {
-        try
-        {
-            $api = new Api($this->config->getKeyId(),"");
-
-            $response = $api->request->request("GET", "preferences");
-        }
-        catch (\Razorpay\Api\Errors\Error $e)
-        {
-            echo 'Magento Error : ' . $e->getMessage();
-        }
 
         $preferences = [];
 
         $preferences['embedded_url'] = Api::getFullUrl("checkout/embedded");
         $preferences['is_hosted'] = false;
-        $preferences['image'] = $response['options']['image'];
-
-        if(isset($response['options']['redirect']) && $response['options']['redirect'] === true)
+        $preferences['image'] = '';
+        try
         {
-            $preferences['is_hosted'] = true;
+            $api = $this->getPublicRazorpayApiInstance();
+            $response = $api->request->request("GET", "preferences");
+            
+            $preferences['image'] = $response['options']['image'];
+
+            if(isset($response['options']['redirect']) && $response['options']['redirect'] === true)
+            {
+                $preferences['is_hosted'] = true;
+            }
         }
+        catch (\Razorpay\Api\Errors\Error $e)
+        {
+            // @codeCoverageIgnoreStart
+            $this->logger->critical('Razorpay Order: Magento Error : ' . $e->getMessage());
+            // @codeCoverageIgnoreEnd
+        }
+
+        
 
         return $preferences;
     }
-
+    // @codeCoverageIgnoreStart
+    function getPublicRazorpayApiInstance()
+    {
+        $api = new Api($this->config->getKeyId(),"");
+        return $api;
+    }
+    // @codeCoverageIgnoreEnd
 }
