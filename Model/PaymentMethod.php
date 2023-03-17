@@ -161,13 +161,11 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $this->key_id = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
         $this->key_secret = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
 
-        $this->rzp = $this->rzp = $this->setAndGetRzpApiInstance();
 
         $this->trackPluginInstrumentation = $trackPluginInstrumentation;
 
         $this->order = $order;
 
-        $this->rzp->setHeader('User-Agent', 'Razorpay/'. $this->getChannel());
     }
 
     public function setAndGetRzpApiInstance()
@@ -186,11 +184,11 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      */
     public function validate()
     {
-        $info = $this->getInfoInstance();
-        if ($info instanceof \Magento\Sales\Model\Order\Payment) {
-            $billingCountry = $info->getOrder()->getBillingAddress()->getCountryId();
+        $this->info = $this->getInfoInstance();
+        if ($this->info instanceof \Magento\Sales\Model\Order\Payment) {
+            $billingCountry = $this->info->getOrder()->getBillingAddress()->getCountryId();
         } else {
-            $billingCountry = $info->getQuote()->getBillingAddress()->getCountryId();
+            $billingCountry = $this->info->getQuote()->getBillingAddress()->getCountryId();
         }
 
         if (!$this->config->canUseForCountry($billingCountry)) {
@@ -202,10 +200,16 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
     protected function getPostData()
     {
-        $request = file_get_contents('php://input');
+        return $this->fileGetContents();
+    }
 
+    // @codeCoverageIgnoreStart
+    protected function fileGetContents()
+    {
+        $request = file_get_contents('php://input');
         return json_decode($request, true);
     }
+    // @codeCoverageIgnoreEnd
 
     /**
      * Refunds specified amount
@@ -227,7 +231,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
         $refundId = $payment->getTransactionId();
 
-        $this->_logger->info('Razorpay Refund - Transaction ID:' . $refundId);
+        $this->logger->info('Razorpay Refund - Transaction ID:' . $refundId);
 
         $paymentId = substr($refundId, 0, -7);
 
@@ -244,6 +248,10 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                 ]
             ];
 
+            $this->rzp = $this->setAndGetRzpApiInstance();
+
+            $this->rzp->setHeader('User-Agent', 'Razorpay/'. $this->getChannel());
+
             $refund = $this->rzp->payment
                                 ->fetch($paymentId)
                                 ->refund($data);
@@ -257,15 +265,15 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         }
         catch (\Razorpay\Api\Errors\Error $e)
         {
-            $this->_logger->critical($e);
+            $this->logger->critical('Razorpay Error: %1.', $e->getMessage());
 
             throw new LocalizedException(__('Razorpay Error: %1.', $e->getMessage()));
         }
         catch (\Exception $e)
         {
-            $this->_logger->critical($e);
+            $this->logger->critical('Exception Error: %1.', $e->getMessage());
 
-            throw new LocalizedException(__('Razorpay Error: %1.', $e->getMessage()));
+            throw new LocalizedException(__('Exception Error: %1.', $e->getMessage()));
         }
 
         return $this;
