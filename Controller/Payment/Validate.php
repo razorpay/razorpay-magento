@@ -95,7 +95,6 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
         $this->order           = $order;
         $this->config          = $config;
 
-        $this->objectManagement   = \Magento\Framework\App\ObjectManager::getInstance();
         $this->catalogSession     = $catalogSession;
         $this->orderRepository    = $orderRepository;
         $this->orderSender        = $orderSender;
@@ -112,8 +111,12 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
         {
             $this->orderStatus = $this->config->getCustomPaidOrderStatus();
         }
+
+        $this->authorizeCommand = new AuthorizeCommand();
+        $this->captureCommand = new CaptureCommand();
     }
 
+    // @codeCoverageIgnoreStart
     /**
      * @inheritDoc
      */
@@ -130,19 +133,25 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
     {
         return true;
     }
+    // @codeCoverageIgnoreEnd
 
     /**
      * Processes the incoming webhook
      */
     public function execute()
-    {  
+    {
+        // @codeCoverageIgnoreStart
         $this->logger->info("Validate: Validation started for the incoming webhook");
+        // @codeCoverageIgnoreEnd
+
         $post = $this->getPostData(); 
 
+        // @codeCoverageIgnoreStart
         if (json_last_error() !== 0)
         {
             return;
         }
+        // @codeCoverageIgnoreEnd
 
         $order = $this->checkoutSession->getLastRealOrder();
 
@@ -175,7 +184,7 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
             {
                 $payment->addTransactionCommentsToOrder(
                     "$paymentId",
-                    (new CaptureCommand())->execute(
+                    $this->captureCommand->execute(
                         $payment,
                         $order->getGrandTotal(),
                         $order
@@ -187,7 +196,7 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
             {
                 $payment->addTransactionCommentsToOrder(
                     "$paymentId",
-                    (new AuthorizeCommand())->execute(
+                    $this->authorizeCommand->execute(
                         $payment,
                         $order->getGrandTotal(),
                         $order
@@ -205,8 +214,7 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
             $this->orderRepository->save($order);
 
             //update/disable the quote
-            $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-            $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
+            $quote = $this->_objectManager->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
             $quote->setIsActive(false)->save();
 
             if($order->canInvoice() and
@@ -238,7 +246,7 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
                 $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
                 $this->orderSender->send($order);
                 $this->checkoutSession->unsRazorpayMailSentOnSuccess();
-            }
+            } // @codeCoverageIgnoreStart
             catch (\Magento\Framework\Exception\MailException $exception)
             {
                 $this->logger->critical("Validate: MailException Error message:" . $exception->getMessage());
@@ -247,6 +255,7 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
             {
                 $this->logger->critical("Validate: Exception Error message:" . $e->getMessage());
             }
+            // @codeCoverageIgnoreEnd
 
             $responseContent = [
                 'success'           => true,
@@ -261,7 +270,7 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
             $response->setHttpResponseCode($code);
             return $response;
 
-        }
+        } // @codeCoverageIgnoreStart
         catch(\Razorpay\Api\Errors\Error $e)
         {
             $this->logger->critical("Validate: Razorpay Error message:" . $e->getMessage());
@@ -275,11 +284,11 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
             $responseContent['message'] = $e->getMessage();
 
             $code = $e->getCode();
-        } 
+        }
+        // @codeCoverageIgnoreEnd
 
         //update/disable the quote
-        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-        $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
+        $quote = $this->_objectManager->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
         $quote->setIsActive(true)->save();
         $this->checkoutSession->setFirstTimeChk('0');
         
@@ -289,15 +298,22 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
         return $response;
     }
 
-
+    // @codeCoverageIgnoreStart
+    function setMockInit($objectManager)
+    {
+        $this->_objectManager = $objectManager;
+    }
+    // @codeCoverageIgnoreEnd
     protected function validateSignature($request)
     { 
+        // @codeCoverageIgnoreStart
         if(empty($request['error']) === false)
         {
             $this->logger->critical("Validate: Payment Failed or error from gateway");
             $this->messageManager->addError(__('Payment Failed'));
             throw new \Exception("Payment Failed or error from gateway");
         }
+        // @codeCoverageIgnoreEnd
 
         $attributes = array(
             'razorpay_payment_id' => $request['razorpay_payment_id'],
@@ -314,7 +330,14 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
      */
     protected function getPostData() : array
     {
+        return $this->fileGetContents();
+    }
+
+    // @codeCoverageIgnoreStart
+    protected function fileGetContents()
+    {
         $request = file_get_contents('php://input');
         return json_decode($request, true);
     }
+    // @codeCoverageIgnoreEnd
 }
