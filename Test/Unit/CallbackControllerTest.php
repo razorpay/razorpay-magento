@@ -11,72 +11,95 @@ class CallbackControllerTest extends TestCase {
         $this->context = \Mockery::mock(
             \Magento\Framework\App\Action\Context::class
         )->makePartial()->shouldAllowMockingProtectedMethods();
+
         $this->customerSession = $this->createMock(
             \Magento\Customer\Model\Session::class
         );
+
         $this->checkoutSession = \Mockery::mock(
             \Magento\Checkout\Model\Session::class
         );
+
         $this->config = \Mockery::mock(
             \Razorpay\Magento\Model\Config::class
         );
+
         $this->logger = $this->createMock(
             \Psr\Log\LoggerInterface::class
         );
+
         $this->orderRepository = \Mockery::mock(
             \Magento\Sales\Api\OrderRepositoryInterface::class
         );
+
         $this->transaction = \Mockery::mock(
             \Magento\Framework\DB\Transaction::class
         );
+
         $this->invoiceService = \Mockery::mock(
             \Magento\Sales\Model\Service\InvoiceService::class
         );
+
         $this->orderSender = \Mockery::mock(
             \Magento\Sales\Model\Order\Email\Sender\OrderSender::class
         );
+
         $this->invoiceSender = \Mockery::mock(
             \Magento\Sales\Model\Order\Email\Sender\InvoiceSender::class
         );
+
         $this->catalogSession = \Mockery::mock(
             \Magento\Catalog\Model\Session::class
         );
+
         $this->order = \Mockery::mock(
             \Magento\Sales\Api\Data\OrderInterface::class
         );
+
         $this->requestInterface = \Mockery::mock(
             \Magento\Framework\App\RequestInterface::class
         );
+
         $this->orderCollection = \Mockery::mock(
             \Magento\Sales\Model\Order::class
         );
+
         $this->orderModel = \Mockery::mock(
             \Magento\Sales\Model\Order::class
         );
+
         $this->payment = \Mockery::mock(
             \Magento\Sales\Api\Data\OrderPaymentInterface::class
         );
+
         $this->captureCommand = \Mockery::mock(
             \Magento\Sales\Model\Order\Payment\State\CaptureCommand::class
         );
+
         $this->authorizeCommand = \Mockery::mock(
             \Magento\Sales\Model\Order\Payment\State\AuthorizeCommand::class
         );
+
         $this->transactionModel = \Mockery::mock(
             \Magento\Sales\Model\Order\Payment\Transaction::class
         );
+
         $this->quoteModel = \Mockery::mock(
             \Magento\Quote\Model\Quote::class
         );
+
         $this->invoice = \Mockery::mock(
             \Magento\Sales\Model\Order\Invoice::class
         );
+
         $this->redirect = \Mockery::mock(
             \Magento\Framework\App\Response\RedirectInterface::class
         )->makePartial();
+
         $this->response = \Mockery::mock(
             \Magento\Framework\App\ResponseInterface::class
         );
+
         $this->messageManager = \Mockery::mock(
             \Magento\Framework\Message\ManagerInterface::class
         );
@@ -101,7 +124,6 @@ class CallbackControllerTest extends TestCase {
         $this->config->shouldReceive('getConfigData')->with('key_id')->andReturn('key_id');
         $this->config->shouldReceive('getConfigData')->with('key_secret')->andReturn('key_secret');
         $this->config->shouldReceive('getKeyId')->andReturn('key_id');
-        // $this->config->shouldReceive('getPaymentAction')->andReturn('authorize_capture');
         $this->config->shouldReceive('canAutoGenerateInvoice')->andReturn(true);
         
         $this->orderCollection->shouldReceive('getCollection')->andReturn($this->orderCollection);
@@ -176,9 +198,8 @@ class CallbackControllerTest extends TestCase {
                                                                                                 $this->catalogSession,
                                                                                                 $this->order])->makePartial()->shouldAllowMockingProtectedMethods();
         $this->callback->shouldReceive('getRequest')->andReturn($this->requestInterface);
-        
-        
     }
+
     public function testExecuteSuccess()
     {
         $this->checkoutSession->shouldReceive('setRazorpayMailSentOnSuccess');
@@ -194,7 +215,6 @@ class CallbackControllerTest extends TestCase {
         $this->captureCommand->shouldReceive('execute');
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Sales\Model\Order')->andReturn($this->orderCollection);
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Quote\Model\Quote')->andReturn($this->quoteModel);
-        //var_dump($this->callback->objectManagement);
         $this->assertSame($this->response, $this->callback->execute());
     }
 
@@ -214,7 +234,6 @@ class CallbackControllerTest extends TestCase {
         $this->authorizeCommand->shouldReceive('execute');
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Sales\Model\Order')->andReturn($this->orderCollection);
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Quote\Model\Quote')->andReturn($this->quoteModel);
-        //var_dump($this->callback->objectManagement);
         $this->assertSame($this->response,$this->callback->execute());
     }
     
@@ -233,7 +252,6 @@ class CallbackControllerTest extends TestCase {
         $this->captureCommand->shouldReceive('execute');
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Sales\Model\Order')->andReturn($this->orderCollection);
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Quote\Model\Quote')->andReturn($this->quoteModel);
-        //var_dump($this->callback->objectManagement);
         $this->assertSame($this->response, $this->callback->execute());
     }
 
@@ -257,12 +275,11 @@ class CallbackControllerTest extends TestCase {
         $this->captureCommand->shouldReceive('execute');
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Sales\Model\Order')->andReturn($this->orderCollection);
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Quote\Model\Quote')->andReturn($this->quoteModel);
-        //var_dump($this->callback->objectManagement);
         $this->callback->execute();
     }
+
     public function testErrorFromValidateSignature()
     {
-
         $this->checkoutSession->shouldReceive('setRazorpayMailSentOnSuccess');
         
         $this->callback->shouldReceive('validateSignature')->andThrow(new Exception("Test exception message"));
@@ -278,12 +295,11 @@ class CallbackControllerTest extends TestCase {
         $this->captureCommand->shouldReceive('execute');
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Sales\Model\Order')->andReturn($this->orderCollection);
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Quote\Model\Quote')->andReturn($this->quoteModel);
-        //var_dump($this->callback->objectManagement);
         $this->callback->execute();
-    } 
+    }
+
     public function testExecuteFailure()
     {
-
         $this->checkoutSession->shouldReceive('setRazorpayMailSentOnSuccess');
         
         $this->callback->shouldReceive('validateSignature')->andThrow(new Exception("Test exception message"));
@@ -298,9 +314,9 @@ class CallbackControllerTest extends TestCase {
         $this->captureCommand->shouldReceive('execute');
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Sales\Model\Order')->andReturn($this->orderCollection);
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Quote\Model\Quote')->andReturn($this->quoteModel);
-        //var_dump($this->callback->objectManagement);
         $this->assertSame($this->response, $this->callback->execute());
     }
+
     public function testExecuteMailException()
     {
         $exceptionPhrase = new Phrase('Test Mail Exception');
@@ -319,9 +335,9 @@ class CallbackControllerTest extends TestCase {
         $this->captureCommand->shouldReceive('execute');
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Sales\Model\Order')->andReturn($this->orderCollection);
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Quote\Model\Quote')->andReturn($this->quoteModel);
-        //var_dump($this->callback->objectManagement);
         $this->assertSame($this->response, $this->callback->execute());
     }
+
     public function testExecuteMailSendingNormalException()
     {
         $this->checkoutSession->shouldReceive('setRazorpayMailSentOnSuccess')->andThrow(new Exception("Test exception message") );
@@ -338,9 +354,9 @@ class CallbackControllerTest extends TestCase {
         $this->captureCommand->shouldReceive('execute');
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Sales\Model\Order')->andReturn($this->orderCollection);
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Quote\Model\Quote')->andReturn($this->quoteModel);
-        //var_dump($this->callback->objectManagement);
         $this->assertSame($this->response, $this->callback->execute());
     }
+
     public function testvalidateSignatureFailure()
     {
         $request = [
@@ -351,6 +367,7 @@ class CallbackControllerTest extends TestCase {
         $this->expectExceptionMessage("Payment Failed or error from gateway");
         $this->callback->validateSignature($request);
     }
+
     public function testvalidateSignatureSuccess()
     {
         $request = [
