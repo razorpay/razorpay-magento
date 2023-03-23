@@ -146,7 +146,6 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                     ->save($order);
 
                 //update/disable the quote
-                //$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
                 $quote = $this->objectManagement->get('Magento\Quote\Model\Quote')
                     ->load($order->getQuoteId());
                 $quote->setIsActive(false)
@@ -230,7 +229,6 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
             }
             catch(\Razorpay\Api\Errors\Error $e)
             {
-                // echo $e->getMessage();
                 // @codeCoverageIgnoreStart
                 $this
                     ->logger
@@ -242,7 +240,6 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
             }
             catch(\Exception $e)
             {
-                // echo $e->getMessage();
                 // @codeCoverageIgnoreStart
                 $this
                     ->logger
@@ -255,7 +252,6 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
         }
         else
         {
-            //$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
             $quote = $this->objectManagement->get('Magento\Quote\Model\Quote')
                 ->load($order->getQuoteId());
             $quote->setIsActive(1)
