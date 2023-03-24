@@ -387,11 +387,11 @@ class PaymentMethodTest extends TestCase {
         );
 
         $this->apiError = \Mockery::mock(
-            \Razorpay\Api\Errors\Error::class,['Test Api error message',0,0]
+            \Razorpay\Api\Errors\Error::class, ['Test Api error message', 0, 0]
         );
 
         $this->exceptionError = \Mockery::mock(
-            \Exception::class,['Test Api error message']
+            \Exception::class, ['Test Api error message']
         );
 
         $refundId  = 'pay_K6Ewbc4tbvw6jB-refund';
@@ -462,7 +462,7 @@ class PaymentMethodTest extends TestCase {
             Magento\Payment\Model\InfoInterface::class
         );
 
-        $this->api = $this->getMockBuilder(Razorpay\Api\Api::class,['sample_key_id', 'sample_key_secret'])
+        $this->api = $this->getMockBuilder(Razorpay\Api\Api::class, ['sample_key_id', 'sample_key_secret'])
                           ->disableOriginalConstructor()
                           ->disableOriginalClone()
                           ->disableArgumentCloning()
@@ -474,11 +474,11 @@ class PaymentMethodTest extends TestCase {
         );
 
         $this->apiError = \Mockery::mock(
-            \Razorpay\Api\Errors\Error::class,['Test Api error message',0,0]
+            \Razorpay\Api\Errors\Error::class, ['Test Api error message', 0, 0]
         );
 
         $this->exceptionError = \Mockery::mock(
-            \Exception::class,['Test Exception error message']
+            \Exception::class, ['Test Exception error message']
         );
 
         $refundId  = 'pay_K6Ewbc4tbvw6jB-refund';
