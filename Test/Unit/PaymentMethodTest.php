@@ -232,7 +232,7 @@ class PaymentMethodTest extends TestCase {
 
     public function testSetAndGetRzpApiInstance()
     {
-        $this->api = $this->getMockBuilder(Razorpay\Api\Api::class,['sample_key_id', 'sample_key_secret'])
+        $this->api = $this->getMockBuilder(Razorpay\Api\Api::class, ['sample_key_id', 'sample_key_secret'])
                           ->disableOriginalConstructor()
                           ->disableOriginalClone()
                           ->disableArgumentCloning()
@@ -297,7 +297,7 @@ class PaymentMethodTest extends TestCase {
             Magento\Payment\Model\InfoInterface::class
         );
 
-        $this->api = $this->getMockBuilder(Razorpay\Api\Api::class,['sample_key_id', 'sample_key_secret'])
+        $this->api = $this->getMockBuilder(Razorpay\Api\Api::class, ['sample_key_id', 'sample_key_secret'])
                           ->disableOriginalConstructor()
                           ->disableOriginalClone()
                           ->disableArgumentCloning()
@@ -375,7 +375,7 @@ class PaymentMethodTest extends TestCase {
             Magento\Payment\Model\InfoInterface::class
         );
 
-        $this->api = $this->getMockBuilder(Razorpay\Api\Api::class,['sample_key_id', 'sample_key_secret'])
+        $this->api = $this->getMockBuilder(Razorpay\Api\Api::class, ['sample_key_id', 'sample_key_secret'])
                           ->disableOriginalConstructor()
                           ->disableOriginalClone()
                           ->disableArgumentCloning()
