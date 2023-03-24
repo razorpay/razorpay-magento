@@ -118,7 +118,6 @@ class ResetCartControllerTest extends TestCase
         $expected_response = '{"success":true, "redirect_url":"checkout\/#payment"}';
 
         $this->assertSame($expected_response, $this->getProperty($response, 'json'));
-       
     }
 
     public function testExecuteFailure()
@@ -129,6 +128,5 @@ class ResetCartControllerTest extends TestCase
         $expected_response = '{"success":true, "redirect_url":"checkout\/cart"}';
 
         $this->assertSame($expected_response, $this->getProperty($response, 'json'));
-       
     }
 }
