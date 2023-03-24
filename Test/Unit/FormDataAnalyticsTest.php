@@ -50,7 +50,7 @@ class FormDataAnalyticsTest extends TestCase
         
         $this->resultFactoryMock->shouldReceive('create')->with('json')->andReturn($this->json);
 
-        $this->formDataAnalytics = \Mockery::mock(Razorpay\Magento\Controller\Payment\FormDataAnalytics::class, [   $this->context,
+        $this->formDataAnalytics = \Mockery::mock(Razorpay\Magento\Controller\Payment\FormDataAnalytics::class, [$this->context,
                                                                                                             $this->trackPluginInstrumentation,
                                                                                                             $this->customerSession,
                                                                                                             $this->checkoutSession,
@@ -70,6 +70,7 @@ class FormDataAnalyticsTest extends TestCase
             'ip_address'        => ''
         ];
     }
+
     function getProperty($object, $propertyName)
     {
         $reflection = new \ReflectionClass($object);
@@ -77,33 +78,37 @@ class FormDataAnalyticsTest extends TestCase
         $property->setAccessible(true);
         return $property->getValue($object);
     }
+
     public function testExecuteSuccess()
     {
         $this->formDataAnalytics->shouldReceive('getPostData')->andReturn([
-            'event'         => $this->event,
-            'properties'    => $this->eventProperties
-            ]);
+            'event'      => $this->event,
+            'properties' => $this->eventProperties
+        ]);
         
         $expectedResponse = '{"segment":{"status":"success"},"datalake":{"status":"success"}}';
         $response = $this->formDataAnalytics->execute();
         $this->assertSame($expectedResponse, $this->getProperty($response, 'json'));
     }
+
     public function testExecuteEventException()
     {
         $this->formDataAnalytics->shouldReceive('getPostData')->andReturn([
-            'properties'    => $this->eventProperties
-            ]);
+            'properties' => $this->eventProperties
+        ]);
 
         $this->formDataAnalytics->execute();
     }
+
     public function testExecuteEventPropertiesException()
     {
         $this->formDataAnalytics->shouldReceive('getPostData')->andReturn([
-            'event'         => $this->event
-            ]);
+            'event' => $this->event
+        ]);
 
         $this->formDataAnalytics->execute();
     }
+
     public function testExecuteApiException()
     {
         $this->apiError = \Mockery::mock(
@@ -113,19 +118,21 @@ class FormDataAnalyticsTest extends TestCase
 
         $this->formDataAnalytics->execute();
     }
+
     public function testGetPostDataNotEmpty()
     {
         $this->formDataAnalytics->shouldReceive('getRequest')->andReturn($this->requestInterface);
         $this->requestInterface->shouldReceive('getPostValue')->andReturn([
-            'event'         => $this->event,
-            'properties'    => $this->eventProperties
-            ]);
+            'event'      => $this->event,
+            'properties' => $this->eventProperties
+        ]);
         
         $this->assertSame([
-            'event'         => $this->event,
-            'properties'    => $this->eventProperties
+            'event'      => $this->event,
+            'properties' => $this->eventProperties
         ], $this->formDataAnalytics->getPostData());
     }
+
     public function testGetPostDataEmpty()
     {
         $this->formDataAnalytics->shouldReceive('getRequest')->andReturn($this->requestInterface);
