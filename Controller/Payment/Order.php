@@ -180,7 +180,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $new_order_status = $this->config->getNewOrderStatus();
 
         $orderModel = $this->_objectManager->get('Magento\Sales\Model\Order')->load($mazeOrder->getEntityId());
-        //print_r($order_model);
+
         $orderModel->setState('new')
                    ->setStatus($new_order_status)
                    ->save();
