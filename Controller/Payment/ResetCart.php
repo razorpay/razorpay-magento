@@ -54,8 +54,6 @@ class ResetCart extends \Razorpay\Magento\Controller\BaseController
 
         $lastOrderId = $this->checkoutSession->getLastRealOrder();
 
-        //$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-
         if ($lastQuoteId && $lastOrderId)
         {
             // @codeCoverageIgnoreStart
