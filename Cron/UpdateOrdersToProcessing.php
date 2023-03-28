@@ -261,7 +261,7 @@ class UpdateOrdersToProcessing {
         }
 
         //update/disable the quote
-        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $objectManager = $this->getObjectManager();
         $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
         $quote->setIsActive(false)->save();
 
@@ -318,4 +318,11 @@ class UpdateOrdersToProcessing {
                             . " ended."
                         );   
     }
+
+    // @codeCoverageIgnoreStart
+    function getObjectManager()
+    {
+        return \Magento\Framework\App\ObjectManager::getInstance();
+    }
+    // @codeCoverageIgnoreEnd
 }
