@@ -166,6 +166,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
         $this->order = $order;
 
+        $this->logger = $this->_logger;
+
     }
 
     public function setAndGetRzpApiInstance()
