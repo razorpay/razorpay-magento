@@ -218,6 +218,7 @@ define(
                     },
                     notes: {
                         merchant_order_id: data.order_id,
+                        referrer: window.location.href,
                     },
                     prefill: {
                         name: this.user.name,
