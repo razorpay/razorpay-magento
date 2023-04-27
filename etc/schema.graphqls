@@ -29,5 +29,5 @@ type SetRzpPaymentDetailsForOrderOutput {
 
 input PlaceRazorpayOrderInput {
 	order_id: String @doc(description: "order_id to generate Razorpay Order ID.")
-	referrer: String @doc(description: "website URL from which order is created")
+	referrer: String @doc(description: "Checkout page URL from which order is created.")
 }
