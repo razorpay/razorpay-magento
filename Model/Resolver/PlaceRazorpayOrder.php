@@ -71,21 +71,21 @@ class PlaceRazorpayOrder implements ResolverInterface
     {
         $this->logger->info('graphQL: Creating Razorpay Order');
 
-        if (empty($args['input']['order_id']))
+        if (empty($args['order_id']))
         {
             $this->logger->critical('graphQL: Input Exception: Required parameter "order_id" is missing');
 
             throw new GraphQlInputException(__('Required parameter "order_id" is missing'));
         }
 
-        if(empty($args['input']['referrer']))
+        if(empty($args['referrer']))
         {
             $this->logger->critical('graphQL: Input Exception: Required parameter "referrer" is missing');
 
             throw new GraphQlInputException(__('Required parameter "referrer" is missing'));
         }
 
-        if (!preg_match("/\b(?:(?:https?|ftp):\/\/|www\.)[-a-z0-9+&@#\/%?=~_|!:,.;]*[-a-z0-9+&@#\/%=~_|]/i", $args['input']['referrer'])) {
+        if (!preg_match("/\b(?:(?:https?|ftp):\/\/|www\.)[-a-z0-9+&@#\/%?=~_|!:,.;]*[-a-z0-9+&@#\/%=~_|]/i", $args['referrer'])) {
             $this->logger->critical('graphQL: Input Exception: "referrer" is invalid');
 
             throw new GraphQlInputException(__('Parameter "referrer" is invalid'));
@@ -94,8 +94,8 @@ class PlaceRazorpayOrder implements ResolverInterface
         try
         {
             $storeScope = \Magento\Store\Model\ScopeInterface::SCOPE_STORE;
-            $order_id   = $args['input']['order_id'];
-            $referrer   = $args['input']['referrer'];
+            $order_id   = $args['order_id'];
+            $referrer   = $args['referrer'];
 
             $this->logger->info('graphQL: Order ID: ' . $order_id);
 
