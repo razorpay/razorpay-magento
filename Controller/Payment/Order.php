@@ -191,7 +191,10 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 'amount' => $amount,
                 'receipt' => $receipt_id,
                 'currency' => $mazeOrder->getOrderCurrencyCode(),
-                'payment_capture' => $payment_capture
+                'payment_capture' => $payment_capture,
+                'notes' => [
+                    'referrer'  => $_SERVER['HTTP_REFERER']
+                ]
             ]);
 
             $responseContent = [

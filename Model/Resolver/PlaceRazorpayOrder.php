@@ -77,10 +77,25 @@ class PlaceRazorpayOrder implements ResolverInterface
 
             throw new GraphQlInputException(__('Required parameter "order_id" is missing'));
         }
+
+        if(empty($args['referrer']))
+        {
+            $this->logger->critical('graphQL: Input Exception: Required parameter "referrer" is missing');
+
+            throw new GraphQlInputException(__('Required parameter "referrer" is missing'));
+        }
+
+        if (!preg_match("/\b(?:(?:https?|ftp):\/\/|www\.)[-a-z0-9+&@#\/%?=~_|!:,.;]*[-a-z0-9+&@#\/%=~_|]/i", $args['referrer'])) {
+            $this->logger->critical('graphQL: Input Exception: "referrer" is invalid');
+
+            throw new GraphQlInputException(__('Parameter "referrer" is invalid'));
+        }
+
         try
         {
             $storeScope = \Magento\Store\Model\ScopeInterface::SCOPE_STORE;
             $order_id   = $args['order_id'];
+            $referrer   = $args['referrer'];
 
             $this->logger->info('graphQL: Order ID: ' . $order_id);
 
@@ -114,7 +129,8 @@ class PlaceRazorpayOrder implements ResolverInterface
                 . 'Amount:' . $amount . ', '
                 . 'Receipt:' . $order_id . ', '
                 . 'Currency:' . $order_currency_code . ', '
-                . ' Payment Capture:' . $payment_capture);
+                . ' Payment Capture:' . $payment_capture . ','
+                . 'Referrer: ' . $referrer);
 
             $razorpay_order = $this->rzp->order->create([
                 'amount'          => $amount,
@@ -122,6 +138,9 @@ class PlaceRazorpayOrder implements ResolverInterface
                 'currency'        => $order_currency_code,
                 'payment_capture' => $payment_capture,
                 'app_offer'       => (($order_grand_total - $order_base_discount_amount) > 0) ? 1 : 0,
+                'notes'           => [
+                    'referrer'      => $referrer
+                ],
             ]);
 
             if (null !== $razorpay_order && !empty($razorpay_order->id))
