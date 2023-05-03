@@ -26,7 +26,6 @@ class ResetCart implements ResolverInterface
         \Psr\Log\LoggerInterface $logger
     )
     {
-        $this->checkoutSession = $checkoutSession;
         $this->logger = $logger;
     }
 
