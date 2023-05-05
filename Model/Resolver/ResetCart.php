@@ -36,13 +36,6 @@ class ResetCart implements ResolverInterface
     {
         $this->logger->info('graphQL: Reset Cart started');
 
-        if (empty($args['quote_id']))
-        {
-            $this->logger->critical('graphQL: Input Exception: Required parameter "quote_id" is missing');
-
-            throw new GraphQlInputException(__('Required parameter "quote_id" is missing'));
-        }
-
         if (empty($args['order_id']))
         {
             $this->logger->critical('graphQL: Input Exception: Required parameter "order_id" is missing');
@@ -50,7 +43,6 @@ class ResetCart implements ResolverInterface
             throw new GraphQlInputException(__('Required parameter "order_id" is missing'));
         }
         
-        $quote_id   = $args['quote_id'];
         $order_id  = $args['order_id'];
 
         try{
@@ -60,33 +52,23 @@ class ResetCart implements ResolverInterface
 
             if ($orderModel->canCancel())
             {
+                $quote_id = $orderModel->getQuoteId();
+                
                 $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($quote_id);
                 
-                //check if quote_id provided is valid
-                if($quote->getId())
-                {
-                    $quote->setIsActive(true)->save();
-                    
-                    //not canceling order as cancled order can't be used again for order processing.
-                    //$orderModel->cancel(); 
-                    $orderModel->setStatus('canceled');
-    
-                    $orderModel->save();
-                    
-                    $this->logger->info('graphQL: Reset cart for Quote ID: ' . $quote_id . ' and ' . 'Order ID: ' . $order_id . 'completed.');
+                $quote->setIsActive(true)->save();
+                
+                //not canceling order as cancled order can't be used again for order processing.
+                //$orderModel->cancel(); 
+                $orderModel->setStatus('canceled');
 
-                    $responseContent = [
-                        'success'           => true,
-                    ];       
-                }
-                else
-                {
-                    $this->logger->critical('graphQL: Quote ID: ' . $quote_id . ' does not exist.');
+                $orderModel->save();
+                
+                $this->logger->info('graphQL: Reset cart for Quote ID: ' . $quote_id . ' and ' . 'Order ID: ' . $order_id . ' completed.');
 
-                    $responseContent = [
-                        'success'           => false,
-                    ];
-                }
+                $responseContent = [
+                    'success'           => true,
+                ];       
             }
             else
             {
