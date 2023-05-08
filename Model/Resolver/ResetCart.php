@@ -36,7 +36,7 @@ class ResetCart implements ResolverInterface
     {
         $this->logger->info('graphQL: Reset Cart started');
 
-        if (empty($args['order_id']))
+        if (empty($args['order_id']) === true)
         {
             $this->logger->critical('graphQL: Input Exception: Required parameter "order_id" is missing');
 
@@ -45,7 +45,8 @@ class ResetCart implements ResolverInterface
         
         $order_id  = $args['order_id'];
 
-        try{
+        try
+        {
             $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
 
             $orderModel = $objectManager->get('Magento\Sales\Model\Order')->load($order_id);
