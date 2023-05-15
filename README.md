@@ -107,7 +107,7 @@ mutation {
   }
 }
 ```
-6.  Pass the Magento Order ID to cancel an order in Magento database and reset the quote associated with it.
+6.  Pass the Magento Order ID to reset the cart.
 ```
 mutation {
   resetCart (
