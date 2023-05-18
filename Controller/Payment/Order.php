@@ -325,12 +325,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         return ['id' => null,'active_events'=>null];
     }
 
-    function setMockInit($_objectManager, $resultFactory)
-    {
-        $this->_objectManager = $_objectManager;
-        $this->resultFactory = $resultFactory;
-    }
-
     function getWebhooks($count=10, $skip=0)
     {
         $webhooks = $this->rzp->webhook->all(['count' => $count, 'skip' => $skip]);
