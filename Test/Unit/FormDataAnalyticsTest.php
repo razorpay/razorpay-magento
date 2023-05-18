@@ -83,6 +83,11 @@ class FormDataAnalyticsTest extends TestCase
             'mode'              => 'test',
             'ip_address'        => ''
         ];
+
+        $this->eventData = [
+            'event'         => $this->event,
+            'properties'    => $this->eventProperties
+        ];
     }
 
     function getProperty($object, $propertyName)
@@ -95,10 +100,7 @@ class FormDataAnalyticsTest extends TestCase
 
     public function testExecuteSuccess()
     {
-        $this->formDataAnalytics->shouldReceive('getPostData')->andReturn([
-            'event'      => $this->event,
-            'properties' => $this->eventProperties
-        ]);
+        $this->formDataAnalytics->shouldReceive('getPostData')->andReturn($this->eventData);
         
         $expectedResponse = '{"segment":{"status":"success"},"datalake":{"status":"success"}}';
         $response = $this->formDataAnalytics->execute();
@@ -137,15 +139,9 @@ class FormDataAnalyticsTest extends TestCase
     public function testGetPostDataNotEmpty()
     {
         $this->formDataAnalytics->shouldReceive('getRequest')->andReturn($this->requestInterface);
-        $this->requestInterface->shouldReceive('getPostValue')->andReturn([
-            'event'      => $this->event,
-            'properties' => $this->eventProperties
-        ]);
+        $this->requestInterface->shouldReceive('getPostValue')->andReturn($this->eventData);
         
-        $this->assertSame([
-            'event'      => $this->event,
-            'properties' => $this->eventProperties
-        ], $this->formDataAnalytics->getPostData());
+        $this->assertSame($this->eventData, $this->formDataAnalytics->getPostData());
     }
 
     public function testGetPostDataEmpty()
