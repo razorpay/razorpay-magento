@@ -5,7 +5,8 @@ use PHPUnit\Framework\TestCase;
 use \Magento\Framework\Exception\MailException;
 use Magento\Framework\Phrase;
 
-class CallbackControllerTest extends TestCase {
+class CallbackControllerTest extends TestCase 
+{
     public function setup():void
     {
         $this->context = \Mockery::mock(
