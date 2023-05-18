@@ -10,6 +10,7 @@ use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\QuoteGraphQl\Model\Cart\GetCartForUser;
 use Magento\Quote\Api\CartManagementInterface;
 use Razorpay\Magento\Model\PaymentMethod;
+use Razorpay\Magento\Model\Config;
 
 class PlaceRazorpayOrder implements ResolverInterface
 {
@@ -45,6 +46,7 @@ class PlaceRazorpayOrder implements ResolverInterface
      * @param PaymentMethod $paymentMethod
      * @param \Magento\Sales\Api\Data\OrderInterface $order
      * @param \Psr\Log\LoggerInterface $logger
+     * @param \Razorpay\Magento\Model\Config $config
      */
     public function __construct(
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
@@ -52,7 +54,8 @@ class PlaceRazorpayOrder implements ResolverInterface
         \Magento\Quote\Api\CartManagementInterface $cartManagement,
         PaymentMethod $paymentMethod,
         \Magento\Sales\Api\Data\OrderInterface $order,
-        \Psr\Log\LoggerInterface $logger
+        \Psr\Log\LoggerInterface $logger,
+        \Razorpay\Magento\Model\Config $config
     )
     {
         $this->scopeConfig    = $scopeConfig;
@@ -62,6 +65,7 @@ class PlaceRazorpayOrder implements ResolverInterface
         $this->_objectManager = \Magento\Framework\App\ObjectManager::getInstance();
         $this->order          = $order;
         $this->logger         = $logger;
+        $this->config          = $config;
     }
 
     /**
@@ -77,10 +81,25 @@ class PlaceRazorpayOrder implements ResolverInterface
 
             throw new GraphQlInputException(__('Required parameter "order_id" is missing'));
         }
+
+        if(empty($args['referrer']))
+        {
+            $this->logger->critical('graphQL: Input Exception: Required parameter "referrer" is missing');
+
+            throw new GraphQlInputException(__('Required parameter "referrer" is missing'));
+        }
+
+        if (!preg_match("/\b(?:(?:https?|ftp):\/\/|www\.)[-a-z0-9+&@#\/%?=~_|!:,.;]*[-a-z0-9+&@#\/%=~_|]/i", $args['referrer'])) {
+            $this->logger->critical('graphQL: Input Exception: "referrer" is invalid');
+
+            throw new GraphQlInputException(__('Parameter "referrer" is invalid'));
+        }
+
         try
         {
             $storeScope = \Magento\Store\Model\ScopeInterface::SCOPE_STORE;
             $order_id   = $args['order_id'];
+            $referrer   = $args['referrer'];
 
             $this->logger->info('graphQL: Order ID: ' . $order_id);
 
@@ -114,7 +133,8 @@ class PlaceRazorpayOrder implements ResolverInterface
                 . 'Amount:' . $amount . ', '
                 . 'Receipt:' . $order_id . ', '
                 . 'Currency:' . $order_currency_code . ', '
-                . ' Payment Capture:' . $payment_capture);
+                . ' Payment Capture:' . $payment_capture . ','
+                . 'Referrer: ' . $referrer);
 
             $razorpay_order = $this->rzp->order->create([
                 'amount'          => $amount,
@@ -122,6 +142,9 @@ class PlaceRazorpayOrder implements ResolverInterface
                 'currency'        => $order_currency_code,
                 'payment_capture' => $payment_capture,
                 'app_offer'       => (($order_grand_total - $order_base_discount_amount) > 0) ? 1 : 0,
+                'notes'           => [
+                    'referrer'      => $referrer
+                ],
             ]);
 
             if (null !== $razorpay_order && !empty($razorpay_order->id))
@@ -133,6 +156,12 @@ class PlaceRazorpayOrder implements ResolverInterface
                     $order->setRzpOrderId($razorpay_order->id);
                 }
                 $order->save();
+
+                $new_order_status = $this->config->getNewOrderStatus();
+
+                $orderModel = $this->_objectManager->get('Magento\Sales\Model\Order')->load($order_id);
+
+                $orderModel->setStatus($new_order_status)->save();
 
                 $responseContent = [
                     'success'        => true,

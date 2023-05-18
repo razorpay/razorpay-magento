@@ -71,11 +71,12 @@ mutation {
 }
 ```
 
-3. Create Razorpay Order ID against the Magento Order ID
+3. Create Razorpay Order ID against the Magento Order ID and the checkout page URL as referrer.
 ```
 mutation {
   placeRazorpayOrder (
       order_id: "{{order_ID}}"
+      referrer: "{{referrer}}"
   ){
     success
     rzp_order_id
@@ -106,7 +107,16 @@ mutation {
   }
 }
 ```
-
+6.  Pass the Magento Order ID to reset the cart.
+```
+mutation {
+  resetCart (
+      order_id: "{{order_ID}}"
+  ){
+    success
+  }
+}
+```
 ### Support
 
 Visit [https://razorpay.com](https://razorpay.com) for support requests or email contact@razorpay.com.
