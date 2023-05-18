@@ -2,15 +2,12 @@
 
 declare(strict_types=1);
 
+include __DIR__ . '/../../../Razorpay/src/Errors/Error.php';
+include __DIR__ . '/../../../Razorpay/src/Api.php';
+
 use PHPUnit\Framework\TestCase;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
-use Magento\Store\Model\Store;
-use Magento\Store\Model\StoreManagerInterface;
-use Magento\Framework\UrlInterface;
-use Razorpay\Magento\Test\MockFactory\MockApi;
-use Razorpay\Api\Api;
 use Magento\Framework\Controller\Result\Json;
-use Psr\Log\Test\TestLogger;
 
 /**
  * @covers Razorpay\Magento\Controller\Payment\Order
@@ -347,7 +344,7 @@ class OrderControllerTest extends TestCase
         $this->config->shouldReceive('getPaymentAction')->andReturn('authorize_capture');
         
         $this->orderApi->shouldReceive('create')->andThrow(new Exception("Test exception message"));
-        
+
         $this->webhookApi->shouldReceive('edit')->andReturn("hehe");
         $this->webhookApi->shouldReceive('create')->andReturn("hehe2");
         $this->webhookApi->shouldReceive('all')->with(['count' => 10, 'skip' => 0])->andThrow(new Exception("Test exception message"));
