@@ -1,8 +1,10 @@
 <?php
+
 declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
 use Magento\Framework\Controller\Result\Json;
+
 class ResetCartControllerTest extends TestCase
 {
     public function setup():void
@@ -56,11 +58,12 @@ class ResetCartControllerTest extends TestCase
         )->makePartial()->shouldAllowMockingProtectedMethods();
 
         $this->serializerJson = new \Magento\Framework\Serialize\Serializer\Json;
+
         $this->translateInline = \Mockery::mock(
             \Magento\Framework\Translate\InlineInterface::class
         );
-        $this->json = new Json($this->translateInline,
-                               $this->serializerJson);
+
+        $this->json = new Json($this->translateInline, $this->serializerJson);
 
         $this->context->shouldReceive('getMessageManager')->andReturn($this->messageManager);
         $this->context->shouldReceive('getResultFactory')->andReturn($this->resultFactoryMock);
@@ -90,13 +93,18 @@ class ResetCartControllerTest extends TestCase
         
         $this->resultFactoryMock->shouldReceive('create')->with('json')->andReturn($this->json);
 
-        $this->resetCart = \Mockery::mock(Razorpay\Magento\Controller\Payment\ResetCart::class, [$this->context,
-                                                                                                $this->customerSession,
-                                                                                                $this->checkoutSession,
-                                                                                                $this->checkoutFactory,
-                                                                                                $this->config,
-                                                                                                $this->catalogSession,
-                                                                                                $this->logger])->makePartial()->shouldAllowMockingProtectedMethods();
+        $this->resetCart = \Mockery::mock(Razorpay\Magento\Controller\Payment\ResetCart::class, 
+                                            [
+                                                $this->context,
+                                                $this->customerSession,
+                                                $this->checkoutSession,
+                                                $this->checkoutFactory,
+                                                $this->config,
+                                                $this->catalogSession,
+                                                $this->logger
+                                            ]
+                                        )->makePartial()->shouldAllowMockingProtectedMethods();
+        
         $this->resetCart->objectManager = $this->objectManager;
     }
 
@@ -113,6 +121,7 @@ class ResetCartControllerTest extends TestCase
     public function testExecuteSuccess()
     {
         $this->checkoutSession->shouldReceive('getLastQuoteId')->andReturn('000012');
+
         $response = $this->resetCart->execute();
 
         $expected_response = '{"success":true,"redirect_url":"checkout\/#payment"}';
@@ -123,6 +132,7 @@ class ResetCartControllerTest extends TestCase
     public function testExecuteFailure()
     {
         $this->checkoutSession->shouldReceive('getLastQuoteId')->andReturn(null);
+        
         $response = $this->resetCart->execute();
 
         $expected_response = '{"success":true,"redirect_url":"checkout\/cart"}';
