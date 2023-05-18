@@ -215,6 +215,7 @@ class CallbackControllerTest extends TestCase {
         $this->captureCommand->shouldReceive('execute');
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Sales\Model\Order')->andReturn($this->orderCollection);
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Quote\Model\Quote')->andReturn($this->quoteModel);
+        
         $this->assertSame($this->response, $this->callback->execute());
     }
 
@@ -234,6 +235,7 @@ class CallbackControllerTest extends TestCase {
         $this->authorizeCommand->shouldReceive('execute');
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Sales\Model\Order')->andReturn($this->orderCollection);
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Quote\Model\Quote')->andReturn($this->quoteModel);
+        
         $this->assertSame($this->response, $this->callback->execute());
     }
     
@@ -252,6 +254,7 @@ class CallbackControllerTest extends TestCase {
         $this->captureCommand->shouldReceive('execute');
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Sales\Model\Order')->andReturn($this->orderCollection);
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Quote\Model\Quote')->andReturn($this->quoteModel);
+        
         $this->assertSame($this->response, $this->callback->execute());
     }
 
@@ -314,6 +317,7 @@ class CallbackControllerTest extends TestCase {
         $this->captureCommand->shouldReceive('execute');
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Sales\Model\Order')->andReturn($this->orderCollection);
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Quote\Model\Quote')->andReturn($this->quoteModel);
+        
         $this->assertSame($this->response, $this->callback->execute());
     }
 
@@ -335,6 +339,7 @@ class CallbackControllerTest extends TestCase {
         $this->captureCommand->shouldReceive('execute');
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Sales\Model\Order')->andReturn($this->orderCollection);
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Quote\Model\Quote')->andReturn($this->quoteModel);
+        
         $this->assertSame($this->response, $this->callback->execute());
     }
 
@@ -354,6 +359,7 @@ class CallbackControllerTest extends TestCase {
         $this->captureCommand->shouldReceive('execute');
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Sales\Model\Order')->andReturn($this->orderCollection);
         $this->callback->objectManagement->shouldReceive('get')->with('Magento\Quote\Model\Quote')->andReturn($this->quoteModel);
+        
         $this->assertSame($this->response, $this->callback->execute());
     }
 
