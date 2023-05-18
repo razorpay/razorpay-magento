@@ -234,7 +234,9 @@ class OrderControllerTest extends TestCase {
 
         $this->order->rzp = $this->api;
         $this->resultFactory = $this->context->getResultFactory();
-        $this->order->setMockInit($this->_objectManager, $this->resultFactory);
+        
+        $this->setProperty($this->order, '_objectManager', $this->_objectManager);
+        $this->setProperty($this->order, 'resultFactory', $this->resultFactory);
     }
 
     function getProperty($object, $propertyName)
@@ -242,6 +244,15 @@ class OrderControllerTest extends TestCase {
         $reflection = new \ReflectionClass($object);
         $property = $reflection->getProperty($propertyName);
         $property->setAccessible(true);
+        return $property->getValue($object);
+    }
+
+    function setProperty($object, $propertyName, $value)
+    {
+        $reflection = new \ReflectionClass($object);
+        $property = $reflection->getProperty($propertyName);
+        $property->setAccessible(true);
+        $property->setValue($object, $value);
         return $property->getValue($object);
     }
 
