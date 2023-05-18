@@ -32,7 +32,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Magento\Catalog\Model\Session $catalogSession,
         \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Psr\Log\LoggerInterface $logger
-    ) {
+    ) 
+    {
         parent::__construct(
             $context,
             $customerSession,
@@ -56,7 +57,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
         $this->webhooks->entity = 'collection';
         $this->webhooks->items  = [];
-
     }
 
     public function execute()
@@ -87,6 +87,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                     if(empty($this->config->getConfigData('webhook_secret')) === false)
                     {
                         $razorpayParams['webhook_secret']['value'] = $this->config->getConfigData('webhook_secret');
+
                         // @codeCoverageIgnoreStart
                         $this->logger->info("Razorpay Webhook with existing secret.");
                         // @codeCoverageIgnoreEnd
@@ -98,6 +99,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                         $this->config->setConfigData('webhook_secret',$secret);
 
                         $razorpayParams['webhook_secret']['value'] = $secret;
+
                         // @codeCoverageIgnoreStart
                         $this->logger->info("Razorpay Webhook created new secret.");
                         // @codeCoverageIgnoreEnd
@@ -200,8 +202,9 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         {
             // @codeCoverageIgnoreStart
             $this->logger->info("Razorpay Order: create order started with quoteID:" . $receipt_id
-                                    ." and amount:".$amount);
+                                    . " and amount:" . $amount);
             // @codeCoverageIgnoreEnd
+
             $order = $this->rzp->order->create([
                 'amount' => $amount,
                 'receipt' => $receipt_id,
@@ -222,6 +225,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 // @codeCoverageIgnoreStart
                 $this->logger->info("Razorpay Order: order created with rzp_order:" . $order->id);
                 // @codeCoverageIgnoreEnd
+
                 $is_hosted = false;
                 $merchantPreferences    = $this->getMerchantPreferences();
 
@@ -253,6 +257,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 'message'   => $e->getMessage(),
                 'parameters' => []
             ];
+
             // @codeCoverageIgnoreStart
             $this->logger->critical("Razorpay Order: Error message from api:" . $e->getMessage());
             // @codeCoverageIgnoreEnd
@@ -263,6 +268,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 'message'   => $e->getMessage(),
                 'parameters' => []
             ];
+
             // @codeCoverageIgnoreStart
             $this->logger->critical("Razorpay Order: Error message:" . $e->getMessage());
             // @codeCoverageIgnoreEnd
@@ -291,7 +297,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         {
             //fetch all the webhooks
             $webhooks = $this->getWebhooks();
-            
+
             if(($webhooks->count) > 0 and (empty($this->webhookUrl) === false))
             {
                 foreach ($webhooks->items as $key => $webhook)
@@ -363,7 +369,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
     protected function getMerchantPreferences()
     {
-
         $preferences = [];
 
         $preferences['embedded_url'] = Api::getFullUrl("checkout/embedded");
@@ -376,7 +381,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             
             $preferences['image'] = $response['options']['image'];
 
-            if(isset($response['options']['redirect']) && $response['options']['redirect'] === true)
+            if(isset($response['options']['redirect']) and 
+                $response['options']['redirect'] === true)
             {
                 $preferences['is_hosted'] = true;
             }
@@ -387,8 +393,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             $this->logger->critical('Razorpay Order: Magento Error : ' . $e->getMessage());
             // @codeCoverageIgnoreEnd
         }
-
-        
 
         return $preferences;
     }
