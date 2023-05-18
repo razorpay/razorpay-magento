@@ -88,6 +88,7 @@ class FormDataAnalyticsTest extends TestCase
         
         $expectedResponse = '{"segment":{"status":"success"},"datalake":{"status":"success"}}';
         $response = $this->formDataAnalytics->execute();
+        
         $this->assertSame($expectedResponse, $this->getProperty($response, 'json'));
     }
 
