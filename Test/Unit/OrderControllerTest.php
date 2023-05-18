@@ -1,5 +1,7 @@
 <?php
+
 declare(strict_types=1);
+
 use PHPUnit\Framework\TestCase;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Store\Model\Store;
@@ -13,9 +15,8 @@ use Psr\Log\Test\TestLogger;
 /**
  * @covers Razorpay\Magento\Controller\Payment\Order
  */
-
-class OrderControllerTest extends TestCase {
-
+class OrderControllerTest extends TestCase 
+{
     public function setUp():void
     {
         $this->context = \Mockery::mock(
@@ -84,8 +85,7 @@ class OrderControllerTest extends TestCase {
             \Magento\Framework\Translate\InlineInterface::class
         );
 
-        $this->json = new Json($this->translateInline,
-                               $this->serializerJson);
+        $this->json = new Json($this->translateInline, $this->serializerJson);
 
         $this->HttpInterface = \Mockery::mock(
             Magento\Framework\App\Response\HttpInterface::class
@@ -164,14 +164,18 @@ class OrderControllerTest extends TestCase {
             }
         });
 
-        $this->order = \Mockery::mock(Razorpay\Magento\Controller\Payment\Order::class, [$this->context, 
-                                                                                        $this->customerSession,
-                                                                                        $this->checkoutSession,
-                                                                                        $this->checkoutFactory,
-                                                                                        $this->config,
-                                                                                        $this->catalogSession,
-                                                                                        $this->storeManager,
-                                                                                        $this->logger])->makePartial()->shouldAllowMockingProtectedMethods();
+        $this->order = \Mockery::mock(Razorpay\Magento\Controller\Payment\Order::class, 
+                                        [
+                                            $this->context, 
+                                            $this->customerSession,
+                                            $this->checkoutSession,
+                                            $this->checkoutFactory,
+                                            $this->config,
+                                            $this->catalogSession,
+                                            $this->storeManager,
+                                            $this->logger
+                                        ]
+                                     )->makePartial()->shouldAllowMockingProtectedMethods();
 
         $this->order->shouldReceive('getGrandTotal')->andReturn(1000);
         $this->order->shouldReceive('getIncrementId')->andReturn('000012');
@@ -181,9 +185,10 @@ class OrderControllerTest extends TestCase {
 
         $this->checkoutSession->shouldReceive('getLastRealOrder')->andReturn($this->order);
 
-        $this->webhookData = ['entity' => 'collection',
-                              'count' => 1,
-                              'items' => [
+        $this->webhookData = [
+                                'entity' => 'collection',
+                                'count' => 1,
+                                'items' => [
                                     (object) [
                                         'id' => 'LDATzQq2wsBBBB',
                                         'url' => 'https://www.example.com/razorpay/payment/webhook',
@@ -195,11 +200,12 @@ class OrderControllerTest extends TestCase {
                                         ]
                                     ],
                                 ]
-                             ];
+                            ];
         
-        $this->webhookData2 = ['entity' => 'collection',
-                               'count' => 1,
-                               'items' => [
+        $this->webhookData2 = [
+                                'entity' => 'collection',
+                                'count' => 1,
+                                'items' => [
                                     (object)[
                                         'id' => 'LDATzQq2wsBBBB',
                                         'url' => 'https://www.example-two.com/razorpay/payment/webhook',
@@ -213,19 +219,20 @@ class OrderControllerTest extends TestCase {
                                 ]
                               ];
 
-        $this->orderData = [ 'id' => 'order_test',
-                             'entity' => 'order',
-                             'amount' => 10000,
-                             'amount_paid' => 0,
-                             'amount_due' => 0,
-                             'currency' => 'INR',
-                             'receipt' => '11',
-                             'offer_id' => null,
-                             'status' => 'created',
-                             'attempts' => 0,
-                             'notes' => [],
-                             'created_at' => 1666097548
-                          ];
+        $this->orderData = [ 
+                            'id' => 'order_test',
+                            'entity' => 'order',
+                            'amount' => 10000,
+                            'amount_paid' => 0,
+                            'amount_due' => 0,
+                            'currency' => 'INR',
+                            'receipt' => '11',
+                            'offer_id' => null,
+                            'status' => 'created',
+                            'attempts' => 0,
+                            'notes' => [],
+                            'created_at' => 1666097548
+                        ];
 
         $this->merchantPreferences = ["options" => [
             "image"=> "https://cdn.razorpay.com/logos/IjFWzUIxXibcjw_medium.jpeg",
@@ -268,6 +275,7 @@ class OrderControllerTest extends TestCase {
         $this->webhookApi->shouldReceive('edit')->andReturn("Test Webhook Edit Response");
         $this->webhookApi->shouldReceive('create')->andReturn("Test Webhook Create Response");
         $this->webhookApi->shouldReceive('all')->with(['count' => 10, 'skip' => 0])->andReturn($this->webhookData);
+
         $this->requestApi->shouldReceive('request')->with("GET", "preferences")->andReturn($this->merchantPreferences);
         
         $response = $this->order->execute();
@@ -282,6 +290,7 @@ class OrderControllerTest extends TestCase {
         $this->config->shouldReceive('getPaymentAction')->andReturn('authorize_capture');
         
         $this->orderApi->shouldReceive('create')->andThrow($this->apiError);
+
         $this->webhookApi->shouldReceive('edit')->andThrow($this->apiError);
         $this->webhookApi->shouldReceive('create')->andThrow($this->apiError);
         $this->webhookApi->shouldReceive('all')->with(['count' => 10, 'skip' => 0])->andReturn($this->webhookData2);
@@ -300,6 +309,7 @@ class OrderControllerTest extends TestCase {
         $this->config->shouldReceive('getPaymentAction')->andReturn('authorize_capture');
         
         $this->orderApi->shouldReceive('create')->andThrow(new Exception("Test exception message"));
+
         $this->webhookApi->shouldReceive('edit')->andThrow(new Exception("Test exception message"));
         $this->webhookApi->shouldReceive('create')->andThrow(new Exception("Test exception message"));
         $this->webhookApi->shouldReceive('all')->with(['count' => 10, 'skip' => 0])->andReturn($this->webhookData);
@@ -318,6 +328,7 @@ class OrderControllerTest extends TestCase {
         $this->config->shouldReceive('getPaymentAction')->andReturn('authorize_capture');
         
         $this->orderApi->shouldReceive('create')->andThrow($this->apiError);
+
         $this->webhookApi->shouldReceive('edit')->andReturn("hehe");
         $this->webhookApi->shouldReceive('create')->andReturn("hehe2");
         $this->webhookApi->shouldReceive('all')->with(['count' => 10, 'skip' => 0])->andThrow($this->apiError);
@@ -336,6 +347,7 @@ class OrderControllerTest extends TestCase {
         $this->config->shouldReceive('getPaymentAction')->andReturn('authorize_capture');
         
         $this->orderApi->shouldReceive('create')->andThrow(new Exception("Test exception message"));
+        
         $this->webhookApi->shouldReceive('edit')->andReturn("hehe");
         $this->webhookApi->shouldReceive('create')->andReturn("hehe2");
         $this->webhookApi->shouldReceive('all')->with(['count' => 10, 'skip' => 0])->andThrow(new Exception("Test exception message"));
