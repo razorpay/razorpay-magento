@@ -11,21 +11,27 @@ class FormDataAnalyticsTest extends TestCase
         $this->context = \Mockery::mock(
             \Magento\Framework\App\Action\Context::class
         )->makePartial()->shouldAllowMockingProtectedMethods();
+
         $this->trackPluginInstrumentation = \Mockery::mock(
             \Razorpay\Magento\Model\TrackPluginInstrumentation::class
         )->makePartial()->shouldAllowMockingProtectedMethods();
+
         $this->customerSession = $this->createMock(
             \Magento\Customer\Model\Session::class
         );
+
         $this->checkoutSession = \Mockery::mock(
             \Magento\Checkout\Model\Session::class
         );
+
         $this->config = \Mockery::mock(
             \Razorpay\Magento\Model\Config::class
         );
+
         $this->logger = $this->createMock(
             \Psr\Log\LoggerInterface::class
         );
+
         $this->requestInterface = \Mockery::mock(
             \Magento\Framework\App\RequestInterface::class
         );
@@ -33,12 +39,14 @@ class FormDataAnalyticsTest extends TestCase
         $this->resultFactoryMock = \Mockery::mock(
             Magento\Framework\Controller\ResultFactory::class
         )->makePartial()->shouldAllowMockingProtectedMethods();
+
         $this->serializerJson = new \Magento\Framework\Serialize\Serializer\Json;
+
         $this->translateInline = \Mockery::mock(
             \Magento\Framework\Translate\InlineInterface::class
         );
-        $this->json = new Json($this->translateInline,
-        $this->serializerJson);
+
+        $this->json = new Json($this->translateInline, $this->serializerJson);
 
         $this->context->shouldReceive('getResultFactory')->andReturn($this->resultFactoryMock);
         
@@ -50,13 +58,19 @@ class FormDataAnalyticsTest extends TestCase
         
         $this->resultFactoryMock->shouldReceive('create')->with('json')->andReturn($this->json);
 
-        $this->formDataAnalytics = \Mockery::mock(Razorpay\Magento\Controller\Payment\FormDataAnalytics::class, [$this->context,
-                                                                                                            $this->trackPluginInstrumentation,
-                                                                                                            $this->customerSession,
-                                                                                                            $this->checkoutSession,
-                                                                                                            $this->config,
-                                                                                                            $this->logger])->makePartial()->shouldAllowMockingProtectedMethods();
+        $this->formDataAnalytics = \Mockery::mock(Razorpay\Magento\Controller\Payment\FormDataAnalytics::class, 
+                                                    [
+                                                        $this->context,
+                                                        $this->trackPluginInstrumentation,
+                                                        $this->customerSession,
+                                                        $this->checkoutSession,
+                                                        $this->config,
+                                                        $this->logger
+                                                    ]
+                                                )->makePartial()->shouldAllowMockingProtectedMethods();
+        
         $this->event = 'Form Field Focused';
+        
         $this->eventProperties = [
             'store_name'        => 'Magento',
             'focus'             => 'yes',
