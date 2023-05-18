@@ -115,7 +115,7 @@ class ResetCartControllerTest extends TestCase
         $this->checkoutSession->shouldReceive('getLastQuoteId')->andReturn('000012');
         $response = $this->resetCart->execute();
 
-        $expected_response = '{"success":true, "redirect_url":"checkout\/#payment"}';
+        $expected_response = '{"success":true,"redirect_url":"checkout\/#payment"}';
 
         $this->assertSame($expected_response, $this->getProperty($response, 'json'));
     }
@@ -125,7 +125,7 @@ class ResetCartControllerTest extends TestCase
         $this->checkoutSession->shouldReceive('getLastQuoteId')->andReturn(null);
         $response = $this->resetCart->execute();
 
-        $expected_response = '{"success":true, "redirect_url":"checkout\/cart"}';
+        $expected_response = '{"success":true,"redirect_url":"checkout\/cart"}';
 
         $this->assertSame($expected_response, $this->getProperty($response, 'json'));
     }
