@@ -62,7 +62,6 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
 
         $this->captureCommand = new CaptureCommand();
         $this->authorizeCommand = new AuthorizeCommand();
-
     } 
     public function execute()
     {
