@@ -237,6 +237,8 @@ class OrderControllerTest extends TestCase {
         
         $this->setProperty($this->order, '_objectManager', $this->_objectManager);
         $this->setProperty($this->order, 'resultFactory', $this->resultFactory);
+        
+        $_SERVER['HTTP_REFERER'] = 'Test Referrer URL';
     }
 
     function getProperty($object, $propertyName)
