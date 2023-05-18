@@ -203,11 +203,14 @@ class CallbackControllerTest extends TestCase {
     public function testExecuteSuccess()
     {
         $this->checkoutSession->shouldReceive('setRazorpayMailSentOnSuccess');
+
         $this->callback->shouldReceive('validateSignature');
+
         $this->config->shouldReceive('getPaymentAction')->andReturn('authorize_capture');
 
         $this->requestInterface->shouldReceive('getParams')->andReturn(['order_id' => '000012',
                                                                         'razorpay_payment_id' => 'Test Payment id']);
+        
         $this->callback->objectManagement = \Mockery::mock(
             \Magento\Framework\App\ObjectManager::class
         );
@@ -224,10 +227,12 @@ class CallbackControllerTest extends TestCase {
         $this->checkoutSession->shouldReceive('setRazorpayMailSentOnSuccess');
         
         $this->callback->shouldReceive('validateSignature');
+
         $this->config->shouldReceive('getPaymentAction')->andReturn('authorize');
         
         $this->requestInterface->shouldReceive('getParams')->andReturn(['order_id' => '000012',
                                                                         'razorpay_payment_id' => 'Test Payment id']);
+        
         $this->callback->objectManagement = \Mockery::mock(
             \Magento\Framework\App\ObjectManager::class
         );
@@ -244,9 +249,11 @@ class CallbackControllerTest extends TestCase {
         $this->checkoutSession->shouldReceive('setRazorpayMailSentOnSuccess');
         
         $this->callback->shouldReceive('validateSignature');
+
         $this->config->shouldReceive('getPaymentAction')->andReturn('authorize_capture');
 
         $this->requestInterface->shouldReceive('getParams')->andReturn(['order_id' => '']);
+        
         $this->callback->objectManagement = \Mockery::mock(
             \Magento\Framework\App\ObjectManager::class
         );
@@ -265,12 +272,14 @@ class CallbackControllerTest extends TestCase {
         $this->apiError = \Mockery::mock(
             Razorpay\Api\Errors\Error::class,['Test Api error message', 0, 0]
         );
+
         $this->callback->shouldReceive('validateSignature')->andThrow($this->apiError);
 
         $this->config->shouldReceive('getPaymentAction')->andReturn('authorize_capture');
 
         $this->requestInterface->shouldReceive('getParams')->andReturn(['order_id' => '000012',
                                                                         'razorpay_payment_id' => 'Test Payment id']);
+        
         $this->callback->objectManagement = \Mockery::mock(
             \Magento\Framework\App\ObjectManager::class
         );
@@ -291,6 +300,7 @@ class CallbackControllerTest extends TestCase {
 
         $this->requestInterface->shouldReceive('getParams')->andReturn(['order_id' => '000012',
                                                                         'razorpay_payment_id' => 'Test Payment id']);
+        
         $this->callback->objectManagement = \Mockery::mock(
             \Magento\Framework\App\ObjectManager::class
         );
@@ -310,6 +320,7 @@ class CallbackControllerTest extends TestCase {
         $this->config->shouldReceive('getPaymentAction')->andReturn('authorize_capture');
 
         $this->requestInterface->shouldReceive('getParams')->andReturn(['order_id' => '000012']);
+
         $this->callback->objectManagement = \Mockery::mock(
             \Magento\Framework\App\ObjectManager::class
         );
@@ -328,6 +339,7 @@ class CallbackControllerTest extends TestCase {
         $this->checkoutSession->shouldReceive('setRazorpayMailSentOnSuccess')->andThrow($mailException);
         
         $this->callback->shouldReceive('validateSignature');
+
         $this->config->shouldReceive('getPaymentAction')->andReturn('authorize_capture');
 
         $this->requestInterface->shouldReceive('getParams')->andReturn(['order_id' => '000012',
@@ -348,10 +360,12 @@ class CallbackControllerTest extends TestCase {
         $this->checkoutSession->shouldReceive('setRazorpayMailSentOnSuccess')->andThrow(new Exception("Test exception message") );
         
         $this->callback->shouldReceive('validateSignature');
+        
         $this->config->shouldReceive('getPaymentAction')->andReturn('authorize_capture');
 
         $this->requestInterface->shouldReceive('getParams')->andReturn(['order_id' => '000012',
                                                                         'razorpay_payment_id' => 'Test Payment id']);
+
         $this->callback->objectManagement = \Mockery::mock(
             \Magento\Framework\App\ObjectManager::class
         );
@@ -380,6 +394,7 @@ class CallbackControllerTest extends TestCase {
             'razorpay_payment_id' => 'Test payment id',
             'razorpay_signature' => 'Test payment signature'
         ];
+
         $this->api = $this->getMockBuilder(Razorpay\Api\Api::class)
                      ->disableOriginalConstructor()
                      ->disableOriginalClone()
@@ -389,6 +404,7 @@ class CallbackControllerTest extends TestCase {
         $this->utilityApi = \Mockery::mock(
             Razorpay\Api\Utility::class
         );
+
         $this->utilityApi->shouldReceive('verifyPaymentSignature');
         $this->api->method('__get')
         ->willReturnCallback(function ($propertyName) {
@@ -398,6 +414,7 @@ class CallbackControllerTest extends TestCase {
                 }
             }
         );
+
         $this->callback->razorpayOrderID = 'Test razorpay order id';
         $this->callback->rzp = $this->api;
         $this->callback->validateSignature($request);
