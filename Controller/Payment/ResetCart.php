@@ -50,6 +50,7 @@ class ResetCart extends \Razorpay\Magento\Controller\BaseController
         // @codeCoverageIgnoreStart
         $this->logger->info("Reset Cart started.");
         // @codeCoverageIgnoreEnd
+        
         $lastQuoteId = $this->checkoutSession->getLastQuoteId();
 
         $lastOrderId = $this->checkoutSession->getLastRealOrder();
@@ -112,7 +113,7 @@ class ResetCart extends \Razorpay\Magento\Controller\BaseController
         $response->setData($responseContent);
 
         $response->setHttpResponseCode(200);
-        
+
         return $response;
 
     }
