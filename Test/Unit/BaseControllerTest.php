@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
@@ -57,7 +58,7 @@ class BaseControllerTest extends TestCase
                                                                                                     $this->config])->makePartial()->shouldAllowMockingProtectedMethods();
     }
 
-    function getProperty($object, $propertyName, $value)
+    function setProperty($object, $propertyName, $value)
     {
         $reflection = new \ReflectionClass($object);
 
@@ -69,6 +70,16 @@ class BaseControllerTest extends TestCase
         return $property->getValue($object);
     }
 
+    function getProperty($object, $propertyName)
+    {
+        $reflection = new \ReflectionClass($object);
+
+        $property = $reflection->getProperty($propertyName);
+        $property->setAccessible(true);
+
+        return $property->getValue($object);
+    }
+
     public function testGetQuote()
     {
         $this->assertSame($this->quoteModel, $this->baseController->getQuote());
@@ -76,12 +87,12 @@ class BaseControllerTest extends TestCase
 
     public function testGetCheckout()
     {
-        $this->getProperty($this->baseController, 'checkoutFactory', $this->checkoutFactory);
+        $this->setProperty($this->baseController, 'checkoutFactory', $this->checkoutFactory);
 
         $this->assertSame($this->checkoutModel, $this->baseController->getCheckout());
     }
 
-    public function testInitCheckout()
+    public function testInitCheckoutException()
     {
         $this->quoteModel->shouldReceive('hasItems')->andReturn(true);
         $this->quoteModel->shouldReceive('getHasError')->andReturn(true);
@@ -90,5 +101,15 @@ class BaseControllerTest extends TestCase
         $this->expectExceptionMessage("We can't initialize checkout.");
 
         $this->baseController->initCheckout();
+    }
+
+    public function testInitCheckout()
+    {
+        $this->quoteModel->shouldReceive('hasItems')->andReturn(true);
+        $this->quoteModel->shouldReceive('getHasError')->andReturn(false);
+
+        $this->baseController->initCheckout();
+
+        $this->assertSame($this->quoteModel, $this->getProperty($this->baseController, 'quote'));
     }
 }
