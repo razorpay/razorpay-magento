@@ -10,7 +10,7 @@ use Razorpay\Magento\Model\PaymentMethod;
 
 /**
  * CancelPendingOrders controller to cancel Magento order
- *
+ * Used for off site redirect payment
  * ...
  */
 class Callback extends \Razorpay\Magento\Controller\BaseController
