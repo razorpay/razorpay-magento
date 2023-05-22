@@ -324,14 +324,15 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
      */
     protected function getPostData() : array
     {
-        return $this->fileGetContents();
+        $request = $this->fileGetContents();
+
+        return json_decode($request, true);
     }
 
     // @codeCoverageIgnoreStart
     protected function fileGetContents()
     {
-        $request = file_get_contents('php://input');
-        return json_decode($request, true);
+        return file_get_contents('php://input');
     }
     // @codeCoverageIgnoreEnd
 }
