@@ -1,5 +1,10 @@
 <?php
+
 declare(strict_types=1);
+
+include __DIR__ . '/../../../Razorpay/src/Errors/Error.php';
+include __DIR__ . '/../../../Razorpay/src/Api.php';
+
 use PHPUnit\Framework\TestCase;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Store\Model\Store;
@@ -14,7 +19,8 @@ use Psr\Log\Test\TestLogger;
  * @covers Razorpay\Magento\Controller\Payment\Validate
  */
 
-class ValidateControllerTest extends TestCase {
+class ValidateControllerTest extends TestCase 
+{
     public function setUp():void
     {
         $this->context = \Mockery::mock(
@@ -269,24 +275,7 @@ class ValidateControllerTest extends TestCase {
         $this->resultFactory->shouldReceive('create')
                             ->with('json')
                             ->andReturn($this->json);
-    }
-
-    function getProperty($object, $propertyName)
-    {
-        $reflection = new \ReflectionClass($object);
-
-        $property = $reflection->getProperty($propertyName);
-
-        $property->setAccessible(true);
-
-        return $property->getValue($object);
-    }
-
-    function testValidateAutorize()
-    {
-        $this->config->shouldReceive('getPaymentAction')
-                     ->andReturn('authorize');
-
+        
         $this->validate = \Mockery::mock(Razorpay\Magento\Controller\Payment\Validate::class,
                                         [
                                             $this->context,
@@ -305,7 +294,7 @@ class ValidateControllerTest extends TestCase {
                                         ->makePartial()
                                         ->shouldAllowMockingProtectedMethods();
 
-        $this->api = $this->getMockBuilder(Razorpay\Api\Api::class)
+    $this->api = $this->getMockBuilder(Razorpay\Api\Api::class)
                           ->disableOriginalConstructor()
                           ->disableOriginalClone()
                           ->disableArgumentCloning()
@@ -322,8 +311,35 @@ class ValidateControllerTest extends TestCase {
         });
 
         $this->validate->rzp = $this->api;
+        
+        $this->setProperty($this->validate, '_objectManager', $this->objectManager);
+    }
 
-        $this->validate->setMockInit($this->objectManager);
+    function getProperty($object, $propertyName)
+    {
+        $reflection = new \ReflectionClass($object);
+
+        $property = $reflection->getProperty($propertyName);
+        $property->setAccessible(true);
+
+        return $property->getValue($object);
+    }
+
+    function setProperty($object, $propertyName, $value)
+    {
+        $reflection = new \ReflectionClass($object);
+    
+        $property = $reflection->getProperty($propertyName);
+        $property->setAccessible(true);
+        $property->setValue($object, $value);
+
+        return $property->getValue($object);
+    }
+
+    function testValidateAutorize()
+    {
+        $this->config->shouldReceive('getPaymentAction')
+                     ->andReturn('authorize');
 
         $this->validate->shouldReceive('getPostData')
                        ->andReturn($this->post);
@@ -344,44 +360,6 @@ class ValidateControllerTest extends TestCase {
         $this->config->shouldReceive('getPaymentAction')
                      ->andReturn('authorize_capture');
 
-        $this->validate = \Mockery::mock(Razorpay\Magento\Controller\Payment\Validate::class,
-                                        [
-                                            $this->context,
-                                            $this->customerSession,
-                                            $this->checkoutSession,
-                                            $this->config,
-                                            $this->catalogSession,
-                                            $this->order,
-                                            $this->invoiceService,
-                                            $this->transaction,
-                                            $this->invoiceSender,
-                                            $this->orderRepository,
-                                            $this->orderSender,
-                                            $this->logger
-                                        ])
-                                        ->makePartial()
-                                        ->shouldAllowMockingProtectedMethods();
-
-        $this->api = $this->getMockBuilder(Razorpay\Api\Api::class)
-                          ->disableOriginalConstructor()
-                          ->disableOriginalClone()
-                          ->disableArgumentCloning()
-                          ->disallowMockingUnknownTypes()
-                          ->getMock();
-
-        $this->api->method('__get')->willReturnCallback(function ($propertyName)
-        {
-            switch($propertyName)
-            {
-                case 'utility':
-                    return $this->utilityApi;
-            }
-        });
-
-        $this->validate->rzp = $this->api;
-
-        $this->validate->setMockInit($this->objectManager);
-
         $this->validate->shouldReceive('getPostData')
                        ->andReturn($this->post);
 
@@ -401,45 +379,8 @@ class ValidateControllerTest extends TestCase {
         $this->config->shouldReceive('getPaymentAction')
                      ->andReturn('authorize');
 
-        $this->validate = \Mockery::mock(Razorpay\Magento\Controller\Payment\Validate::class,
-                                        [
-                                            $this->context,
-                                            $this->customerSession,
-                                            $this->checkoutSession,
-                                            $this->config,
-                                            $this->catalogSession,
-                                            $this->order,
-                                            $this->invoiceService,
-                                            $this->transaction,
-                                            $this->invoiceSender,
-                                            $this->orderRepository,
-                                            $this->orderSender,
-                                            $this->logger
-                                        ])
-                                        ->makePartial()
-                                        ->shouldAllowMockingProtectedMethods();
-
-        $this->api = $this->getMockBuilder(Razorpay\Api\Api::class)
-                          ->disableOriginalConstructor()
-                          ->disableOriginalClone()
-                          ->disableArgumentCloning()
-                          ->disallowMockingUnknownTypes()
-                          ->getMock();
-
-        $this->api->method('__get')->willReturnCallback(function ($propertyName)
-        {
-            switch($propertyName)
-            {
-                case 'utility':
-                    return $this->utilityApi;
-            }
-        });
-
         $this->post = [];
 
-        $this->validate->rzp = $this->api;
-
-        $this->validate->setMockInit($this->objectManager);
         $this->validate->shouldReceive('getPostData')
                        ->andReturn($this->post);
         $this->validate->shouldReceive('validateSignature')
@@ -461,45 +402,8 @@ class ValidateControllerTest extends TestCase {
         $this->config->shouldReceive('getPaymentAction')
                      ->andReturn('authorize');
 
-        $this->validate = \Mockery::mock(Razorpay\Magento\Controller\Payment\Validate::class,
-                                        [
-                                            $this->context,
-                                            $this->customerSession,
-                                            $this->checkoutSession,
-                                            $this->config,
-                                            $this->catalogSession,
-                                            $this->order,
-                                            $this->invoiceService,
-                                            $this->transaction,
-                                            $this->invoiceSender,
-                                            $this->orderRepository,
-                                            $this->orderSender,
-                                            $this->logger
-                                        ])
-                                        ->makePartial()
-                                        ->shouldAllowMockingProtectedMethods();
-
-        $this->api = $this->getMockBuilder(Razorpay\Api\Api::class)
-                          ->disableOriginalConstructor()
-                          ->disableOriginalClone()
-                          ->disableArgumentCloning()
-                          ->disallowMockingUnknownTypes()
-                          ->getMock();
-
-        $this->api->method('__get')->willReturnCallback(function ($propertyName)
-        {
-            switch($propertyName)
-            {
-                case 'utility':
-                    return $this->utilityApi;
-            }
-        });
-
         $this->post = [];
 
-        $this->validate->rzp = $this->api;
-
-        $this->validate->setMockInit($this->objectManager);
         $this->validate->shouldReceive('getPostData')
                        ->andReturn($this->post);
         $this->validate->shouldReceive('validateSignature')
@@ -521,43 +425,6 @@ class ValidateControllerTest extends TestCase {
         $this->config->shouldReceive('getPaymentAction')
                      ->andReturn('authorize');
 
-        $this->validate = \Mockery::mock(Razorpay\Magento\Controller\Payment\Validate::class,
-                                        [
-                                            $this->context,
-                                            $this->customerSession,
-                                            $this->checkoutSession,
-                                            $this->config,
-                                            $this->catalogSession,
-                                            $this->order,
-                                            $this->invoiceService,
-                                            $this->transaction,
-                                            $this->invoiceSender,
-                                            $this->orderRepository,
-                                            $this->orderSender,
-                                            $this->logger
-                                        ])
-                                        ->makePartial()
-                                        ->shouldAllowMockingProtectedMethods();
-
-        $this->api = $this->getMockBuilder(Razorpay\Api\Api::class)
-                          ->disableOriginalConstructor()
-                          ->disableOriginalClone()
-                          ->disableArgumentCloning()
-                          ->disallowMockingUnknownTypes()
-                          ->getMock();
-
-        $this->api->method('__get')->willReturnCallback(function ($propertyName)
-        {
-            switch($propertyName)
-            {
-                case 'utility':
-                    return $this->utilityApi;
-            }
-        });
-
-        $this->validate->rzp = $this->api;
-
-        $this->validate->setMockInit($this->objectManager);
         $this->validate->shouldReceive('getPostData')
                        ->andReturn($this->post);
 
@@ -583,26 +450,9 @@ class ValidateControllerTest extends TestCase {
             'razorpay_order_id'   => 'order_LJ7pjEUXgeOhhj'
         ];
 
-        $this->validate = \Mockery::mock(Razorpay\Magento\Controller\Payment\Validate::class,
-                                        [
-                                            $this->context,
-                                            $this->customerSession,
-                                            $this->checkoutSession,
-                                            $this->config,
-                                            $this->catalogSession,
-                                            $this->order,
-                                            $this->invoiceService,
-                                            $this->transaction,
-                                            $this->invoiceSender,
-                                            $this->orderRepository,
-                                            $this->orderSender,
-                                            $this->logger
-                                        ])
-                                        ->makePartial()->shouldAllowMockingProtectedMethods();
-
         $this->validate->shouldReceive('fileGetContents')
                        ->andReturn($this->post);
 
-        $this->assertSame($this->validate->getPostData(), $expectedResponse);
+        $this->assertSame($expectedResponse, $this->validate->getPostData());
     }
 }
