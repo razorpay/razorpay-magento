@@ -298,12 +298,6 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
         return $response;
     }
 
-    // @codeCoverageIgnoreStart
-    function setMockInit($objectManager)
-    {
-        $this->_objectManager = $objectManager;
-    }
-    // @codeCoverageIgnoreEnd
     protected function validateSignature($request)
     { 
         // @codeCoverageIgnoreStart
