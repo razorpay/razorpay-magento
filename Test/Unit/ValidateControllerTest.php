@@ -311,7 +311,7 @@ class ValidateControllerTest extends TestCase
         });
 
         $this->validate->rzp = $this->api;
-        
+
         $this->setProperty($this->validate, '_objectManager', $this->objectManager);
     }
 
@@ -451,7 +451,7 @@ class ValidateControllerTest extends TestCase
         ];
 
         $this->validate->shouldReceive('fileGetContents')
-                       ->andReturn($this->post);
+                       ->andReturn(json_encode($this->post));
 
         $this->assertSame($expectedResponse, $this->validate->getPostData());
     }
