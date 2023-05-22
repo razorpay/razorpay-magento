@@ -18,7 +18,6 @@ use Psr\Log\Test\TestLogger;
 /**
  * @covers Razorpay\Magento\Controller\Payment\Validate
  */
-
 class ValidateControllerTest extends TestCase 
 {
     public function setUp():void
@@ -123,15 +122,15 @@ class ValidateControllerTest extends TestCase
         );
 
         $this->apiError = \Mockery::mock(
-            \Razorpay\Api\Errors\Error::class,['Test Api error message',0,0]
+            \Razorpay\Api\Errors\Error::class, ['Test Api error message', 0, 0]
         );
 
         $this->exceptionError = \Mockery::mock(
-            \Exception::class,['Test Exception error message']
+            \Exception::class, ['Test Exception error message']
         );
 
         $this->emailExceptionError = \Mockery::mock(
-            \Exception::class,['Email Exception error message']
+            \Exception::class, ['Email Exception error message']
         );
 
         $this->json = new Json($this->translateInline,
