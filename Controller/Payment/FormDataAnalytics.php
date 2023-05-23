@@ -79,23 +79,23 @@ class FormDataAnalytics extends \Razorpay\Magento\Controller\BaseController
             $trackResponse['segment'] = $this->trackPluginInstrumentation->rzpTrackSegment($event, $properties);
 
             $trackResponse['datalake'] = $this->trackPluginInstrumentation->rzpTrackDataLake($event, $properties);
-
-            $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
-            $response->setData($trackResponse);
-            $response->setHttpResponseCode(200);
-
-            return $response;
         }
         catch (\Razorpay\Api\Errors\Error $e)
         {
             $this->logger->critical("Error:" . $e->getMessage());
-            $response = ['status' => 'error', 'message' => $e->getMessage()];
+            $trackResponse = ['status' => 'error', 'message' => $e->getMessage()];
         }
         catch (\Exception $e)
         {
             $this->logger->critical("Error:" . $e->getMessage());
-            $response = ['status' => 'error', 'message' => $e->getMessage()];
+            $trackResponse = ['status' => 'error', 'message' => $e->getMessage()];
         }
+
+        $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
+        $response->setData($trackResponse);
+        $response->setHttpResponseCode(200);
+
+        return $response;
     }
 
     /**
