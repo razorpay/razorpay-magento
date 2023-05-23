@@ -117,7 +117,7 @@ class FormDataAnalyticsTest extends TestCase
             'properties' => $this->eventProperties
         ]);
 
-        $expectedResponse = '{"status":"error","message":"Empty field passed for event name payload to Segment"}';
+        $expectedResponse = '{"status":"error","message":"Empty field passed for event name payload to Instrument"}';
 
         $response = $this->formDataAnalytics->execute();
 
@@ -130,7 +130,7 @@ class FormDataAnalyticsTest extends TestCase
             'event' => $this->event
         ]);
 
-        $expectedResponse = '{"status":"error","message":"Empty field passed for event properties payload to Segment"}';
+        $expectedResponse = '{"status":"error","message":"Empty field passed for event properties payload to Instrument"}';
 
         $response = $this->formDataAnalytics->execute();
 
