@@ -107,12 +107,11 @@ class ConfigModelTest extends TestCase
 
         $this->configModel->shouldReceive('getConfigData')
             ->with(self::CUSTOM_PAID_ORDER_STATUS)
-            ->andReturn('paymentcompleted');
+            ->andReturn('payment_completed');
 
         $this->scopeConfigInterface->shouldReceive('getValue')
             ->with('payment/razorpay/sample_key','store',NULL)
             ->andReturn('sample_value');
-
     }
 
     function testGetMerchantNameOverride()
@@ -198,7 +197,7 @@ class ConfigModelTest extends TestCase
 
     function testGetCustomPaidOrderStatus()
     {
-        $expectedResult = 'paymentcompleted';
+        $expectedResult = 'payment_completed';
 
         $customPaidOrderStatus = $this->configModel->getCustomPaidOrderStatus();
 
