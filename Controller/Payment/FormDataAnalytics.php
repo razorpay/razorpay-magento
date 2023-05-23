@@ -62,7 +62,7 @@ class FormDataAnalytics extends \Razorpay\Magento\Controller\BaseController
             }
             else
             {
-                throw new \Exception("Empty field passed for event name payload to Segment");
+                throw new \Exception("Empty field passed for event name payload to Instrument");
             }
 
             if (array_key_exists('properties', $requestData))
@@ -71,7 +71,7 @@ class FormDataAnalytics extends \Razorpay\Magento\Controller\BaseController
             }
             else
             {
-                throw new \Exception("Empty field passed for event properties payload to Segment");
+                throw new \Exception("Empty field passed for event properties payload to Instrument");
             }
 
             $this->logger->info("Event : ". $event .". In function " . __METHOD__);
