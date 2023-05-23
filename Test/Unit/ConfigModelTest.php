@@ -1,11 +1,14 @@
 <?php
+
 declare(strict_types=1);
+
 use PHPUnit\Framework\TestCase;
 
 /**
  * @covers Razorpay\Magento\Model\Config
  */
-class ConfigModelTest extends TestCase {
+class ConfigModelTest extends TestCase 
+{
     const KEY_ALLOW_SPECIFIC              = 'allowspecific';
     const KEY_SPECIFIC_COUNTRY            = 'specificcountry';
     const KEY_ACTIVE                      = 'active';
