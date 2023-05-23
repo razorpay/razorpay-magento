@@ -90,6 +90,18 @@ class PaymentMethodTest extends TestCase {
             Magento\Quote\Model\Quote\Address::class
         );
 
+        $this->apiError = \Mockery::mock(
+            \Razorpay\Api\Errors\Error::class, ['Test Api error message', 0, 0]
+        );
+
+        $this->exceptionError = \Mockery::mock(
+            \Exception::class, ['Test Api error message']
+        );
+
+        $this->paymentApi = \Mockery::mock(
+            Razorpay\Api\Payment::class
+        );
+
         $this->data = [];
 
         $this->productMetaDataInfo['channel'] = 'Magento';
@@ -139,6 +151,22 @@ class PaymentMethodTest extends TestCase {
                                                     $this->data
                                                 ])->makePartial()
                                                   ->shouldAllowMockingProtectedMethods();
+
+        $this->api = $this->getMockBuilder(Razorpay\Api\Api::class, ['sample_key_id', 'sample_key_secret'])
+                          ->disableOriginalConstructor()
+                          ->disableOriginalClone()
+                          ->disableArgumentCloning()
+                          ->disallowMockingUnknownTypes()
+                          ->getMock();
+
+        $this->api->method('__get')->willReturnCallback(function ($propertyName)
+        {
+            switch($propertyName)
+            {
+                case 'payment':
+                return $this->paymentApi;
+            }
+        });
     }
 
     public function testValidateOrder()
@@ -163,9 +191,9 @@ class PaymentMethodTest extends TestCase {
                      ->with('IN')
                      ->andReturn(true);
 
-        $expectedResponse = $this->paymentMethodModel->validate();
+        $response = $this->paymentMethodModel->validate();
 
-        $this->assertSame($expectedResponse, $this->paymentMethodModel);
+        $this->assertSame($this->paymentMethodModel, $response);
     }
 
     public function testValidateQuote()
@@ -194,9 +222,9 @@ class PaymentMethodTest extends TestCase {
                      ->with('IN')
                      ->andReturn(true);
 
-        $expectedResponse = $this->paymentMethodModel->validate();
+        $response = $this->paymentMethodModel->validate();
 
-        $this->assertSame($expectedResponse, $this->paymentMethodModel);
+        $this->assertSame($this->paymentMethodModel, $response);
     }
 
     public function testValidateException()
@@ -232,30 +260,23 @@ class PaymentMethodTest extends TestCase {
 
     public function testSetAndGetRzpApiInstance()
     {
-        $this->api = $this->getMockBuilder(Razorpay\Api\Api::class, ['sample_key_id', 'sample_key_secret'])
-                          ->disableOriginalConstructor()
-                          ->disableOriginalClone()
-                          ->disableArgumentCloning()
-                          ->disallowMockingUnknownTypes()
-                          ->getMock();
+        $response = $this->paymentMethodModel->setAndGetRzpApiInstance();
 
-        $expectedResponse = $this->paymentMethodModel->setAndGetRzpApiInstance();
-
-        $this->assertSame($expectedResponse instanceof Razorpay\Api\Api, $this->api instanceof Razorpay\Api\Api);
+        $this->assertInstanceOf(Razorpay\Api\Api::class, $response);
     }
 
     public function testGetChannel()
     {
-        $expectedResponse = $this->paymentMethodModel->getChannel();
+        $response = $this->paymentMethodModel->getChannel();
 
-        $this->assertSame($expectedResponse, 'Magento Community 2.4.2-p2');
+        $this->assertSame('Magento Community 2.4.2-p2', $response);
     }
 
     public function testGetConfigDataWithKeyId()
     {
-        $expectedResponse = $this->paymentMethodModel->getConfigData('key_id');
+        $response = $this->paymentMethodModel->getConfigData('key_id');
 
-        $this->assertSame($expectedResponse, 'sample_key_id');
+        $this->assertSame('sample_key_id', $response);
     }
 
     public function testGetConfigDataWithRedirectURL()
@@ -263,9 +284,9 @@ class PaymentMethodTest extends TestCase {
         $this->paymentMethodModel->shouldReceive('getOrderPlaceRedirectUrl')
                                  ->andReturn('');
 
-        $expectedResponse = $this->paymentMethodModel->getConfigData('order_place_redirect_url');
+        $response = $this->paymentMethodModel->getConfigData('order_place_redirect_url');
 
-        $this->assertSame($expectedResponse, '');
+        $this->assertSame('', $response);
     }
 
     public function testGetPostData()
@@ -275,9 +296,9 @@ class PaymentMethodTest extends TestCase {
         $this->paymentMethodModel->shouldReceive('fileGetContents')
                                  ->andReturn($postdata);
 
-        $expectedResponse = $this->paymentMethodModel->getPostData();
+        $response = $this->paymentMethodModel->getPostData();
 
-        $this->assertSame($expectedResponse, $postdata);
+        $this->assertSame($postdata, $response);
     }
 
     public function testCapture()
@@ -286,26 +307,15 @@ class PaymentMethodTest extends TestCase {
             Magento\Payment\Model\InfoInterface::class
         );
 
-        $expectedResponse = $this->paymentMethodModel->capture($paymentInfoInterface, 1000);
+        $response = $this->paymentMethodModel->capture($paymentInfoInterface, 1000);
 
-        $this->assertSame($expectedResponse, $this->paymentMethodModel);
+        $this->assertSame($this->paymentMethodModel, $response);
     }
 
     public function testRefund()
     {
         $paymentInfoInterface = \Mockery::mock(
             Magento\Payment\Model\InfoInterface::class
-        );
-
-        $this->api = $this->getMockBuilder(Razorpay\Api\Api::class, ['sample_key_id', 'sample_key_secret'])
-                          ->disableOriginalConstructor()
-                          ->disableOriginalClone()
-                          ->disableArgumentCloning()
-                          ->disallowMockingUnknownTypes()
-                          ->getMock();
-
-        $this->paymentApi = \Mockery::mock(
-            Razorpay\Api\Payment::class
         );
 
         $refundId  = 'pay_K6Ewbc4tbvw6jB-refund';
@@ -316,15 +326,6 @@ class PaymentMethodTest extends TestCase {
                          ->andReturn($this->paymentApi);
         $this->paymentApi->shouldReceive('refund')
                          ->andReturn((object)['id'=>$refundId]);
-
-        $this->api->method('__get')->willReturnCallback(function ($propertyName)
-        {
-            switch($propertyName)
-            {
-                case 'payment':
-                return $this->paymentApi;
-            }
-        });
 
         $this->config->shouldReceive('getMerchantNameOverride')
                      ->andReturn('My Ecommerce Site');
@@ -364,34 +365,15 @@ class PaymentMethodTest extends TestCase {
 
         $this->paymentMethodModel->shouldReceive('setAndGetRzpApiInstance')->andReturn($this->api);
 
-        $expectedResponse = $this->paymentMethodModel->refund($paymentInfoInterface, 1000);
+        $response = $this->paymentMethodModel->refund($paymentInfoInterface, 1000);
 
-        $this->assertSame($expectedResponse, $this->paymentMethodModel);
+        $this->assertSame($this->paymentMethodModel, $response);
     }
 
     public function testRefundApiException()
     {
         $paymentInfoInterface = \Mockery::mock(
             Magento\Payment\Model\InfoInterface::class
-        );
-
-        $this->api = $this->getMockBuilder(Razorpay\Api\Api::class, ['sample_key_id', 'sample_key_secret'])
-                          ->disableOriginalConstructor()
-                          ->disableOriginalClone()
-                          ->disableArgumentCloning()
-                          ->disallowMockingUnknownTypes()
-                          ->getMock();
-
-        $this->paymentApi = \Mockery::mock(
-            Razorpay\Api\Payment::class
-        );
-
-        $this->apiError = \Mockery::mock(
-            \Razorpay\Api\Errors\Error::class, ['Test Api error message', 0, 0]
-        );
-
-        $this->exceptionError = \Mockery::mock(
-            \Exception::class, ['Test Api error message']
         );
 
         $refundId  = 'pay_K6Ewbc4tbvw6jB-refund';
@@ -402,17 +384,6 @@ class PaymentMethodTest extends TestCase {
                          ->andReturn($this->paymentApi);
         $this->paymentApi->shouldReceive('refund')
                          ->andThrow($this->apiError);
-
-        $this->expectException(Magento\Framework\Exception\LocalizedException::class);
-
-        $this->api->method('__get')->willReturnCallback(function ($propertyName)
-        {
-            switch($propertyName)
-            {
-                case 'payment':
-                return $this->paymentApi;
-            }
-        });
 
         $this->config->shouldReceive('getMerchantNameOverride')
                      ->andReturn('My Ecommerce Site');
@@ -453,6 +424,8 @@ class PaymentMethodTest extends TestCase {
         $this->paymentMethodModel->shouldReceive('setAndGetRzpApiInstance')
                                  ->andReturn($this->api);
 
+        $this->expectException(Magento\Framework\Exception\LocalizedException::class);
+
         $this->paymentMethodModel->refund($paymentInfoInterface, 1000);
     }
 
@@ -460,25 +433,6 @@ class PaymentMethodTest extends TestCase {
     {
         $paymentInfoInterface = \Mockery::mock(
             Magento\Payment\Model\InfoInterface::class
-        );
-
-        $this->api = $this->getMockBuilder(Razorpay\Api\Api::class, ['sample_key_id', 'sample_key_secret'])
-                          ->disableOriginalConstructor()
-                          ->disableOriginalClone()
-                          ->disableArgumentCloning()
-                          ->disallowMockingUnknownTypes()
-                          ->getMock();
-
-        $this->paymentApi = \Mockery::mock(
-            Razorpay\Api\Payment::class
-        );
-
-        $this->apiError = \Mockery::mock(
-            \Razorpay\Api\Errors\Error::class, ['Test Api error message', 0, 0]
-        );
-
-        $this->exceptionError = \Mockery::mock(
-            \Exception::class, ['Test Exception error message']
         );
 
         $refundId  = 'pay_K6Ewbc4tbvw6jB-refund';
@@ -489,15 +443,6 @@ class PaymentMethodTest extends TestCase {
                          ->andReturn($this->paymentApi);
         $this->paymentApi->shouldReceive('refund')
                          ->andReturn(['id'=>$refundId]);
-
-        $this->api->method('__get')->willReturnCallback(function ($propertyName)
-        {
-            switch($propertyName)
-            {
-                case 'payment':
-                return $this->paymentApi;
-            }
-        });
 
         $this->config->shouldReceive('getMerchantNameOverride')
                      ->andReturn('My Ecommerce Site');
@@ -515,8 +460,6 @@ class PaymentMethodTest extends TestCase {
 
         $paymentInfoInterface->shouldReceive('getOrder')
                              ->andReturn($this->orderModel);
-
-        $this->expectException(Magento\Framework\Exception\LocalizedException::class);
 
         $paymentInfoInterface->shouldReceive('getTransactionId')->andReturn($refundId);
 
@@ -540,6 +483,8 @@ class PaymentMethodTest extends TestCase {
 
         $this->paymentMethodModel->shouldReceive('setAndGetRzpApiInstance')
                                  ->andReturn($this->api);
+
+        $this->expectException(Magento\Framework\Exception\LocalizedException::class);    
 
         $this->paymentMethodModel->refund($paymentInfoInterface, 1000);
     }
