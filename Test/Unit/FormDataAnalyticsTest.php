@@ -94,8 +94,10 @@ class FormDataAnalyticsTest extends TestCase
     function getProperty($object, $propertyName)
     {
         $reflection = new \ReflectionClass($object);
+
         $property = $reflection->getProperty($propertyName);
         $property->setAccessible(true);
+
         return $property->getValue($object);
     }
 
@@ -115,7 +117,11 @@ class FormDataAnalyticsTest extends TestCase
             'properties' => $this->eventProperties
         ]);
 
-        $this->formDataAnalytics->execute();
+        $expectedResponse = '{"status":"error","message":"Empty field passed for event name payload to Segment"}';
+
+        $response = $this->formDataAnalytics->execute();
+
+        $this->assertSame($expectedResponse, $this->getProperty($response, 'json'));
     }
 
     public function testExecuteEventPropertiesException()
@@ -124,7 +130,11 @@ class FormDataAnalyticsTest extends TestCase
             'event' => $this->event
         ]);
 
-        $this->formDataAnalytics->execute();
+        $expectedResponse = '{"status":"error","message":"Empty field passed for event properties payload to Segment"}';
+
+        $response = $this->formDataAnalytics->execute();
+
+        $this->assertSame($expectedResponse, $this->getProperty($response, 'json'));
     }
 
     public function testExecuteApiException()
@@ -134,7 +144,11 @@ class FormDataAnalyticsTest extends TestCase
         );
         $this->formDataAnalytics->shouldReceive('getPostData')->andThrow($this->apiError);
 
-        $this->formDataAnalytics->execute();
+        $expectedResponse = '{"status":"error","message":"Test Api error message"}';
+
+        $response = $this->formDataAnalytics->execute();
+
+        $this->assertSame($expectedResponse, $this->getProperty($response, 'json'));
     }
 
     public function testGetPostDataNotEmpty()
