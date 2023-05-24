@@ -186,11 +186,11 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
      */
     public function validate()
     {
-        $this->info = $this->getInfoInstance();
-        if ($this->info instanceof \Magento\Sales\Model\Order\Payment) {
-            $billingCountry = $this->info->getOrder()->getBillingAddress()->getCountryId();
+        $info = $this->getInfoInstance();
+        if ($info instanceof \Magento\Sales\Model\Order\Payment) {
+            $billingCountry = $info->getOrder()->getBillingAddress()->getCountryId();
         } else {
-            $billingCountry = $this->info->getQuote()->getBillingAddress()->getCountryId();
+            $billingCountry = $info->getQuote()->getBillingAddress()->getCountryId();
         }
 
         if (!$this->config->canUseForCountry($billingCountry)) {
