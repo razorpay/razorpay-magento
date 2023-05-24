@@ -167,6 +167,19 @@ class PaymentMethodTest extends TestCase {
                 return $this->paymentApi;
             }
         });
+
+       $this->setProperty($this->paymentMethodModel, 'logger', $this->logger);
+    }
+
+    function setProperty($object, $propertyName, $value)
+    {
+        $reflection = new \ReflectionClass($object);
+    
+        $property = $reflection->getProperty($propertyName);
+        $property->setAccessible(true);
+        $property->setValue($object, $value);
+
+        return $property->getValue($object);
     }
 
     public function testValidateOrder()
