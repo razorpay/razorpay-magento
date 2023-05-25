@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-include __DIR__ . '/../../../Razorpay/src/Errors/Error.php';
-include __DIR__ . '/../../../Razorpay/src/Api.php';
+include_once __DIR__ . '/../../../Razorpay/src/Errors/Error.php';
+include_once __DIR__ . '/../../../Razorpay/src/Api.php';
 
 use PHPUnit\Framework\TestCase;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
@@ -232,8 +232,8 @@ class OrderControllerTest extends TestCase
                         ];
 
         $this->merchantPreferences = ["options" => [
-            "image"=> "https://cdn.razorpay.com/logos/IjFWzUIxXibcjw_medium.jpeg",
-            "redirect"=> true
+            "image"     => "https://cdn.razorpay.com/logos/IjFWzUIxXibcjw_medium.jpeg",
+            "redirect"  => true
         ]];
 
         $this->order->rzp = $this->api;
@@ -248,17 +248,21 @@ class OrderControllerTest extends TestCase
     function getProperty($object, $propertyName)
     {
         $reflection = new \ReflectionClass($object);
+
         $property = $reflection->getProperty($propertyName);
         $property->setAccessible(true);
+
         return $property->getValue($object);
     }
 
     function setProperty($object, $propertyName, $value)
     {
         $reflection = new \ReflectionClass($object);
+
         $property = $reflection->getProperty($propertyName);
         $property->setAccessible(true);
         $property->setValue($object, $value);
+
         return $property->getValue($object);
     }
 
@@ -326,8 +330,8 @@ class OrderControllerTest extends TestCase
         
         $this->orderApi->shouldReceive('create')->andThrow($this->apiError);
 
-        $this->webhookApi->shouldReceive('edit')->andReturn("hehe");
-        $this->webhookApi->shouldReceive('create')->andReturn("hehe2");
+        $this->webhookApi->shouldReceive('edit')->andReturn("Test Webhook Edit Response");
+        $this->webhookApi->shouldReceive('create')->andReturn("Test Webhook Create Response");
         $this->webhookApi->shouldReceive('all')->with(['count' => 10, 'skip' => 0])->andThrow($this->apiError);
 
         $this->requestApi->shouldReceive('request')->with("GET", "preferences")->andReturn($this->merchantPreferences);
@@ -345,8 +349,8 @@ class OrderControllerTest extends TestCase
         
         $this->orderApi->shouldReceive('create')->andThrow(new Exception("Test exception message"));
 
-        $this->webhookApi->shouldReceive('edit')->andReturn("hehe");
-        $this->webhookApi->shouldReceive('create')->andReturn("hehe2");
+        $this->webhookApi->shouldReceive('edit')->andReturn("Test Webhook Edit Response");
+        $this->webhookApi->shouldReceive('create')->andReturn("Test Webhook Create Response");
         $this->webhookApi->shouldReceive('all')->with(['count' => 10, 'skip' => 0])->andThrow(new Exception("Test exception message"));
 
         $this->requestApi->shouldReceive('request')->with("GET", "preferences")->andReturn($this->merchantPreferences);
