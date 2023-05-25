@@ -374,6 +374,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $preferences['embedded_url'] = Api::getFullUrl("checkout/embedded");
         $preferences['is_hosted'] = false;
         $preferences['image'] = '';
+        
         try
         {
             $api = $this->getPublicRazorpayApiInstance();
@@ -399,8 +400,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     // @codeCoverageIgnoreStart
     function getPublicRazorpayApiInstance()
     {
-        $api = new Api($this->config->getKeyId(),"");
-        return $api;
+       return new Api($this->config->getKeyId(), "");
     }
     // @codeCoverageIgnoreEnd
 }
