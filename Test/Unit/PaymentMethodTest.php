@@ -296,11 +296,11 @@ class PaymentMethodTest extends TestCase
     public function testGetConfigDataWithRedirectURL()
     {
         $this->paymentMethodModel->shouldReceive('getOrderPlaceRedirectUrl')
-                                 ->andReturn('');
+                                 ->andReturn('https://http://127.0.0.1/magento2.4.5-p1/pub/admin_hh15oh/sales/order/view/order_id/82/key');
 
         $response = $this->paymentMethodModel->getConfigData('order_place_redirect_url');
 
-        $this->assertSame('', $response);
+        $this->assertSame('https://http://127.0.0.1/magento2.4.5-p1/pub/admin_hh15oh/sales/order/view/order_id/82/key', $response);
     }
 
     public function testGetPostData()
