@@ -167,13 +167,12 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $this->order = $order;
 
         $this->logger = $this->_logger;
-
     }
 
     public function setAndGetRzpApiInstance()
     {
         $apiInstance = new Api($this->key_id, $this->key_secret);
-        $apiInstance->setHeader('User-Agent', 'Razorpay/'. $this->getChannel());
+        $apiInstance->setHeader('User-Agent', 'Razorpay/' . $this->getChannel());
 
         return $apiInstance;
     }
@@ -252,7 +251,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
             $this->rzp = $this->setAndGetRzpApiInstance();
 
-            $this->rzp->setHeader('User-Agent', 'Razorpay/'. $this->getChannel());
+            $this->rzp->setHeader('User-Agent', 'Razorpay/' . $this->getChannel());
 
             $refund = $this->rzp->payment
                                 ->fetch($paymentId)
