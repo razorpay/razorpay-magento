@@ -1,14 +1,15 @@
 <?php
 declare(strict_types=1);
+
 use PHPUnit\Framework\TestCase;
 
 /**
  * @covers Razorpay\Magento\Model\PaymentMethod
  */
-class PaymentMethodTest extends TestCase {
+class PaymentMethodTest extends TestCase 
+{
     public function setUp():void
     {
-
         $this->context = \Mockery::mock(
             \Magento\Framework\Model\Context::class
         )->makePartial()
@@ -118,11 +119,11 @@ class PaymentMethodTest extends TestCase {
                      ->andReturn('sample_key_id');
 
         $this->config->shouldReceive('getConfigData')
-                     ->with('key_id',null)
+                     ->with('key_id', null)
                      ->andReturn('sample_key_id');
 
         $this->config->shouldReceive('getConfigData')
-                     ->with('order_place_redirect_url',null)
+                     ->with('order_place_redirect_url', null)
                      ->andReturn('');
 
         $this->config->shouldReceive('getConfigData')
@@ -338,7 +339,7 @@ class PaymentMethodTest extends TestCase {
                          ->with($paymentId)
                          ->andReturn($this->paymentApi);
         $this->paymentApi->shouldReceive('refund')
-                         ->andReturn((object)['id'=>$refundId]);
+                         ->andReturn((object)['id' => $refundId]);
 
         $this->config->shouldReceive('getMerchantNameOverride')
                      ->andReturn('My Ecommerce Site');
