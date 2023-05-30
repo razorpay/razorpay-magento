@@ -169,7 +169,7 @@ class PaymentMethodTest extends TestCase
             }
         });
 
-       $this->setProperty($this->paymentMethodModel, 'logger', $this->logger);
+       $this->setProperty($this->paymentMethodModel, '_logger', $this->logger);
     }
 
     function setProperty($object, $propertyName, $value)
@@ -308,7 +308,7 @@ class PaymentMethodTest extends TestCase
         $postdata = [];
 
         $this->paymentMethodModel->shouldReceive('fileGetContents')
-                                 ->andReturn($postdata);
+                                 ->andReturn(json_encode($postdata));
 
         $response = $this->paymentMethodModel->getPostData();
 
