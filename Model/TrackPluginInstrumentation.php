@@ -49,11 +49,11 @@ class TrackPluginInstrumentation
     )
     {
         $this->config       = $config;
-        $this->api          = $this->setAndGetRzpApiInstance();
         $this->moduleList   = $moduleList;
         $this->logger       = $logger;
     }
 
+    //codeCoverageIgnoreStart
     public function setAndGetRzpApiInstance()
     {
         $keyId          = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
@@ -62,7 +62,8 @@ class TrackPluginInstrumentation
 
         return $apiInstance;
     }
-
+    //codeCoverageIgnoreEnd
+    
     public function rzpTrackSegment($event, $properties)
     {
         try
@@ -91,6 +92,8 @@ class TrackPluginInstrumentation
             ];
 
             $this->logger->info('Event: '. $event .'. Properties: '. json_encode($properties));
+
+            $this->api          = $this->setAndGetRzpApiInstance();
 
             $response = $this->api->request->request('POST', 'plugins/segment', $data);
 
