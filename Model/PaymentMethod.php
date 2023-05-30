@@ -161,19 +161,16 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $this->key_id = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
         $this->key_secret = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
 
-        $this->rzp = $this->rzp = $this->setAndGetRzpApiInstance();
 
         $this->trackPluginInstrumentation = $trackPluginInstrumentation;
 
         $this->order = $order;
-
-        $this->rzp->setHeader('User-Agent', 'Razorpay/'. $this->getChannel());
     }
 
     public function setAndGetRzpApiInstance()
     {
         $apiInstance = new Api($this->key_id, $this->key_secret);
-        $apiInstance->setHeader('User-Agent', 'Razorpay/'. $this->getChannel());
+        $apiInstance->setHeader('User-Agent', 'Razorpay/' . $this->getChannel());
 
         return $apiInstance;
     }
@@ -202,10 +199,17 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
     protected function getPostData()
     {
-        $request = file_get_contents('php://input');
+        $request = $this->fileGetContents();
 
         return json_decode($request, true);
     }
+
+    // @codeCoverageIgnoreStart
+    protected function fileGetContents()
+    {
+        return file_get_contents('php://input');
+    }
+    // @codeCoverageIgnoreEnd
 
     /**
      * Refunds specified amount
@@ -244,6 +248,10 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                 ]
             ];
 
+            $this->rzp = $this->setAndGetRzpApiInstance();
+
+            $this->rzp->setHeader('User-Agent', 'Razorpay/' . $this->getChannel());
+
             $refund = $this->rzp->payment
                                 ->fetch($paymentId)
                                 ->refund($data);
@@ -265,7 +273,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         {
             $this->_logger->critical($e);
 
-            throw new LocalizedException(__('Razorpay Error: %1.', $e->getMessage()));
+            throw new LocalizedException(__('Exception Error: %1.', $e->getMessage()));
         }
 
         return $this;
@@ -283,13 +291,13 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             "refund_online"             => true
         );
 
-        $this->logger->info("Event : Refund Online Clicked. In function " . __METHOD__);
+        $this->_logger->info("Event : Refund Online Clicked. In function " . __METHOD__);
 
         $response['segment'] = $this->trackPluginInstrumentation->rzpTrackSegment('Refund Online Clicked', $eventData);
 
         $response['datalake'] = $this->trackPluginInstrumentation->rzpTrackDataLake('Refund Online Clicked', $eventData);
 
-        $this->logger->info(json_encode($response));
+        $this->_logger->info(json_encode($response));
     }
 
     public function capture(InfoInterface $payment, $amount)
