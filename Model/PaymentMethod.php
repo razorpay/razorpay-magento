@@ -165,8 +165,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $this->trackPluginInstrumentation = $trackPluginInstrumentation;
 
         $this->order = $order;
-
-        $this->logger = $this->_logger;
     }
 
     public function setAndGetRzpApiInstance()
@@ -201,14 +199,15 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
     protected function getPostData()
     {
-        return $this->fileGetContents();
+        $request = $this->fileGetContents();
+
+        return json_decode($request, true);
     }
 
     // @codeCoverageIgnoreStart
     protected function fileGetContents()
     {
-        $request = file_get_contents('php://input');
-        return json_decode($request, true);
+        return file_get_contents('php://input');
     }
     // @codeCoverageIgnoreEnd
 
@@ -232,7 +231,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
         $refundId = $payment->getTransactionId();
 
-        $this->logger->info('Razorpay Refund - Transaction ID:' . $refundId);
+        $this->_logger->info('Razorpay Refund - Transaction ID:' . $refundId);
 
         $paymentId = substr($refundId, 0, -7);
 
@@ -266,13 +265,13 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         }
         catch (\Razorpay\Api\Errors\Error $e)
         {
-            $this->logger->critical('Razorpay Error: %1.', $e->getMessage());
+            $this->_logger->critical($e);
 
             throw new LocalizedException(__('Razorpay Error: %1.', $e->getMessage()));
         }
         catch (\Exception $e)
         {
-            $this->logger->critical('Exception Error: %1.', $e->getMessage());
+            $this->_logger->critical($e);
 
             throw new LocalizedException(__('Exception Error: %1.', $e->getMessage()));
         }
@@ -292,13 +291,13 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
             "refund_online"             => true
         );
 
-        $this->logger->info("Event : Refund Online Clicked. In function " . __METHOD__);
+        $this->_logger->info("Event : Refund Online Clicked. In function " . __METHOD__);
 
         $response['segment'] = $this->trackPluginInstrumentation->rzpTrackSegment('Refund Online Clicked', $eventData);
 
         $response['datalake'] = $this->trackPluginInstrumentation->rzpTrackDataLake('Refund Online Clicked', $eventData);
 
-        $this->logger->info(json_encode($response));
+        $this->_logger->info(json_encode($response));
     }
 
     public function capture(InfoInterface $payment, $amount)
