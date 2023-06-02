@@ -10,7 +10,7 @@ use Razorpay\Magento\Model\PaymentMethod;
 
 /**
  * CancelPendingOrders controller to cancel Magento order
- *
+ * Used for off site redirect payment
  * ...
  */
 class Callback extends \Razorpay\Magento\Controller\BaseController
@@ -60,7 +60,9 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
         $this->catalogSession   = $catalogSession;
         $this->order            = $order;
 
-    }
+        $this->captureCommand = new CaptureCommand();
+        $this->authorizeCommand = new AuthorizeCommand();
+    } 
     public function execute()
     {
 
@@ -86,9 +88,11 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
         }
         catch(\Exception $e)
         {
+            // @codeCoverageIgnoreStart
             $this
                 ->logger
                 ->critical("Callback Error: " . $e->getMessage());
+            // @codeCoverageIgnoreEnd
         }
 
         if (empty($orderId) === true)
@@ -123,11 +127,11 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                     ->config
                     ->getPaymentAction() === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE)
                 {
-                    $payment->addTransactionCommentsToOrder("$paymentId", (new CaptureCommand())->execute($payment, $order->getGrandTotal() , $order) , "");
+                    $payment->addTransactionCommentsToOrder("$paymentId", $this->captureCommand->execute($payment, $order->getGrandTotal() , $order) , "");
                 }
                 else
                 {
-                    $payment->addTransactionCommentsToOrder("$paymentId", (new AuthorizeCommand())->execute($payment, $order->getGrandTotal() , $order) , "");
+                    $payment->addTransactionCommentsToOrder("$paymentId", $this->authorizeCommand->execute($payment, $order->getGrandTotal() , $order) , "");
                 }
 
                 $transaction = $payment->addTransaction(\Magento\Sales\Model\Order\Payment\Transaction::TYPE_AUTH, null, true, "");
@@ -141,8 +145,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                     ->save($order);
 
                 //update/disable the quote
-                $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-                $quote = $objectManager->get('Magento\Quote\Model\Quote')
+                $quote = $this->objectManagement->get('Magento\Quote\Model\Quote')
                     ->load($order->getQuoteId());
                 $quote->setIsActive(false)
                     ->save();
@@ -192,15 +195,19 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                 }
                 catch(\Magento\Framework\Exception\MailException $exception)
                 {
+                    // @codeCoverageIgnoreStart
                     $this
                         ->logger
                         ->critical("Validate: MailException Error message:" . $exception->getMessage());
+                    // @codeCoverageIgnoreEnd
                 }
                 catch(\Exception $e)
                 {
+                    // @codeCoverageIgnoreStart
                     $this
                         ->logger
                         ->critical("Validate: Exception Error message:" . $e->getMessage());
+                    // @codeCoverageIgnoreEnd
                 }
 
                 $this
@@ -221,20 +228,22 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
             }
             catch(\Razorpay\Api\Errors\Error $e)
             {
-
+                // @codeCoverageIgnoreStart
                 $this
                     ->logger
                     ->critical("Validate: Razorpay Error message:" . $e->getMessage());
+                // @codeCoverageIgnoreEnd
                 $responseContent['message'] = $e->getMessage();
 
                 $code = $e->getCode();
             }
             catch(\Exception $e)
             {
-
+                // @codeCoverageIgnoreStart
                 $this
                     ->logger
                     ->critical("Validate: Exception Error message:" . $e->getMessage());
+                // @codeCoverageIgnoreEnd
                 $responseContent['message'] = $e->getMessage();
 
                 $code = $e->getCode();
@@ -242,8 +251,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
         }
         else
         {
-            $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-            $quote = $objectManager->get('Magento\Quote\Model\Quote')
+            $quote = $this->objectManagement->get('Magento\Quote\Model\Quote')
                 ->load($order->getQuoteId());
             $quote->setIsActive(1)
                 ->setReservedOrderId(null)
@@ -253,9 +261,11 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                 ->checkoutSession
                 ->replaceQuote($quote);
 
+            // @codeCoverageIgnoreStart
             $this
                 ->logger
                 ->critical(__('Razorpay front-end callback: Payment Failed with response:  ' . json_encode($params, 1)));
+            // @codeCoverageIgnoreEnd
 
             $this
                 ->messageManager
