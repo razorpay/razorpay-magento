@@ -132,7 +132,9 @@ class PlaceRazorpayOrderResolverTest extends TestCase
             'offer_id' => null,
             'status' => 'created',
             'attempts' => 0,
-            'notes' => [],
+            'notes' => [
+                'referrer'  => $this->referrer
+            ],
             'created_at' => 1666097548
         ];
 
@@ -153,7 +155,7 @@ class PlaceRazorpayOrderResolverTest extends TestCase
     public function testResolveEmptyOrderID()
     {
         $args = [
-            'referrer'  => $this->referrer
+            'referrer' => $this->referrer
         ];
 
         $this->expectException('Magento\Framework\GraphQl\Exception\GraphQlInputException');
@@ -165,7 +167,7 @@ class PlaceRazorpayOrderResolverTest extends TestCase
     public function testResolveEmptyReferrer()
     {
         $args = [
-            'order_id'  => $this->orderID
+            'order_id' => $this->orderID
         ];
 
         $this->expectException('Magento\Framework\GraphQl\Exception\GraphQlInputException');
@@ -177,8 +179,8 @@ class PlaceRazorpayOrderResolverTest extends TestCase
     public function testResolveInvalidReferrer()
     {
         $args = [
-            'order_id'  => $this->orderID,
-            'referrer'  => 'Test invalid referrer'
+            'order_id' => $this->orderID,
+            'referrer' => 'Test invalid referrer'
         ];
 
         $this->expectException('Magento\Framework\GraphQl\Exception\GraphQlInputException');
