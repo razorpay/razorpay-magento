@@ -70,7 +70,7 @@ class ConfigProviderModelTest extends TestCase
 
         $response = $this->configProviderModel->getConfig();
 
-        $this->assertSame([], $response);
+        $this->assertEmpty($response);
     }
     
     public function testGetConfigActiveTrue()
