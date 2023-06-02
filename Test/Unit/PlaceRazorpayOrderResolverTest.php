@@ -2,8 +2,15 @@
 
 declare(strict_types=1);
 
-include_once __DIR__ . '/../../../Razorpay/src/Errors/Error.php';
-include_once __DIR__ . '/../../../Razorpay/src/Api.php';
+if (class_exists('Razorpay\\Api\\Api')  === false)
+{
+    include_once __DIR__ . '/../../../Razorpay/src/Api.php';
+}
+
+if (class_exists('Razorpay\\Api\\Errors\\Error') === false)
+{
+    include_once __DIR__ . '/../../../Razorpay/src/Errors/Error.php';
+}
 
 use PHPUnit\Framework\TestCase;
 
