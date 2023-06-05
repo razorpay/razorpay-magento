@@ -53,7 +53,7 @@ class TrackPluginInstrumentation
         $this->logger       = $logger;
     }
 
-    //codeCoverageIgnoreStart
+
     public function setAndGetRzpApiInstance()
     {
         $keyId          = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
@@ -62,7 +62,7 @@ class TrackPluginInstrumentation
 
         return $apiInstance;
     }
-    //codeCoverageIgnoreEnd
+
     
     public function rzpTrackSegment($event, $properties)
     {

@@ -199,4 +199,11 @@ class TrackPluginInstrumentationModelTest extends TestCase
 
         $this->assertSame($expected, $response);
     }
+
+    public function testSetAndGetRzpApiInstance()
+    {
+        $response = $this->trackPluginInstrumentationModel->setAndGetRzpApiInstance();
+        
+        $this->assertInstanceOf(Razorpay\Api\Api::class, $response);
+    }
 }
