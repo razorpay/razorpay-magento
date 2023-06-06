@@ -117,6 +117,9 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
         {
             $this->orderStatus = $this->config->getCustomPaidOrderStatus();
         }
+
+        $this->authorizeCommand = new AuthorizeCommand();
+        $this->captureCommand = new CaptureCommand();
     }
 
     /**
@@ -249,7 +252,7 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
                 {
                     $payment->addTransactionCommentsToOrder(
                         "$rzp_payment_id",
-                        (new CaptureCommand())->execute(
+                        $this->captureCommand->execute(
                             $payment,
                             $order->getGrandTotal(),
                             $order
@@ -260,7 +263,7 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
                 {
                     $payment->addTransactionCommentsToOrder(
                         "$rzp_payment_id",
-                        (new AuthorizeCommand())->execute(
+                        $this->authorizeCommand->execute(
                             $payment,
                             $order->getGrandTotal(),
                             $order
