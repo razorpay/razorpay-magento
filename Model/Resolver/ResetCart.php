@@ -27,7 +27,6 @@ class ResetCart implements ResolverInterface
     )
     {
         $this->logger = $logger;
-        $this->objectManager = \Magento\Framework\App\ObjectManager::getInstance();
     }
 
     /**
@@ -48,15 +47,15 @@ class ResetCart implements ResolverInterface
 
         try
         {
-            // $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+            $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
 
-            $orderModel = $this->objectManager->get('Magento\Sales\Model\Order')->load($order_id);
+            $orderModel = $objectManager->get('Magento\Sales\Model\Order')->load($order_id);
 
             if ($orderModel->canCancel())
             {
                 $quote_id = $orderModel->getQuoteId();
                 
-                $quote = $this->objectManager->get('Magento\Quote\Model\Quote')->load($quote_id);
+                $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($quote_id);
                 
                 $quote->setIsActive(true)->save();
                 
