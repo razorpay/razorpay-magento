@@ -48,8 +48,6 @@ class ResetCart implements ResolverInterface
 
         try
         {
-            // $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-
             $orderModel = $this->objectManager->get('Magento\Sales\Model\Order')->load($order_id);
 
             if ($orderModel->canCancel())
