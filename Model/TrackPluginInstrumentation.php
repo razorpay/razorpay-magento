@@ -77,7 +77,7 @@ class TrackPluginInstrumentation
 
             if (is_string($properties))
             {
-                $properties = json_decode($properties);
+                $properties = json_decode($properties, true);
             }
 
             $defaultProperties = $this->getDefaultProperties();
@@ -126,7 +126,7 @@ class TrackPluginInstrumentation
 
             if (is_string($properties))
             {
-                $properties = json_decode($properties);
+                $properties = json_decode($properties, true);
             }
 
             $defaultProperties = $this->getDefaultProperties();
