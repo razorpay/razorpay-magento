@@ -49,7 +49,6 @@ class TrackPluginInstrumentation
     )
     {
         $this->config       = $config;
-        $this->api          = $this->setAndGetRzpApiInstance();
         $this->moduleList   = $moduleList;
         $this->logger       = $logger;
     }
@@ -62,7 +61,7 @@ class TrackPluginInstrumentation
 
         return $apiInstance;
     }
-
+    
     public function rzpTrackSegment($event, $properties)
     {
         try
@@ -78,7 +77,7 @@ class TrackPluginInstrumentation
 
             if (is_string($properties))
             {
-                $properties = json_decode($properties);
+                $properties = json_decode($properties, true);
             }
 
             $defaultProperties = $this->getDefaultProperties();
@@ -91,6 +90,8 @@ class TrackPluginInstrumentation
             ];
 
             $this->logger->info('Event: '. $event .'. Properties: '. json_encode($properties));
+
+            $this->api          = $this->setAndGetRzpApiInstance();
 
             $response = $this->api->request->request('POST', 'plugins/segment', $data);
 
@@ -125,7 +126,7 @@ class TrackPluginInstrumentation
 
             if (is_string($properties))
             {
-                $properties = json_decode($properties);
+                $properties = json_decode($properties, true);
             }
 
             $defaultProperties = $this->getDefaultProperties();
