@@ -186,7 +186,7 @@ class TrackPluginInstrumentationModelTest extends TestCase
 
     public function testGetDefaultPropertiesHTTPHostSet()
     {
-        $_SERVER['HTTP_HOST'] = 'Test Referrer URL';
+        $_SERVER['HTTP_HOST'] = '127.0.0.1';
 
         $expected = [
             'platform'          => 'Magento',
@@ -194,7 +194,7 @@ class TrackPluginInstrumentationModelTest extends TestCase
             'plugin'            => 'Razorpay',
             'plugin_version'    => '4.0.4',
             'mode'              => 'test',
-            'ip_address'        => 'Test Referrer URL'
+            'ip_address'        => '127.0.0.1'
         ];
 
         $response = $this->trackPluginInstrumentationModel->getDefaultProperties();
