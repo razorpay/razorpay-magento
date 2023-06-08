@@ -58,7 +58,7 @@ class TrackPluginInstrumentationModelTest extends TestCase
             switch($propertyName)
             {
                 case 'request':
-                return $this->requestApi;
+                    return $this->requestApi;
             }
         });
 
