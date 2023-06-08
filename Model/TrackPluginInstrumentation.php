@@ -49,8 +49,8 @@ class TrackPluginInstrumentation
     )
     {
         $this->config       = $config;
-        $this->moduleList   = $moduleList;
         $this->api          = $this->setAndGetRzpApiInstance();
+        $this->moduleList   = $moduleList;
         $this->logger       = $logger;
     }
 
