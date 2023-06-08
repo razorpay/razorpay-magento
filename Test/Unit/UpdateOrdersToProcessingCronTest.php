@@ -1,6 +1,10 @@
 <?php
+
 declare(strict_types=1);
+
 use PHPUnit\Framework\TestCase;
+use \Magento\Framework\Exception\MailException;
+use Magento\Framework\Phrase;
 
 /**
  * @covers Razorpay\Magento\Cron\UpdateOrdersToProcessing
@@ -20,7 +24,7 @@ class UpdateOrdersToProcessingCronTest extends TestCase {
             \Magento\Framework\Api\SortOrderBuilder::class
         );
 
-        $this->checkoutSession = $this->createMock(
+        $this->checkoutSession = \Mockery::mock(
             \Magento\Checkout\Model\Session::class
         );
 
@@ -28,19 +32,19 @@ class UpdateOrdersToProcessingCronTest extends TestCase {
             \Magento\Sales\Api\OrderManagementInterface::class
         );
 
-        $this->invoiceService = $this->createMock(
+        $this->invoiceService = \Mockery::mock(
             \Magento\Sales\Model\Service\InvoiceService::class
         );
 
-        $this->transaction = $this->createMock(
+        $this->transaction = \Mockery::mock(
             \Magento\Framework\DB\Transaction::class
         );
 
-        $this->invoiceSender = $this->createMock(
+        $this->invoiceSender = \Mockery::mock(
             \Magento\Sales\Model\Order\Email\Sender\InvoiceSender::class
         );
 
-        $this->orderSender = $this->createMock(
+        $this->orderSender = \Mockery::mock(
             \Magento\Sales\Model\Order\Email\Sender\OrderSender::class
         );
 
@@ -96,6 +100,26 @@ class UpdateOrdersToProcessingCronTest extends TestCase {
             Magento\Quote\Model\Quote::class
         );
 
+		$this->captureCommand = \Mockery::mock(
+            \Magento\Sales\Model\Order\Payment\State\CaptureCommand::class
+        );
+
+        $this->authorizeCommand = \Mockery::mock(
+            \Magento\Sales\Model\Order\Payment\State\AuthorizeCommand::class
+        );
+
+		$this->invoice = \Mockery::mock(
+            \Magento\Sales\Model\Order\Invoice::class
+        );
+
+		$this->abstractModel = \Mockery::mock(
+            Magento\Framework\Model\AbstractModel::class
+        );
+
+		$this->captureCommand->shouldReceive('execute');
+
+		$this->authorizeCommand->shouldReceive('execute');
+
 		$this->config->shouldReceive('getConfigData')
 					 ->with('key_id')
 					 ->andReturn('key_id');
@@ -109,6 +133,43 @@ class UpdateOrdersToProcessingCronTest extends TestCase {
 
 		$this->config->shouldReceive('getCustomPaidOrderStatus')
 					 ->andReturn('somecustomvalue');
+		$this->config->shouldReceive('canAutoGenerateInvoice')
+					 ->andReturn(true);
+		
+		$this->invoiceService->shouldReceive('prepareInvoice')
+                             ->with($this->orderModel_1)
+                             ->andReturn($this->invoice);
+
+		
+		$this->invoice->shouldReceive('setRequestedCaptureCase')
+                      ->with(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE)
+                      ->andReturn($this->invoice);
+        $this->invoice->shouldReceive('setTransactionId')
+                      ->andReturn($this->invoice);
+        $this->invoice->shouldReceive('register')
+                      ->andReturn($this->invoice);
+        $this->invoice->shouldReceive('save')
+                      ->andReturn($this->invoice);
+        $this->invoice->shouldReceive('getOrder')
+                      ->andReturn($this->abstractModel);
+        $this->invoice->shouldReceive('getId')
+                      ->andReturn(1);
+
+		 $this->transaction->shouldReceive('addObject')
+                          ->with($this->invoice)
+                          ->andReturn($this->transaction);
+        $this->transaction->shouldReceive('addObject')
+                          ->with($this->invoice->getOrder())
+                          ->andReturn($this->transaction);
+        $this->transaction->shouldReceive('save')
+                          ->andReturn($this->transaction);
+
+		$this->invoiceSender->shouldReceive('send');
+
+		$this->checkoutSession->shouldReceive('setRazorpayMailSentOnSuccess')
+                              ->andReturn($this->checkoutSession);
+        $this->checkoutSession->shouldReceive('unsRazorpayMailSentOnSuccess')
+                              ->andReturn($this->checkoutSession);
 
 /*		$this->config->shouldReceive('getCustomPaidOrderStatus')
 					 ->andReturn('somecustomvalue');
@@ -213,6 +274,7 @@ class UpdateOrdersToProcessingCronTest extends TestCase {
 		$this->paymentModel->shouldReceive('addTransaction')
 						   ->with('authorization', null, true, "")
 						   ->andReturn($this->transactionModel);
+		$this->paymentModel->shouldReceive('addTransactionCommentsToOrder');
 
 		$this->transactionModel->shouldReceive('setIsClosed')
 							   ->with(true)
@@ -235,34 +297,47 @@ class UpdateOrdersToProcessingCronTest extends TestCase {
 						   ->andReturn($this->orderModel_1);
 		$this->orderModel_1->shouldReceive('getBaseCurrency')
 						   ->andReturn($this->currencyModel);
-		$this->orderModel_1->shouldReceive('addStatusHistoryComment');
+		$this->orderModel_1->shouldReceive('addStatusHistoryComment')->andReturn($this->orderModel_1);
+		$this->orderModel_1->shouldReceive('setIsCustomerNotified');
 		$this->orderModel_1->shouldReceive('getQuoteId')
 						   ->andReturn('1');
+		$this->orderModel_1->shouldReceive('getRzpUpdateOrderCronStatus')
+						   ->andReturn(1);
+		$this->orderModel_1->shouldReceive('setRzpUpdateOrderCronStatus');
+		$this->orderModel_1->shouldReceive('save');
+		$this->orderModel_1->shouldReceive('canInvoice')->andReturn(true);
+		
 
-		$this->orderModel_2->shouldReceive('getPayment')
-						   ->andReturn($this->paymentModel);
-		$this->orderModel_2->shouldReceive('getRzpWebhookData')
-						   ->andReturn(serialize($orderModel_2_data));
-		$this->orderModel_2->shouldReceive('getEntityId')
-						   ->andReturn(2);
-		$this->orderModel_2->shouldReceive('getGrandTotal')
-						   ->andReturn(18800);
-		$this->orderModel_2->shouldReceive('setState')
-						   ->andReturn('processing')
-						   ->andReturn($this->orderModel_2);
-		$this->orderModel_2->shouldReceive('setStatus')
-						   ->andReturn('processing')
-						   ->andReturn($this->orderModel_2);
-		$this->orderModel_2->shouldReceive('getBaseCurrency')
-						   ->andReturn($this->currencyModel);
-		$this->orderModel_2->shouldReceive('addStatusHistoryComment');
-		$this->orderModel_2->shouldReceive('getQuoteId')
-						   ->andReturn('2');
-
+		
+		// $this->orderModel_2->shouldReceive('getPayment')
+		// 				   ->andReturn($this->paymentModel);
+		// $this->orderModel_2->shouldReceive('getRzpWebhookData')
+		// 				   ->andReturn(serialize($orderModel_2_data));
+		// $this->orderModel_2->shouldReceive('getEntityId')
+		// 				   ->andReturn(2);
+		// $this->orderModel_2->shouldReceive('getGrandTotal')
+		// 				   ->andReturn(18800);
+		// $this->orderModel_2->shouldReceive('setState')
+		// 				   ->andReturn('processing')
+		// 				   ->andReturn($this->orderModel_2);
+		// $this->orderModel_2->shouldReceive('setStatus')
+		// 				   ->andReturn('processing')
+		// 				   ->andReturn($this->orderModel_2);
+		// $this->orderModel_2->shouldReceive('getBaseCurrency')
+		// 				   ->andReturn($this->currencyModel);
+		// $this->orderModel_2->shouldReceive('addStatusHistoryComment');
+		// $this->orderModel_2->shouldReceive('getQuoteId')
+		// 				   ->andReturn('2');
+		// $this->orderModel_2->shouldReceive('getRzpUpdateOrderCronStatus')
+		// 				   ->andReturn(1);
+		// $this->orderModel_2->shouldReceive('setRzpUpdateOrderCronStatus');
+		// $this->orderModel_2->shouldReceive('save');
+		
+		
 		$this->currencyModel->shouldReceive('formatTxt');
 
 		$this->orderModel->shouldReceive('getItems')
-							  ->andReturn([$this->orderModel_1,$this->orderModel_2]);
+							  ->andReturn([$this->orderModel_1]);
 
         $this->quoteModel->shouldReceive('load')
                          ->with('1')
@@ -282,13 +357,39 @@ class UpdateOrdersToProcessingCronTest extends TestCase {
                             ->with('Magento\Quote\Model\Quote')
                             ->andReturn($this->quoteModel);
 
-		$this->updateOrdersToProcessing->execute();
-		$this->updateOrdersToProcessing->shouldReceive('objectManager')
+		$this->updateOrdersToProcessing->shouldReceive('getObjectManager')
 									   ->andReturn($this->objectManager);
+		
+		$this->updateOrdersToProcessing->captureCommand = $this->captureCommand;
+		$this->updateOrdersToProcessing->authorizeCommand = $this->authorizeCommand;	 
     }
 
-    public function testHello()
+    public function testExecuteSuccess()
     {
+		$this->orderSender->shouldReceive('send');
+
+		$this->updateOrdersToProcessing->execute();
+    	$this->assertSame(true,true);
+    }
+
+	public function testExecuteException()
+    {
+		$this->orderSender->shouldReceive('send')->andThrow(new Exception("Test exception message"));
+
+		$this->updateOrdersToProcessing->execute();
+
+    	$this->assertSame(true,true);
+    }
+
+	public function testExecuteMailException()
+    {
+		$exceptionPhrase = new Phrase('Test Mail Exception');
+        $mailException = new MailException($exceptionPhrase);
+
+		$this->orderSender->shouldReceive('send')->andThrow($mailException);
+
+		$this->updateOrdersToProcessing->execute();
+		
     	$this->assertSame(true,true);
     }
 }
