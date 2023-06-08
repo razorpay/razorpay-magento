@@ -70,6 +70,8 @@ class TrackPluginInstrumentationModelTest extends TestCase
             'field_name'        => 'title',
             'field_type'        => 'text',
         ];
+
+        $this->eventProperties = json_encode($this->eventProperties);
     }
 
     public function testRzpTrackSegmentEmptyEvent()
