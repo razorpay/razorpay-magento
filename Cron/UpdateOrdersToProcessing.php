@@ -121,6 +121,9 @@ class UpdateOrdersToProcessing {
         {
             $this->orderStatus = $this->config->getCustomPaidOrderStatus();
         }
+
+        $this->authorizeCommand = new AuthorizeCommand();
+        $this->captureCommand = new CaptureCommand();
     }
 
     public function execute()
@@ -208,7 +211,7 @@ class UpdateOrdersToProcessing {
         {
             $payment->addTransactionCommentsToOrder(
                 "$paymentId",
-                (new AuthorizeCommand())->execute(
+                $this->authorizeCommand->execute(
                     $payment,
                     $order->getGrandTotal(),
                     $order
@@ -220,7 +223,7 @@ class UpdateOrdersToProcessing {
         {
             $payment->addTransactionCommentsToOrder(
                 "$paymentId",
-                (new CaptureCommand())->execute(
+                $this->captureCommand->execute(
                     $payment,
                     $order->getGrandTotal(),
                     $order
