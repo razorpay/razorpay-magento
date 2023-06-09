@@ -235,12 +235,6 @@ class SetRzpPaymentDeetailsForOrderResolverTest extends TestCase
                                      )->makePartial()
                                       ->shouldAllowMockingProtectedMethods();
 
-        // $this->post = [
-        //     'razorpay_payment_id' => 'pay_LJ7q34bS5acDu5',
-        //     'razorpay_signature'  => '032e145d2f885ce5452aca638e338e4ee840e8dfb857055da53596d9592b89b6',
-        //     'razorpay_order_id'   => 'order_LJ7pjEUXgeOhhj'
-        // ];
-
         $this->setRzpPaymentDetailsForOrder->captureCommand = $this->captureCommand;
         $this->setRzpPaymentDetailsForOrder->authorizeCommand = $this->authorizeCommand;
     }
