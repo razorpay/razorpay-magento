@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 use PHPUnit\Framework\TestCase;
 use \Magento\Framework\Exception\MailException;
@@ -9,7 +9,8 @@ use Magento\Framework\Phrase;
 /**
  * @covers Razorpay\Magento\Cron\UpdateOrdersToProcessing
  */
-class UpdateOrdersToProcessingCronTest extends TestCase {
+class UpdateOrdersToProcessingCronTest extends TestCase 
+{
     public function setUp():void
     {
 		$this->orderRepository = \Mockery::mock(
@@ -137,7 +138,6 @@ class UpdateOrdersToProcessingCronTest extends TestCase {
 					 ->andReturn(true);
 		
 		$this->invoiceService->shouldReceive('prepareInvoice')
-                             ->with($this->orderModel_1)
                              ->andReturn($this->invoice);
 
 		
@@ -170,12 +170,6 @@ class UpdateOrdersToProcessingCronTest extends TestCase {
                               ->andReturn($this->checkoutSession);
         $this->checkoutSession->shouldReceive('unsRazorpayMailSentOnSuccess')
                               ->andReturn($this->checkoutSession);
-
-/*		$this->config->shouldReceive('getCustomPaidOrderStatus')
-					 ->andReturn('somecustomvalue');
-
-        $keyId                          = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
-        $keySecret                      = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);*/
 
 		$this->updateOrdersToProcessing = \Mockery::mock(Razorpay\Magento\Cron\UpdateOrdersToProcessing::class,
 														[
@@ -225,31 +219,19 @@ class UpdateOrdersToProcessingCronTest extends TestCase {
 							  ->andReturn($this->orderModel);
 		
 		$orderModel_1_data = [
-		    'payment.authorized' => [
-		            'webhook_verified_status' => true,
-		            'payment_id' => 'pay_KMYpn54F9caDqo',
-		            'amount' => 3700
-		        ],
 		    'order.paid' => [
 		            'webhook_verified_status' => true,
 		            'payment_id' => 'pay_KMYpn54F9caDqo',
 		            'amount' => 3700
-		        ]
-
+			],
 		];
 
 		$orderModel_2_data = [
-		    'payment.authorized' => [
-		            'webhook_verified_status' => true,
-		            'payment_id' => 'pay_KMYb26r7N0qQV8',
-		            'amount' => 18800
-		        ],
-		    'order.paid' => [
-		            'webhook_verified_status' => true,
-		            'payment_id' => 'pay_KMYb26r7N0qQV8',
-		            'amount' => 18800
-		        ]
-
+			'payment.authorized' => [
+				'webhook_verified_status' => true,
+				'payment_id' => 'pay_KMYb26r7N0qQV8',
+				'amount' => 18800
+			]
 		];
 
 		$this->paymentModel->shouldReceive('getTransactionId');
@@ -309,35 +291,37 @@ class UpdateOrdersToProcessingCronTest extends TestCase {
 		
 
 		
-		// $this->orderModel_2->shouldReceive('getPayment')
-		// 				   ->andReturn($this->paymentModel);
-		// $this->orderModel_2->shouldReceive('getRzpWebhookData')
-		// 				   ->andReturn(serialize($orderModel_2_data));
-		// $this->orderModel_2->shouldReceive('getEntityId')
-		// 				   ->andReturn(2);
-		// $this->orderModel_2->shouldReceive('getGrandTotal')
-		// 				   ->andReturn(18800);
-		// $this->orderModel_2->shouldReceive('setState')
-		// 				   ->andReturn('processing')
-		// 				   ->andReturn($this->orderModel_2);
-		// $this->orderModel_2->shouldReceive('setStatus')
-		// 				   ->andReturn('processing')
-		// 				   ->andReturn($this->orderModel_2);
-		// $this->orderModel_2->shouldReceive('getBaseCurrency')
-		// 				   ->andReturn($this->currencyModel);
-		// $this->orderModel_2->shouldReceive('addStatusHistoryComment');
-		// $this->orderModel_2->shouldReceive('getQuoteId')
-		// 				   ->andReturn('2');
-		// $this->orderModel_2->shouldReceive('getRzpUpdateOrderCronStatus')
-		// 				   ->andReturn(1);
-		// $this->orderModel_2->shouldReceive('setRzpUpdateOrderCronStatus');
-		// $this->orderModel_2->shouldReceive('save');
+		$this->orderModel_2->shouldReceive('getPayment')
+						   ->andReturn($this->paymentModel);
+		$this->orderModel_2->shouldReceive('getRzpWebhookData')
+						   ->andReturn(serialize($orderModel_2_data));
+		$this->orderModel_2->shouldReceive('getEntityId')
+						   ->andReturn(2);
+		$this->orderModel_2->shouldReceive('getGrandTotal')
+						   ->andReturn(18800);
+		$this->orderModel_2->shouldReceive('setState')
+						   ->andReturn('processing')
+						   ->andReturn($this->orderModel_2);
+		$this->orderModel_2->shouldReceive('setStatus')
+						   ->andReturn('processing')
+						   ->andReturn($this->orderModel_2);
+		$this->orderModel_2->shouldReceive('getBaseCurrency')
+						   ->andReturn($this->currencyModel);
+		$this->orderModel_2->shouldReceive('addStatusHistoryComment')->andReturn($this->orderModel_2);
+		$this->orderModel_2->shouldReceive('setIsCustomerNotified');
+		$this->orderModel_2->shouldReceive('getQuoteId')
+						   ->andReturn('2');
+		$this->orderModel_2->shouldReceive('getRzpUpdateOrderCronStatus')
+						   ->andReturn(1);
+		$this->orderModel_2->shouldReceive('setRzpUpdateOrderCronStatus');
+		$this->orderModel_2->shouldReceive('save');
+		$this->orderModel_2->shouldReceive('canInvoice')->andReturn(true);
 		
 		
 		$this->currencyModel->shouldReceive('formatTxt');
 
 		$this->orderModel->shouldReceive('getItems')
-							  ->andReturn([$this->orderModel_1]);
+							  ->andReturn([$this->orderModel_1, $this->orderModel_2]);
 
         $this->quoteModel->shouldReceive('load')
                          ->with('1')
