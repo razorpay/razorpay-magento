@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 use PHPUnit\Framework\TestCase;
 use \Magento\Framework\Exception\MailException;
@@ -9,8 +9,8 @@ use Magento\Framework\Phrase;
 /**
  * @covers Razorpay\Magento\Cron\CancelPendingOrders
  */
-
- class CancelPendingOrdersCronTest extends TestCase {
+ class CancelPendingOrdersCronTest extends TestCase 
+ {
     public function setUp():void
     {
         $this->orderRepository = \Mockery::mock(
