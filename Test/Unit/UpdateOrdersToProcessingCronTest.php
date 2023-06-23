@@ -53,7 +53,7 @@ class UpdateOrdersToProcessingCronTest extends TestCase
             \Razorpay\Magento\Model\Config::class
         );
 
-        $this->logger = $this->createMock(
+        $this->logger = \Mockery::mock(
             \Psr\Log\LoggerInterface::class
         );
 
@@ -167,6 +167,16 @@ class UpdateOrdersToProcessingCronTest extends TestCase
         $this->checkoutSession->shouldReceive('unsRazorpayMailSentOnSuccess')
                               ->andReturn($this->checkoutSession);
 
+	$this->logData = [];
+
+	$this->logger->shouldReceive('critical')->andReturnUsing(function($e)
+		{
+			array_push($this->logData, $e->getMessage());
+		}
+	);
+
+	$this->logger->shouldReceive('info');
+	
 	$this->updateOrdersToProcessing = \Mockery::mock(Razorpay\Magento\Cron\UpdateOrdersToProcessing::class,
 							[
 								$this->orderRepository,
@@ -349,7 +359,6 @@ class UpdateOrdersToProcessingCronTest extends TestCase
 	$this->orderSender->shouldReceive('send');
 
 	$this->updateOrdersToProcessing->execute();
-    	$this->assertSame(true,true);
     }
 
 	public function testExecuteException()
@@ -358,7 +367,7 @@ class UpdateOrdersToProcessingCronTest extends TestCase
 
 	$this->updateOrdersToProcessing->execute();
 
-    	$this->assertSame(true,true);
+	$this->assertSame("Test exception message", $this->logData[0]);
     }
 
 	public function testExecuteMailException()
@@ -369,7 +378,7 @@ class UpdateOrdersToProcessingCronTest extends TestCase
 	$this->orderSender->shouldReceive('send')->andThrow($mailException);
 
 	$this->updateOrdersToProcessing->execute();
-		
-    	$this->assertSame(true,true);
+
+	$this->assertSame("Test Mail Exception", $this->logData[0]);
     }
 }
