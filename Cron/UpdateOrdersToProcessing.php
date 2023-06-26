@@ -121,6 +121,9 @@ class UpdateOrdersToProcessing {
         {
             $this->orderStatus = $this->config->getCustomPaidOrderStatus();
         }
+
+        $this->authorizeCommand = new AuthorizeCommand();
+        $this->captureCommand = new CaptureCommand();
     }
 
     public function execute()
@@ -208,7 +211,7 @@ class UpdateOrdersToProcessing {
         {
             $payment->addTransactionCommentsToOrder(
                 "$paymentId",
-                (new AuthorizeCommand())->execute(
+                $this->authorizeCommand->execute(
                     $payment,
                     $order->getGrandTotal(),
                     $order
@@ -220,7 +223,7 @@ class UpdateOrdersToProcessing {
         {
             $payment->addTransactionCommentsToOrder(
                 "$paymentId",
-                (new CaptureCommand())->execute(
+                $this->captureCommand->execute(
                     $payment,
                     $order->getGrandTotal(),
                     $order
@@ -261,7 +264,7 @@ class UpdateOrdersToProcessing {
         }
 
         //update/disable the quote
-        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $objectManager = $this->getObjectManager();
         $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
         $quote->setIsActive(false)->save();
 
@@ -318,4 +321,11 @@ class UpdateOrdersToProcessing {
                             . " ended."
                         );   
     }
+
+    // @codeCoverageIgnoreStart
+    function getObjectManager()
+    {
+        return \Magento\Framework\App\ObjectManager::getInstance();
+    }
+    // @codeCoverageIgnoreEnd
 }
