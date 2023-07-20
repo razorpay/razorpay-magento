@@ -414,7 +414,7 @@ define(
                         integration_version: data.module_version,
                         integration_parent_version: data.maze_version,
                     },
-                    __referer : url.build('checkout/')
+                    __referer : window.location.href
                 }
                 const options = JSON.parse(JSON.stringify(opts));
 
