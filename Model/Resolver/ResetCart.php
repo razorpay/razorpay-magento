@@ -8,6 +8,8 @@ use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Exception\GraphQlInputException;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
+use Magento\Framework\Api\SearchCriteriaBuilder;
+use Magento\Sales\Api\OrderRepositoryInterface;
 
 /**
  * Mutation resolver for resetting cart
@@ -19,15 +21,26 @@ class ResetCart implements ResolverInterface
      */
     protected $logger;
 
+     /**
+     * @var SearchCriteriaBuilder
+     */
+    protected $searchCriteriaBuilder;
+
     /**
      * @param \Psr\Log\LoggerInterface $logger
+     * @param SearchCriteriaBuilder $searchCriteriaBuilder
+     * @param OrderRepositoryInterface $orderRepository
      */
     public function __construct(
-        \Psr\Log\LoggerInterface $logger
+        \Psr\Log\LoggerInterface $logger,
+        SearchCriteriaBuilder $searchCriteriaBuilder,
+        OrderRepositoryInterface $orderRepository
     )
     {
         $this->logger = $logger;
         $this->objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $this->searchCriteriaBuilder = $searchCriteriaBuilder;
+        $this->orderRepository = $orderRepository;
     }
 
     /**
@@ -44,7 +57,30 @@ class ResetCart implements ResolverInterface
             throw new GraphQlInputException(__('Required parameter "order_id" is missing'));
         }
         
-        $order_id  = $args['order_id'];
+        $incrementId  = $args['order_id'];
+
+        $order_id = null;
+        try 
+        {
+            $searchCriteria = $this->searchCriteriaBuilder
+                                    ->addFilter('increment_id', $incrementId)
+                                    ->create();
+
+            $orderData = $this->orderRepository->getList($searchCriteria)->getItems();
+
+            foreach ($orderData as $order) 
+            {
+               $order_id = $order->getId();
+            }
+        } 
+        catch (Exception $exception) 
+        {
+            $this->logger->critical($exception->getMessage());
+            
+            return [
+                'success'               => false,
+            ];
+        }
 
         try
         {
