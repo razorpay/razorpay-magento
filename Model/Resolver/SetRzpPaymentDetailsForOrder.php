@@ -98,7 +98,7 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
         \Psr\Log\LoggerInterface $logger
     )
     {
-        $this->rzp             = $paymentMethod->rzp;
+        $this->rzp             = $paymentMethod->setAndGetRzpApiInstance();
         $this->order           = $order;
         $this->config          = $config;
         $this->invoiceService  = $invoiceService;
