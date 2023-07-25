@@ -61,7 +61,7 @@ class PlaceRazorpayOrder implements ResolverInterface
         $this->scopeConfig    = $scopeConfig;
         $this->getCartForUser = $getCartForUser;
         $this->cartManagement = $cartManagement;
-        $this->rzp            = $paymentMethod->rzp;
+        $this->rzp            = $paymentMethod->setAndGetRzpApiInstance();
         $this->_objectManager = \Magento\Framework\App\ObjectManager::getInstance();
         $this->order          = $order;
         $this->logger         = $logger;
