@@ -75,7 +75,7 @@ class ResetCart implements ResolverInterface
         } 
         catch (Exception $exception) 
         {
-            $this->logger->error($exception->getMessage());
+            $this->logger->critical($exception->getMessage());
             
             return [
                 'success'               => false,
