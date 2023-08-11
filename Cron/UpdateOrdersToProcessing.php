@@ -185,6 +185,63 @@ class UpdateOrdersToProcessing {
                 }   
             }
         }
+
+        $searchCriteria = $this->searchCriteriaBuilder
+                            ->addFilter(
+                                'rzp_update_order_cron_status',
+                                5,
+                                'lt'
+                            )->addFilter(
+                                'rzp_webhook_notified_at',
+                                null, 
+                                'neq'
+                            )->addFilter(
+                                'rzp_webhook_notified_at',
+                                $dateTimeCheck,
+                                'lt'
+                            )->addFilter(
+                                'state',
+                                static::STATE_NEW,
+                                'eq'
+                             )->addFilter(
+                                'status',
+                                static::STATUS_CANCELED,
+                                'eq'
+                            )->setSortOrders(
+                                [$sortOrder]
+                            )->create();
+
+        $orders = $this->orderRepository->getList($searchCriteria);
+
+        foreach ($orders->getItems() as $order)
+        {
+            if ((empty($order) === false) && ($order->getPayment()->getMethod() === 'razorpay')) 
+            {
+                $rzpWebhookData = $order->getRzpWebhookData();
+                if (empty($rzpWebhookData) === false) // check if webhook cron has run and populated the rzp_webhook_data column
+                {
+                    $rzpWebhookDataObj = unserialize($rzpWebhookData); // nosemgrep
+
+                    if (isset($rzpWebhookDataObj[static::PAYMENT_AUTHORIZED]) === true)
+                    {
+                        $this->updateOrderStatus($order, static::PAYMENT_AUTHORIZED, $rzpWebhookDataObj[static::PAYMENT_AUTHORIZED]);
+                    }
+                    
+                    if (isset($rzpWebhookDataObj[static::ORDER_PAID]) === true)
+                    {
+                        $this->updateOrderStatus($order, static::ORDER_PAID, $rzpWebhookDataObj[static::ORDER_PAID]);
+                    }
+                }
+                else
+                {
+                    $this->logger->info('Razorpay Webhook code not triggered yet. \'rzp_webhook_data\' is empty');
+                    
+                    $cronRunCount = $order->getRzpUpdateOrderCronStatus();
+                    $order->setRzpUpdateOrderCronStatus($cronRunCount+1);
+                    $order->save();
+                }   
+            }
+        }
     }
 
     private function updateOrderStatus($order, $event, $rzpWebhookData)
