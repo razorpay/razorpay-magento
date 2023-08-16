@@ -195,6 +195,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                     $orderWebhookData   = $this->getOrderWebhookData($orderId);
                     $amountPaid         = $post['payload']['payment']['entity']['amount'];
 
+                    if($post['event'] == 'order.paid')sleep(1);
+
                     $this->setWebhookData($post, $orderWebhookData['entity_id'], true, $paymentId, $amountPaid);
 
                     $this->setWebhookNotifiedAt($orderWebhookData['entity_id']);
