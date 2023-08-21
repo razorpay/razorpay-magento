@@ -217,6 +217,8 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
             $quote = $this->_objectManager->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
             $quote->setIsActive(false)->save();
 
+            $order->setRzpUpdateOrderCronStatus(1);
+
             if($order->canInvoice() and
                 ($this->config->getPaymentAction()  === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE) and
                 $this->config->canAutoGenerateInvoice())
@@ -238,7 +240,17 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
                 )
                 ->setIsCustomerNotified(true)
                 ->save();
+
+                $order->setRzpUpdateOrderCronStatus(3);
             }
+            else if($this->config->getPaymentAction()  === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE and
+                    (order->canInvoice() === false or
+                    $this->config->canAutoGenerateInvoice() === false))
+            {
+                $order->setRzpUpdateOrderCronStatus(4);
+            }
+
+            $order->save();
 
             //send Order email, after successfull payment
             try

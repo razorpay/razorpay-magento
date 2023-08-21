@@ -150,6 +150,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                 $quote->setIsActive(false)
                     ->save();
 
+                $order->setRzpUpdateOrderCronStatus(1);
                 if ($order->canInvoice() and ($this
                     ->config
                     ->getPaymentAction() === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE) and $this
@@ -177,7 +178,15 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                     $order->addStatusHistoryComment(__('Notified customer about invoice #%1.', $invoice->getId()))
                         ->setIsCustomerNotified(true)
                         ->save();
+                    $order->setRzpUpdateOrderCronStatus(3);
                 }
+                else if($this->config->getPaymentAction()  === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE and
+                    (order->canInvoice() === false or
+                    $this->config->canAutoGenerateInvoice() === false))
+                {
+                    $order->setRzpUpdateOrderCronStatus(4);
+                }
+                $order->save();
 
                 //send Order email, after successfull payment
                 try

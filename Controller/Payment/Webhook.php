@@ -140,7 +140,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
      */
     public function execute()
     {
-        $this->logger->info("Razorpay Webhook processing started.");
+        $this->logger->info("Razorpay Webhook processing started." . $post['event']);
         
         $this->config->setConfigData('webhook_triggered_at', time());
 
@@ -241,7 +241,15 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         $order->setRzpWebhookNotifiedAt(time());
         $order->save();
     }
-
+    /*
+    0->default
+    1->payment.authorized -- 4
+    2->order.paid webhook received after manual capture
+    3->invoice generated
+    4->not possible for invoice
+    5->payment.authorized repeated on cron
+    When order.paid triggered now change 4 to 1 for payment.authorized
+    */
     protected function setWebhookData($post, $entityId, $webhookVerifiedStatus, $paymentId, $amount)
     {
         $order                  = $this->order->load($entityId);
@@ -278,6 +286,12 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             $webhookDataText    = serialize($eventArray);
         }
         $order->setRzpWebhookData($webhookDataText);
+        
+        if ($post['event'] === 'order.paid' and
+            $order->getRzpUpdateOrderCronStatus() == 5)
+        {
+            $order->setRzpUpdateOrderCronStatus(2);
+        }
         $order->save();
     }
 }
