@@ -244,7 +244,7 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
                 $order->setRzpUpdateOrderCronStatus(3);
             }
             else if($this->config->getPaymentAction()  === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE and
-                    (order->canInvoice() === false or
+                    ($order->canInvoice() === false or
                     $this->config->canAutoGenerateInvoice() === false))
             {
                 $order->setRzpUpdateOrderCronStatus(4);

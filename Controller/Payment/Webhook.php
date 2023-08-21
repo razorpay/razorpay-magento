@@ -140,7 +140,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
      */
     public function execute()
     {
-        $this->logger->info("Razorpay Webhook processing started." . $post['event']);
+        $this->logger->info("Razorpay Webhook processing started." );
         
         $this->config->setConfigData('webhook_triggered_at', time());
 
@@ -293,5 +293,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             $order->setRzpUpdateOrderCronStatus(2);
         }
         $order->save();
+
+        $this->logger->info('Webhook data saved for id:' . $entityId . 'event:' . $post['event']);
     }
 }
