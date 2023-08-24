@@ -62,8 +62,9 @@ class ResetCart extends \Razorpay\Magento\Controller\BaseController
             // @codeCoverageIgnoreEnd
 
             $orderModel = $this->objectManager->get('Magento\Sales\Model\Order')->load($lastOrderId->getEntityId());
-
-            if ($orderModel->canCancel())
+            
+            if ($orderModel->canCancel() and 
+                $orderModel->getState() === 'new')
             {
                 $quote = $this->objectManager->get('Magento\Quote\Model\Quote')->load($lastQuoteId);
 
