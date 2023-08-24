@@ -74,6 +74,16 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     protected const STATE_NEW           = 'new';
 
     /**
+     * @var UPDATE_ORDER_CRON_STATUS
+     */
+    protected const DEFAULT = 0;
+    protected const PAYMENT_AUTHORIZED_COMPLETED = 1;
+    protected const ORDER_PAID_AFTER_MANUAL_CAPTURE = 2;
+    protected const INVOICE_GENERATED = 3;
+    protected const INVOICE_GENERATION_NOT_POSSIBLE = 4;
+    protected const PAYMENT_AUTHORIZED_CRON_REPEAT = 5;
+    
+    /**
      * @var HTTP CONFLICT Request
      */
     protected const HTTP_CONFLICT_STATUS = 409;
@@ -288,12 +298,13 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         $order->setRzpWebhookData($webhookDataText);
         
         if ($post['event'] === 'order.paid' and
-            $order->getRzpUpdateOrderCronStatus() == 5)
+            $order->getRzpUpdateOrderCronStatus() == static::PAYMENT_AUTHORIZED_CRON_REPEAT)
         {
-            $order->setRzpUpdateOrderCronStatus(2);
+            $this->logger->info('Order paid received after manual capture for id: ' . $order->getIncrementId());
+            $order->setRzpUpdateOrderCronStatus(static::ORDER_PAID_AFTER_MANUAL_CAPTURE);
         }
         $order->save();
 
-        $this->logger->info('Webhook data saved for id:' . $entityId . 'event:' . $post['event']);
+        $this->logger->info('Webhook data saved for id:' . $order->getIncrementId() . 'event:' . $post['event']);
     }
 }
