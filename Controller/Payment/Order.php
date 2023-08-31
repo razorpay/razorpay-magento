@@ -14,6 +14,16 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
     protected $_currency = PaymentMethod::CURRENCY;
 
+    /**
+     * @var UPDATE_ORDER_CRON_STATUS
+     */
+    protected const DEFAULT = 0;
+    protected const PAYMENT_AUTHORIZED_COMPLETED = 1;
+    protected const ORDER_PAID_AFTER_MANUAL_CAPTURE = 2;
+    protected const INVOICE_GENERATED = 3;
+    protected const INVOICE_GENERATION_NOT_POSSIBLE = 4;
+    protected const PAYMENT_AUTHORIZED_CRON_REPEAT = 5;
+
     protected $logger;
     /**
      * @param \Magento\Framework\App\Action\Context $context
@@ -261,9 +271,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 $code = 200;
 
                 $this->catalogSession->setRazorpayOrderID($order->id);
-
-                $orderModel->setRzpOrderId($order->id)
-                   ->save();
             }
         }
         catch(\Razorpay\Api\Errors\Error $e)
@@ -289,6 +296,17 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             // @codeCoverageIgnoreEnd
         }
 
+        $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                            ->getCollection()
+                            ->addFilter('order_id', $mazeOrder->getEntityId())
+                            ->getFirstItem();
+        
+        $orderLink->setRzpOrderId($order->id)
+                    ->setOrderId($mazeOrder->getEntityId())
+                    ->setRzpUpdateOrderCronStatus(static::DEFAULT)
+                    ->save();
+
+        $this->logger->info('Data saved in razorpay_sales_order');
         $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
         $response->setData($responseContent);
         $response->setHttpResponseCode($code);

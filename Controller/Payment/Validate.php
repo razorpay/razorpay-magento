@@ -227,7 +227,14 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
             $quote = $this->_objectManager->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
             $quote->setIsActive(false)->save();
 
-            $order->setRzpUpdateOrderCronStatus(static::PAYMENT_AUTHORIZED_COMPLETED);
+            $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                            ->getCollection()
+                            ->addFilter('order_id', $order->getEntityId())
+                            ->getFirstItem();
+
+            $orderLink->setRzpPaymentId($paymentId);
+
+            $orderLink->setRzpUpdateOrderCronStatus(static::PAYMENT_AUTHORIZED_COMPLETED);
             $this->logger->info('Payment authorized completed for id : '. $order->getIncrementId());
 
             if($order->canInvoice() and
@@ -252,17 +259,17 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
                 ->setIsCustomerNotified(true)
                 ->save();
 
-                $order->setRzpUpdateOrderCronStatus(static::INVOICE_GENERATED);
+                $orderLink->setRzpUpdateOrderCronStatus(static::INVOICE_GENERATED);
                 $this->logger->info('Invoice generated for id : '. $order->getIncrementId());
             }
             else if($this->config->getPaymentAction()  === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE and
                     ($order->canInvoice() === false or
                     $this->config->canAutoGenerateInvoice() === false))
             {
-                $order->setRzpUpdateOrderCronStatus(static::INVOICE_GENERATION_NOT_POSSIBLE);
+                $orderLink->setRzpUpdateOrderCronStatus(static::INVOICE_GENERATION_NOT_POSSIBLE);
                 $this->logger->info('Invoice generation not possible for id : '. $order->getIncrementId());
             }
-
+            $orderLink->save();
             $order->save();
 
             //send Order email, after successfull payment

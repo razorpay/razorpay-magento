@@ -205,8 +205,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                     $orderWebhookData   = $this->getOrderWebhookData($orderId);
                     $amountPaid         = $post['payload']['payment']['entity']['amount'];
 
-                    if($post['event'] == 'order.paid')sleep(18);
-                    else sleep(15);
+                    if($post['event'] == 'order.paid')sleep(1);
 
                     $this->setWebhookData($post, $orderWebhookData['entity_id'], true, $paymentId, $amountPaid);
 
@@ -249,8 +248,12 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     protected function setWebhookNotifiedAt($entity_id)
     {
         $order = $this->order->load($entity_id);
-        $order->setRzpWebhookNotifiedAt(time());
-        $order->save();
+
+        $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                        ->load($order->getEntityId(), 'order_id');
+
+        $orderLink->setRzpWebhookNotifiedAt(time());
+        $orderLink->save();
     }
     /*
     0->default
@@ -264,7 +267,14 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     protected function setWebhookData($post, $entityId, $webhookVerifiedStatus, $paymentId, $amount)
     {
         $order                  = $this->order->load($entityId);
-        $existingWebhookData    = $order->getRzpWebhookData();
+
+        $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                        ->load($order->getEntityId(), 'order_id');
+                            // ->getCollection()
+                            // ->addFilter('order_id', $order->getEntityId())
+                            // ->getFirstItem();
+
+        $existingWebhookData    = $orderLink->getRzpWebhookData();
 
         if ($post['event'] === 'payment.authorized')
         {
@@ -296,15 +306,15 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             $eventArray         = [$post['event'] => $webhookData];
             $webhookDataText    = serialize($eventArray);
         }
-        $order->setRzpWebhookData($webhookDataText);
+        $orderLink->setRzpWebhookData($webhookDataText);
         
         if ($post['event'] === 'order.paid' and
-            $order->getRzpUpdateOrderCronStatus() == static::PAYMENT_AUTHORIZED_CRON_REPEAT)
+            $orderLink->getRzpUpdateOrderCronStatus() == static::PAYMENT_AUTHORIZED_CRON_REPEAT)
         {
             $this->logger->info('Order paid received after manual capture for id: ' . $order->getIncrementId());
-            $order->setRzpUpdateOrderCronStatus(static::ORDER_PAID_AFTER_MANUAL_CAPTURE);
+            $orderLink->setRzpUpdateOrderCronStatus(static::ORDER_PAID_AFTER_MANUAL_CAPTURE);
         }
-        $order->save();
+        $orderLink->save();
 
         $this->logger->info('Webhook data saved for id:' . $order->getIncrementId() . 'event:' . $post['event']);
     }

@@ -8,6 +8,9 @@ use Magento\Framework\Setup\ModuleContextInterface;
 use Razorpay\Magento\Model\TrackPluginInstrumentation;
 use Magento\Framework\Setup\SchemaSetupInterface;
 use \Psr\Log\LoggerInterface;
+use Magento\Framework\DB\Ddl\Table;
+use Magento\Framework\DB\Adapter\AdapterInterface;
+use Razorpay\Magento\Model\ResourceModel\OrderLink;
 
 class UpgradeSchema implements UpgradeSchemaInterface
 {
@@ -33,80 +36,72 @@ class UpgradeSchema implements UpgradeSchemaInterface
 	{
         $this->pluginUpgrade();
 
-		$setup->startSetup();
+        $setup->startSetup();
 
-		//remove older configs for current version
-		$select = $setup->getConnection()->select()->from(
-            $setup->getTable('core_config_data'),
-            ['config_id', 'value', 'path']
-        )->where(
-            'path like ?',
-            '%payment/razorpay%'
-        );
+        $table = $setup->getConnection()->newTable($setup->getTable(OrderLink::TABLE_NAME));
 
-        foreach ($setup->getConnection()->fetchAll($select) as $configRow)
-        {
-            if (in_array($configRow['path'],
-                ['payment/razorpay/payment_action',
-                 'payment/razorpay/order_status',
-                 'payment/razorpay/webhook_wait_time',
-                 'payment/razorpay/enable_webhook',
-                 'payment/razorpay/webhook_events'
-                ]))
-            {
-                $setup->getConnection()->delete(
-                    $setup->getTable('core_config_data'),
-                    ['config_id = ?' => $configRow['config_id']]
-                );
-            }
-        }
-
-        $tableName = $setup->getTable('sales_order');
-        if ($setup->getConnection()->isTableExists($tableName) == true)
-        {
-            $setup->getConnection()->addColumn(
-                $tableName,
+        $table
+            ->addColumn(
+                'entity_id',
+                Table::TYPE_INTEGER,
+                null,
+                [
+                    'identity' => true,
+                    'unsigned' => true,
+                    'primary'  => true,
+                    'nullable' => false
+                ]
+            )
+            ->addColumn(
+                'order_id',
+                Table::TYPE_INTEGER,
+                [
+                    'nullable' => true
+                ]
+            )
+            ->addColumn(
                 'rzp_order_id',
+                Table::TYPE_TEXT,
+                25,
                 [
-                    'nullable' => true,
-                    'type'     => \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
-                    'length'   => 55,
-                    'comment'  => 'RZP Order ID'
+                    'nullable' => true
                 ]
-            );
-            $setup->getConnection()->addColumn(
-                $tableName,
-                'rzp_webhook_notified_at',
+            )
+            ->addColumn(
+                'rzp_payment_id',
+                Table::TYPE_TEXT,
+                25,
                 [
-                    'nullable' => true,
-                    'type'     => \Magento\Framework\DB\Ddl\Table::TYPE_BIGINT,
-                    'comment'  => 'RZP Webhook Notified Timestamp'
+                    'nullable' => true
                 ]
-            );
-
-            $setup->getConnection()->addColumn(
-                $tableName,
+            )
+            ->addColumn(
                 'rzp_webhook_data',
+                Table::TYPE_TEXT,
+                1000,
                 [
-                    'nullable' => true,
-                    'type'     => \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
-                    'comment'  => 'RZP Webhook Data'
+                    'nullable' => true
                 ]
-            );
-
-            $setup->getConnection()->addColumn(
-                $tableName,
+            )
+            ->addColumn(
+                'rzp_webhook_notified_at',
+                Table::TYPE_BIGINT,
+                [
+                    'nullable' => true
+                ]
+            )
+            ->addColumn(
                 'rzp_update_order_cron_status',
+                Table::TYPE_INTEGER,
                 [
                     'nullable' => false,
                     'default'  => 0,
-                    'type'     => \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
-                    'comment'  => 'RZP Update Order Processing Cron # of times executed'
                 ]
             );
-        }
 
-		$setup->endSetup();
+        $setup->getConnection()->createTable($table);
+
+        $setup->endSetup();
 	}
 
     /**
