@@ -17,16 +17,27 @@ class UpgradeSchema implements UpgradeSchemaInterface
     protected $config;
     protected $trackPluginInstrumentation;
     protected $logger;
+    protected $orderRepository;
+    protected $searchCriteriaBuilder;
+    protected $sortOrderBuilder;
+
+    protected const STATE_NEW           = 'new';
 
     public function __construct(
         Config $config,
         TrackPluginInstrumentation $trackPluginInstrumentation,
-        LoggerInterface $logger
+        LoggerInterface $logger,
+        \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
+        \Magento\Framework\Api\SearchCriteriaBuilder $searchCriteriaBuilder,
+        \Magento\Framework\Api\SortOrderBuilder $sortOrderBuilder
     )
     {
         $this->config                       = $config;
         $this->trackPluginInstrumentation   = $trackPluginInstrumentation;
         $this->logger                       = $logger;
+        $this->orderRepository              = $orderRepository;
+        $this->searchCriteriaBuilder        = $searchCriteriaBuilder;
+        $this->sortOrderBuilder             = $sortOrderBuilder;
     }
 
 	public function upgrade(
@@ -102,6 +113,41 @@ class UpgradeSchema implements UpgradeSchemaInterface
         $setup->getConnection()->createTable($table);
 
         $setup->endSetup();
+
+        $sortOrder = $this->sortOrderBuilder->setField('entity_id')->setDirection('DESC')->create();
+
+        $searchCriteria = $this->searchCriteriaBuilder
+                            ->addFilter(
+                                'state',
+                                static::STATE_NEW,
+                                'eq'
+                            )->setSortOrders(
+                                [$sortOrder]
+                            )->create();
+        
+        $orders = $this->orderRepository->getList($searchCriteria);
+                            
+        $objectManagement = \Magento\Framework\App\ObjectManager::getInstance();
+
+        foreach ($orders->getItems() as $order)
+        {
+            if ($order->getPayment()->getMethod() === 'razorpay') 
+            {
+
+                $orderLink = $objectManagement->get('Razorpay\Magento\Model\OrderLink')
+                                                ->getCollection()
+                                                ->addFilter('entity_id', $order->getEntityId())
+                                                ->getFirstItem();
+                
+                $orderLink->setOrderId($order->getEntityId())
+                          ->setRzpWebhookData($order->getRzpWebhookData())
+                          ->setRzpUpdateOrderCronStatus(0)
+                          ->setRzpOrderId($order->getRzpOrderId())
+                          ->save();
+                
+                $this->logger->info('Migrated Data from sales_order table to razorpay_sales_order for id = '.$order->getEntityId()); 
+            }
+        }
 	}
 
     /**
