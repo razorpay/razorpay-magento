@@ -193,11 +193,7 @@ class UpdateOrdersToProcessing {
                             $this->updateOrderStatus($order, static::PAYMENT_AUTHORIZED, $rzpWebhookDataObj[static::PAYMENT_AUTHORIZED]);
                         }
                     }
-                }
-                else
-                {
-                    $this->logger->info('Razorpay Webhook code not triggered yet. \'rzp_webhook_data\' is empty for id:' . $order->getEntityId());
-                }   
+                } 
             }
         }
     }
