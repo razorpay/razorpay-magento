@@ -114,43 +114,43 @@ class UpgradeSchema implements UpgradeSchemaInterface
 
         $setup->endSetup();
 
-        if (version_compare($context->getVersion(), '4.0.6', '<'))
-        {
-            $sortOrder = $this->sortOrderBuilder->setField('entity_id')->setDirection('DESC')->create();
+        // if (version_compare($context->getVersion(), '4.0.6', '<'))
+        // {
+        //     $sortOrder = $this->sortOrderBuilder->setField('entity_id')->setDirection('DESC')->create();
 
-            $searchCriteria = $this->searchCriteriaBuilder
-                                ->addFilter(
-                                    'state',
-                                    static::STATE_NEW,
-                                    'eq'
-                                )->setSortOrders(
-                                    [$sortOrder]
-                                )->create();
+        //     $searchCriteria = $this->searchCriteriaBuilder
+        //                         ->addFilter(
+        //                             'state',
+        //                             static::STATE_NEW,
+        //                             'eq'
+        //                         )->setSortOrders(
+        //                             [$sortOrder]
+        //                         )->create();
             
-            $orders = $this->orderRepository->getList($searchCriteria);
+        //     $orders = $this->orderRepository->getList($searchCriteria);
                                 
-            $objectManagement = \Magento\Framework\App\ObjectManager::getInstance();
+        //     $objectManagement = \Magento\Framework\App\ObjectManager::getInstance();
 
-            foreach ($orders->getItems() as $order)
-            {
-                if ($order->getPayment()->getMethod() === 'razorpay') 
-                {
+        //     foreach ($orders->getItems() as $order)
+        //     {
+        //         if ($order->getPayment()->getMethod() === 'razorpay') 
+        //         {
 
-                    $orderLink = $objectManagement->get('Razorpay\Magento\Model\OrderLink')
-                                                    ->getCollection()
-                                                    ->addFilter('entity_id', $order->getEntityId())
-                                                    ->getFirstItem();
+        //             $orderLink = $objectManagement->get('Razorpay\Magento\Model\OrderLink')
+        //                                             ->getCollection()
+        //                                             ->addFilter('entity_id', $order->getEntityId())
+        //                                             ->getFirstItem();
                     
-                    $orderLink->setOrderId($order->getEntityId())
-                            ->setRzpWebhookData($order->getRzpWebhookData())
-                            ->setRzpUpdateOrderCronStatus(0)
-                            ->setRzpOrderId($order->getRzpOrderId())
-                            ->save();
+        //             $orderLink->setOrderId($order->getEntityId())
+        //                     ->setRzpWebhookData($order->getRzpWebhookData())
+        //                     ->setRzpUpdateOrderCronStatus(0)
+        //                     ->setRzpOrderId($order->getRzpOrderId())
+        //                     ->save();
                     
-                    $this->logger->info('Migrated Data from sales_order table to razorpay_sales_order for id = '.$order->getEntityId()); 
-                }
-            }
-        }
+        //             $this->logger->info('Migrated Data from sales_order table to razorpay_sales_order for id = '.$order->getEntityId()); 
+        //         }
+        //     }
+        // }
 	}
 
     /**
