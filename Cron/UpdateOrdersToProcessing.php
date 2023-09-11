@@ -166,8 +166,7 @@ class UpdateOrdersToProcessing {
         {
             if ((empty($order) === false) and (
                 $order->getPayment()->getMethod() === 'razorpay') and 
-                ($order->getState() === static::STATUS_PROCESSING or 
-                $order->getState() === static::STATE_NEW)) 
+                $order->getState() === static::STATE_NEW) 
             {
                 $rzpWebhookData = $order->getRzpWebhookData();
                 if (empty($rzpWebhookData) === false) // check if webhook cron has run and populated the rzp_webhook_data column
