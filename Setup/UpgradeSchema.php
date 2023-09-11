@@ -113,7 +113,7 @@ class UpgradeSchema implements UpgradeSchemaInterface
                 'rzp_update_order_cron_status',
                 [
                     'nullable' => false,
-                    'default'  => 0,
+                    'default'  => 4,
                     'type'     => \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
                     'comment'  => 'RZP Update Order Processing Cron # of times executed'
                 ]
