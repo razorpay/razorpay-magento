@@ -270,9 +270,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
         $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
                         ->load($order->getEntityId(), 'order_id');
-                            // ->getCollection()
-                            // ->addFilter('order_id', $order->getEntityId())
-                            // ->getFirstItem();
 
         $existingWebhookData    = $orderLink->getRzpWebhookData();
 
