@@ -161,12 +161,6 @@ class PlaceRazorpayOrder implements ResolverInterface
             if (null !== $razorpay_order && !empty($razorpay_order->id))
             {
                 $this->logger->info('graphQL: Razorpay Order ID: ' . $razorpay_order->id);
-
-                // if ($order)
-                // {
-                //     $order->setRzpOrderId($razorpay_order->id);
-                // }
-                // $order->save();
                 
                 $new_order_status = $this->config->getNewOrderStatus();
                 
@@ -183,8 +177,6 @@ class PlaceRazorpayOrder implements ResolverInterface
                     'message'        => 'Razorpay Order created successfully'
                 ];
                 
-                // $this->logger->info('entity id = '. $orderModel->getEntityId());
-                // $this->logger->info('state = '. $orderModel->getState());
                 $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
                             ->getCollection()
                             ->addFilter('order_id', $orderModel->getEntityId())
