@@ -335,6 +335,8 @@ class UpdateOrdersToProcessingV2 {
         }
 
         $order->save();
+
+        $orderLinkCollection->setRzpPaymentId($paymentId);
         $orderLinkCollection->save();
 
         $this->logger->info("Cronjob: Updating to Processing for Order ID: " 
