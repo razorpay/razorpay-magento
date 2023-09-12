@@ -169,7 +169,11 @@
                     <frontend_model>Razorpay\Magento\Model\FormFieldTrack</frontend_model>
                     <config_path>payment/razorpay/sort_order</config_path>
                 </field>
-                
+                <field id="enable_update_order_cron_v1" translate="label" type="select" sortOrder="101" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Enable Update Order Cron V1</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <config_path>payment/razorpay/enable_update_order_cron_v1</config_path>
+                </field>
             </group>
         </section>
     </system>

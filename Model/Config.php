@@ -25,7 +25,7 @@ class Config
     const DISABLE_UPGRADE_NOTICE = 'disable_upgrade_notice';
     const ENABLE_CUSTOM_PAID_ORDER_STATUS = 'enable_custom_paid_order_status';
     const CUSTOM_PAID_ORDER_STATUS = 'custom_paid_order_status';
-
+    const ENABLE_UPDATE_ORDER_CRON_V1 = 'enable_update_order_cron_v1';
     /**
      * @var string
      */
@@ -97,6 +97,11 @@ class Config
         return (int) $this->getConfigData(self::RESET_CART_ORDERS_TIMEOUT);
     }
 
+    public function isUpdateOrderCronV1Enabled()
+    {
+        return (bool) (int) $this->getConfigData(self::ENABLE_UPDATE_ORDER_CRON_V1, $this->storeId);
+    }
+    
     public function isCustomPaidOrderStatusEnabled()
     {
         return (bool) (int) $this->getConfigData(self::ENABLE_CUSTOM_PAID_ORDER_STATUS, $this->storeId);
