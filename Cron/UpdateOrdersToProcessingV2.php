@@ -318,6 +318,11 @@ class UpdateOrdersToProcessingV2 {
             }
         }
 
+        $order->save();
+
+        $orderLinkCollection->setRzpPaymentId($paymentId);
+        $orderLinkCollection->save();
+
         //send Order email, after successfull payment
         try
         {
@@ -333,11 +338,6 @@ class UpdateOrdersToProcessingV2 {
         {
             $this->logger->critical($e);
         }
-
-        $order->save();
-
-        $orderLinkCollection->setRzpPaymentId($paymentId);
-        $orderLinkCollection->save();
 
         $this->logger->info("Cronjob: Updating to Processing for Order ID: " 
                             . $order->getEntityId() 
