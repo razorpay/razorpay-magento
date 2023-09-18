@@ -43,6 +43,17 @@ abstract class BaseController extends \Magento\Framework\App\Action\Action
     protected $checkout;
 
     /**
+     * @var \Razorpay\Magento\Model\Config
+     */
+    protected $config;
+
+    protected $key_id;
+
+    protected $key_secret;
+
+    protected $rzp;
+
+    /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession

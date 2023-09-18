@@ -39,6 +39,17 @@ class PlaceRazorpayOrder implements ResolverInterface
      */
     protected $logger;
 
+    /**
+     * @var \Magento\QuoteGraphQl\Model\Cart\GetCartForUser
+     */
+    protected $getCartForUser;
+
+    protected $rzp;
+
+    /**
+     * @var \Razorpay\Magento\Model\Config
+     */
+    protected $config;
 
     /**
      * @var UPDATE_ORDER_CRON_STATUS

@@ -67,6 +67,30 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
      */
     protected $logger;
 
+    /**
+     * @var \Razorpay\Magento\Model\Config
+     */
+    protected $config;
+
+    /**
+     * @var \Magento\Catalog\Model\Session
+     */
+    protected $catalogSession;
+
+    /**
+     * @var \Magento\Sales\Api\OrderRepositoryInterface
+     */
+    protected $orderRepository;
+
+    /**
+     * @var  \Magento\Sales\Model\Order\Payment\State\AuthorizeCommand
+     */
+    protected $authorizeCommand;
+
+    /**
+     * @var \Magento\Sales\Model\Order\Payment\State\CaptureCommand
+     */
+    protected $captureCommand;
 
     /**
      * @param \Magento\Framework\App\Action\Context $context

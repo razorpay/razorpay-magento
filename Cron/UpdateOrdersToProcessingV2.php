@@ -87,6 +87,31 @@ class UpdateOrdersToProcessingV2 {
     protected const PAYMENT_AUTHORIZED_CRON_REPEAT = 5;
 
     /**
+     * @var \Razorpay\Magento\Model\Config
+     */
+    protected $config;
+
+    /**
+     * @var \Magento\Framework\Api\SortOrderBuilder
+     */
+    protected $sortOrderBuilder;
+    
+    /**
+     * @var \Psr\Log\LoggerInterface
+     */
+    protected $logger;
+
+    /**
+     * @var \Magento\Sales\Model\Order\Payment\State\AuthorizeCommand
+     */
+    protected $authorizeCommand;
+
+    /**
+     * @var \Magento\Sales\Model\Order\Payment\State\CaptureCommand
+     */
+    protected $captureCommand;
+
+    /**
      * CancelOrder constructor.
      * @param \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
      * @param \Magento\Framework\Api\SearchCriteriaBuilder $searchCriteriaBuilder

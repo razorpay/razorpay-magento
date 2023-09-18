@@ -26,6 +26,13 @@ class ResetCart implements ResolverInterface
      */
     protected $searchCriteriaBuilder;
 
+    protected $objectManager;
+
+    /**
+     * @var \Magento\Sales\Api\OrderRepositoryInterface
+     */
+    protected $orderRepository;
+
     /**
      * @param \Psr\Log\LoggerInterface $logger
      * @param SearchCriteriaBuilder $searchCriteriaBuilder

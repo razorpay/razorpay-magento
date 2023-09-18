@@ -16,11 +16,6 @@ use Razorpay\Magento\Model\PaymentMethod;
 class Callback extends \Razorpay\Magento\Controller\BaseController
 {
     /**
-     * @var \Magento\Sales\Api\Data\OrderInterface
-     */
-    protected $setup;
-
-    /**
      * @var \Magento\Sales\Model\Service\InvoiceService
      */
     protected $_invoiceService;
@@ -44,6 +39,59 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
     protected const INVOICE_GENERATION_NOT_POSSIBLE = 4;
     protected const PAYMENT_AUTHORIZED_CRON_REPEAT = 5;
 
+    /**
+     * @var \Razorpay\Magento\Model\Config
+     */
+    protected $config;
+
+    /**
+     * @var \Magento\Checkout\Model\Session
+     */
+    protected $checkoutSession;
+
+    /**
+     * @var \Magento\Customer\Model\Session
+     */
+    protected $customerSession;
+
+    /**
+     * @var \Psr\Log\LoggerInterface
+     */
+    protected $logger;
+
+    /**
+     * @var \Magento\Sales\Api\OrderRepositoryInterface
+     */
+    protected $orderRepository;
+
+    protected $objectManagement;
+
+    /**
+     * @var \Magento\Sales\Model\Order\Email\Sender\InvoiceSender
+     */
+    protected $_invoiceSender;
+
+    /**
+     * @var \Magento\Catalog\Model\Session
+     */
+    protected $catalogSession;
+
+    /**
+     * @var \Magento\Sales\Api\Data\OrderInterface
+     */
+    protected $order;
+
+    /**
+     * @var \Magento\Sales\Model\Order\Payment\State\CaptureCommand
+     */
+    protected $captureCommand;
+
+    /**
+     * @var \Magento\Sales\Model\Order\Payment\State\AuthorizeCommand
+     */
+    protected $authorizeCommand;
+
+    protected $razorpayOrderID;
 
     /**
      * @param \Magento\Framework\App\Action\Context $context

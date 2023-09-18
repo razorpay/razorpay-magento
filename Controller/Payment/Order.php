@@ -25,6 +25,35 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     protected const PAYMENT_AUTHORIZED_CRON_REPEAT = 5;
 
     protected $logger;
+
+    /**
+     * @var \Magento\Razorpay\Model\CheckoutFactory
+     */
+    protected $checkoutFactory;
+
+    /**
+     * @var \Magento\Catalog\Model\Session
+     */
+    protected $catalogSession;
+
+    /**
+     * @var \Razorpay\Magento\Model\Config
+     */
+    protected $config;
+
+    protected $webhookId;
+
+    protected $active_events;
+
+    /**
+     * @var \Magento\Store\Model\StoreManagerInterface
+     */
+    protected $_storeManager;
+
+    protected $webhookUrl;
+
+    protected $webhooks;
+
     /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
