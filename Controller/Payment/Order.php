@@ -303,7 +303,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         
         $orderLink->setRzpOrderId($order->id)
                     ->setOrderId($mazeOrder->getEntityId())
-                    ->setRzpUpdateOrderCronStatus(static::DEFAULT)
                     ->save();
 
         $this->logger->info('Data saved in razorpay_sales_order');
