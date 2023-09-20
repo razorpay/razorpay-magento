@@ -13,6 +13,7 @@ use Magento\Framework\DataObject;
 use Magento\Framework\Controller\ResultFactory;
 use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
 use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
+use Razorpay\Magento\Constants\UpdateOrderCronStatusConstants;
 
 /**
  * Webhook controller to handle Razorpay order webhook
@@ -72,16 +73,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     protected const STATUS_PENDING      = 'pending';
     protected const STATUS_CANCELED     = 'canceled';
     protected const STATE_NEW           = 'new';
-
-    /**
-     * @var UPDATE_ORDER_CRON_STATUS
-     */
-    protected const DEFAULT = 0;
-    protected const PAYMENT_AUTHORIZED_COMPLETED = 1;
-    protected const ORDER_PAID_AFTER_MANUAL_CAPTURE = 2;
-    protected const INVOICE_GENERATED = 3;
-    protected const INVOICE_GENERATION_NOT_POSSIBLE = 4;
-    protected const PAYMENT_AUTHORIZED_CRON_REPEAT = 5;
     
     /**
      * @var HTTP CONFLICT Request
@@ -308,10 +299,10 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         $orderLink->setRzpWebhookData($webhookDataText);
         
         if ($post['event'] === 'order.paid' and
-            $orderLink->getRzpUpdateOrderCronStatus() == static::PAYMENT_AUTHORIZED_CRON_REPEAT)
+            $orderLink->getRzpUpdateOrderCronStatus() == UpdateOrderCronStatusConstants::PAYMENT_AUTHORIZED_CRON_REPEAT)
         {
             $this->logger->info('Order paid received after manual capture for id: ' . $order->getIncrementId());
-            $orderLink->setRzpUpdateOrderCronStatus(static::ORDER_PAID_AFTER_MANUAL_CAPTURE);
+            $orderLink->setRzpUpdateOrderCronStatus(UpdateOrderCronStatusConstants::ORDER_PAID_AFTER_MANUAL_CAPTURE);
         }
 
         $orderLink->save();

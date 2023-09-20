@@ -39,17 +39,6 @@ class PlaceRazorpayOrder implements ResolverInterface
      */
     protected $logger;
 
-
-    /**
-     * @var UPDATE_ORDER_CRON_STATUS
-     */
-    protected const DEFAULT = 0;
-    protected const PAYMENT_AUTHORIZED_COMPLETED = 1;
-    protected const ORDER_PAID_AFTER_MANUAL_CAPTURE = 2;
-    protected const INVOICE_GENERATED = 3;
-    protected const INVOICE_GENERATION_NOT_POSSIBLE = 4;
-    protected const PAYMENT_AUTHORIZED_CRON_REPEAT = 5;
-
     /**
      * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
      * @param GetCartForUser $getCartForUser
