@@ -14,16 +14,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
     protected $_currency = PaymentMethod::CURRENCY;
 
-    /**
-     * @var UPDATE_ORDER_CRON_STATUS
-     */
-    protected const DEFAULT = 0;
-    protected const PAYMENT_AUTHORIZED_COMPLETED = 1;
-    protected const ORDER_PAID_AFTER_MANUAL_CAPTURE = 2;
-    protected const INVOICE_GENERATED = 3;
-    protected const INVOICE_GENERATION_NOT_POSSIBLE = 4;
-    protected const PAYMENT_AUTHORIZED_CRON_REPEAT = 5;
-
     protected $logger;
 
     /**
@@ -332,7 +322,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         
         $orderLink->setRzpOrderId($order->id)
                     ->setOrderId($mazeOrder->getEntityId())
-                    ->setRzpUpdateOrderCronStatus(static::DEFAULT)
                     ->save();
 
         $this->logger->info('Data saved in razorpay_sales_order');

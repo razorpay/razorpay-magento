@@ -12,6 +12,7 @@ use Razorpay\Magento\Model\PaymentMethod;
 use Razorpay\Magento\Model\Config;
 use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
 use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
+use Razorpay\Magento\Constants\UpdateOrderCronStatusConstants;
 
 /**
  * Mutation resolver for setting payment method for shopping cart
@@ -84,16 +85,6 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
      * @var \Magento\Sales\Model\Order\Payment\State\CaptureCommand
      */
     protected $captureCommand;
-
-    /**
-     * @var UPDATE_ORDER_CRON_STATUS
-     */
-    protected const DEFAULT = 0;
-    protected const PAYMENT_AUTHORIZED_COMPLETED = 1;
-    protected const ORDER_PAID_AFTER_MANUAL_CAPTURE = 2;
-    protected const INVOICE_GENERATED = 3;
-    protected const INVOICE_GENERATION_NOT_POSSIBLE = 4;
-    protected const PAYMENT_AUTHORIZED_CRON_REPEAT = 5;
 
     /**
      * @param PaymentMethod $paymentMethod
@@ -306,7 +297,7 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
 
                 $transaction->save();
 
-                $orderLink->setRzpUpdateOrderCronStatus(static::PAYMENT_AUTHORIZED_COMPLETED);
+                $orderLink->setRzpUpdateOrderCronStatus(UpdateOrderCronStatusConstants::PAYMENT_AUTHORIZED_COMPLETED);
                 $this->logger->info('Payment authorized completed for id : '. $order->getIncrementId());
 
                 if ($order->canInvoice() && $this->config->canAutoGenerateInvoice()
@@ -333,14 +324,14 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
                         __('Notified customer about invoice #%1.', $invoice->getId())
                     )->setIsCustomerNotified(true);
 
-                    $orderLink->setRzpUpdateOrderCronStatus(static::INVOICE_GENERATED);
+                    $orderLink->setRzpUpdateOrderCronStatus(UpdateOrderCronStatusConstants::INVOICE_GENERATED);
                     $this->logger->info('Invoice generated for id : '. $order->getIncrementId());
                 }
                 else if($rzp_order_data->status === 'paid' and
                         ($order->canInvoice() === false or
                         $this->config->canAutoGenerateInvoice() === false))
                 {
-                    $orderLink->setRzpUpdateOrderCronStatus(static::INVOICE_GENERATION_NOT_POSSIBLE);
+                    $orderLink->setRzpUpdateOrderCronStatus(UpdateOrderCronStatusConstants::INVOICE_GENERATION_NOT_POSSIBLE);
                     $this->logger->info('Invoice generation not possible for id : '. $order->getIncrementId());
                 }
 

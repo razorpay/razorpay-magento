@@ -175,6 +175,7 @@ class UpgradeSchema implements UpgradeSchemaInterface
             ->addColumn(
                 'rzp_update_order_cron_status',
                 Table::TYPE_INTEGER,
+                null,
                 [
                     'nullable' => false,
                     'default'  => 0,
