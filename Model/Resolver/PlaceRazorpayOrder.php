@@ -184,7 +184,6 @@ class PlaceRazorpayOrder implements ResolverInterface
         
                 $orderLink->setRzpOrderId($razorpay_order->id)
                             ->setOrderId($order->getEntityId())
-                            ->setRzpUpdateOrderCronStatus(static::DEFAULT)
                             ->save();
                 return $responseContent;
             } else

@@ -314,11 +314,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             $orderLink->setRzpUpdateOrderCronStatus(static::ORDER_PAID_AFTER_MANUAL_CAPTURE);
         }
 
-        if($orderLink->getRzpUpdateOrderCronStatus() == null)
-        {
-            $orderLink->setRzpUpdateOrderCronStatus(static::DEFAULT);
-        }
-        
         $orderLink->save();
 
         $this->logger->info('Webhook data saved for id:' . $order->getIncrementId() . 'event:' . $post['event']);
