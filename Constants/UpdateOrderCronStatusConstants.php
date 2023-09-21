@@ -2,9 +2,9 @@
 
 namespace Razorpay\Magento\Constants;
 
-class UpdateOrderCronStatusConstants
+class OrderCronStatus
 {
-    const NEW_ORDER_STATUS_FOR_CRON = 0;
+    const NEW_ORDER = 0;
     const PAYMENT_AUTHORIZED_COMPLETED = 1;
     const ORDER_PAID_AFTER_MANUAL_CAPTURE = 2;
     const INVOICE_GENERATED = 3;

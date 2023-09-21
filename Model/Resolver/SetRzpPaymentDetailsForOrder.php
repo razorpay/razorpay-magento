@@ -12,7 +12,7 @@ use Razorpay\Magento\Model\PaymentMethod;
 use Razorpay\Magento\Model\Config;
 use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
 use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
-use Razorpay\Magento\Constants\UpdateOrderCronStatusConstants;
+use Razorpay\Magento\Constants\OrderCronStatus;
 
 /**
  * Mutation resolver for setting payment method for shopping cart
@@ -285,7 +285,7 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
 
                 $transaction->save();
 
-                $orderLink->setRzpUpdateOrderCronStatus(UpdateOrderCronStatusConstants::PAYMENT_AUTHORIZED_COMPLETED);
+                $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::PAYMENT_AUTHORIZED_COMPLETED);
                 $this->logger->info('Payment authorized completed for id : '. $order->getIncrementId());
 
                 if ($order->canInvoice() && $this->config->canAutoGenerateInvoice()
@@ -312,14 +312,14 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
                         __('Notified customer about invoice #%1.', $invoice->getId())
                     )->setIsCustomerNotified(true);
 
-                    $orderLink->setRzpUpdateOrderCronStatus(UpdateOrderCronStatusConstants::INVOICE_GENERATED);
+                    $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATED);
                     $this->logger->info('Invoice generated for id : '. $order->getIncrementId());
                 }
                 else if($rzp_order_data->status === 'paid' and
                         ($order->canInvoice() === false or
                         $this->config->canAutoGenerateInvoice() === false))
                 {
-                    $orderLink->setRzpUpdateOrderCronStatus(UpdateOrderCronStatusConstants::INVOICE_GENERATION_NOT_POSSIBLE);
+                    $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATION_NOT_POSSIBLE);
                     $this->logger->info('Invoice generation not possible for id : '. $order->getIncrementId());
                 }
 

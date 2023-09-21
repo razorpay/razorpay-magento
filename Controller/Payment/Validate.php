@@ -14,7 +14,7 @@ use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
 use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
 use Psr\Log\LoggerInterface as Logger;
-use Razorpay\Magento\Constants\UpdateOrderCronStatusConstants;
+use Razorpay\Magento\Constants\OrderCronStatus;
 
 
 class Validate extends \Razorpay\Magento\Controller\BaseController implements CsrfAwareActionInterface
@@ -226,7 +226,7 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
 
             $orderLink->setRzpPaymentId($paymentId);
 
-            $orderLink->setRzpUpdateOrderCronStatus(UpdateOrderCronStatusConstants::PAYMENT_AUTHORIZED_COMPLETED);
+            $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::PAYMENT_AUTHORIZED_COMPLETED);
             $this->logger->info('Payment authorized completed for id : '. $order->getIncrementId());
 
             if($order->canInvoice() and
@@ -251,14 +251,14 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
                 ->setIsCustomerNotified(true)
                 ->save();
 
-                $orderLink->setRzpUpdateOrderCronStatus(UpdateOrderCronStatusConstants::INVOICE_GENERATED);
+                $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATED);
                 $this->logger->info('Invoice generated for id : '. $order->getIncrementId());
             }
             else if($this->config->getPaymentAction()  === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE and
                     ($order->canInvoice() === false or
                     $this->config->canAutoGenerateInvoice() === false))
             {
-                $orderLink->setRzpUpdateOrderCronStatus(UpdateOrderCronStatusConstants::INVOICE_GENERATION_NOT_POSSIBLE);
+                $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATION_NOT_POSSIBLE);
                 $this->logger->info('Invoice generation not possible for id : '. $order->getIncrementId());
             }
             $orderLink->save();

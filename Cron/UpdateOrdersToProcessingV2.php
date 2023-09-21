@@ -13,7 +13,7 @@ use Razorpay\Magento\Model\Config;
 use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
 use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
 use \Magento\Sales\Model\Order;
-use Razorpay\Magento\Constants\UpdateOrderCronStatusConstants;
+use Razorpay\Magento\Constants\OrderCronStatus;
 
 class UpdateOrdersToProcessingV2 {
     /**
@@ -145,7 +145,7 @@ class UpdateOrdersToProcessingV2 {
         
         $orderLink = $orderLinkCollection->getData();
         
-        if(count($orderLink) > 0)
+        if (count($orderLink) > 0)
         {
             foreach ($orderLink as $orderData)
             {
@@ -172,13 +172,13 @@ class UpdateOrdersToProcessingV2 {
                         }
 
                         if (isset($rzpWebhookDataObj[static::PAYMENT_AUTHORIZED]) === true and
-                            $singleOrderLinkCollection->getRzpUpdateOrderCronStatus() < UpdateOrderCronStatusConstants::INVOICE_GENERATED)
+                            $singleOrderLinkCollection->getRzpUpdateOrderCronStatus() < OrderCronStatus::INVOICE_GENERATED)
                         {
                             if ($order->getState() === static::STATUS_PROCESSING and
-                                $singleOrderLinkCollection->getRzpUpdateOrderCronStatus() == UpdateOrderCronStatusConstants::PAYMENT_AUTHORIZED_COMPLETED)
+                                $singleOrderLinkCollection->getRzpUpdateOrderCronStatus() == OrderCronStatus::PAYMENT_AUTHORIZED_COMPLETED)
                             {
                                 $this->logger->info('Payment Authorized cron repeated for id: ' . $order->getIncrementId());
-                                $singleOrderLinkCollection->setRzpUpdateOrderCronStatus(UpdateOrderCronStatusConstants::PAYMENT_AUTHORIZED_CRON_REPEAT);
+                                $singleOrderLinkCollection->setRzpUpdateOrderCronStatus(OrderCronStatus::PAYMENT_AUTHORIZED_CRON_REPEAT);
                                 $singleOrderLinkCollection->save();
                             }
                             else{
@@ -272,7 +272,7 @@ class UpdateOrdersToProcessingV2 {
             );
         }
 
-        $orderLinkCollection->setRzpUpdateOrderCronStatus(UpdateOrderCronStatusConstants::PAYMENT_AUTHORIZED_COMPLETED);
+        $orderLinkCollection->setRzpUpdateOrderCronStatus(OrderCronStatus::PAYMENT_AUTHORIZED_COMPLETED);
         $this->logger->info('Payment authorized completed for id : '. $order->getIncrementId());
 
         if ($event === static::ORDER_PAID)
@@ -299,12 +299,12 @@ class UpdateOrdersToProcessingV2 {
                             __('Notified customer about invoice #%1.', $invoice->getId())
                         )->setIsCustomerNotified(true);
                 
-                $orderLinkCollection->setRzpUpdateOrderCronStatus(UpdateOrderCronStatusConstants::INVOICE_GENERATED);
+                $orderLinkCollection->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATED);
                 $this->logger->info('Invoice generated for id : '. $order->getIncrementId());
             }
             else
             {
-                $orderLinkCollection->setRzpUpdateOrderCronStatus(UpdateOrderCronStatusConstants::INVOICE_GENERATION_NOT_POSSIBLE);
+                $orderLinkCollection->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATION_NOT_POSSIBLE);
                 $this->logger->info('Invoice generation not possible for id : '. $order->getIncrementId());
             }
         }
