@@ -7,7 +7,7 @@ use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
 use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
 use Magento\Framework\Controller\ResultFactory;
 use Razorpay\Magento\Model\PaymentMethod;
-use Razorpay\Magento\Constants\UpdateOrderCronStatusConstants;
+use Razorpay\Magento\Constants\OrderCronStatus;
 
 /**
  * CancelPendingOrders controller to cancel Magento order
@@ -207,7 +207,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
 
                 $orderLink->setRzpPaymentId($paymentId);
 
-                $orderLink->setRzpUpdateOrderCronStatus(UpdateOrderCronStatusConstants::PAYMENT_AUTHORIZED_COMPLETED);
+                $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::PAYMENT_AUTHORIZED_COMPLETED);
                 $this->logger->info('Payment authorized completed for id : '. $order->getIncrementId());
 
                 if ($order->canInvoice() and ($this
@@ -238,7 +238,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                         ->setIsCustomerNotified(true)
                         ->save();
 
-                    $orderLink->setRzpUpdateOrderCronStatus(UpdateOrderCronStatusConstants::INVOICE_GENERATED);
+                    $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATED);
                     $this->logger->info('Invoice generated for id : '. $order->getIncrementId());
                 }
                 else if($this->config->getPaymentAction()  === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE and
@@ -246,7 +246,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                         $this->config->canAutoGenerateInvoice() === false))
                 {
 
-                    $orderLink->setRzpUpdateOrderCronStatus(UpdateOrderCronStatusConstants::INVOICE_GENERATION_NOT_POSSIBLE);
+                    $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATION_NOT_POSSIBLE);
                     $this->logger->info('Invoice generation not possible for id : '. $order->getIncrementId());
             
                 }

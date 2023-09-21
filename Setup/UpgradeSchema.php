@@ -40,17 +40,17 @@ class UpgradeSchema implements UpgradeSchemaInterface
         $this->sortOrderBuilder             = $sortOrderBuilder;
     }
 
-	public function upgrade(
+    public function upgrade(
         SchemaSetupInterface $setup,
         ModuleContextInterface $context
     )
-	{
+    {
         $this->pluginUpgrade();
 
         $setup->startSetup();
 
         //remove older configs for current version
-		$select = $setup->getConnection()->select()->from(
+        $select = $setup->getConnection()->select()->from(
             $setup->getTable('core_config_data'),
             ['config_id', 'value', 'path']
         )->where(
@@ -185,7 +185,7 @@ class UpgradeSchema implements UpgradeSchemaInterface
         $setup->getConnection()->createTable($table);
 
         $setup->endSetup();
-	}
+    }
 
     /**
      * Plugin upgrade event track
