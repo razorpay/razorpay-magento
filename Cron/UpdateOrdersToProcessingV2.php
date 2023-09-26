@@ -174,11 +174,10 @@ class UpdateOrdersToProcessingV2 {
         {
             foreach ($orderLink as $orderData)
             {
-                $order = $objectManagement->get('Magento\Sales\Model\Order')->load($orderData['order_id']);
-    
+                $order = $this->orderRepository->get($orderData['order_id']);
                 $singleOrderLinkCollection = $objectManagement->get('Razorpay\Magento\Model\OrderLink')
                                                 ->getCollection()
-                                                ->addFilter('entity_id', $orderData['entity_id'])
+                                                ->addFilter('order_id', $order->getEntityId())
                                                 ->getFirstItem();
                 
                 if ((empty($order) === false) and (
