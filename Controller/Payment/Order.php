@@ -15,6 +15,35 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     protected $_currency = PaymentMethod::CURRENCY;
 
     protected $logger;
+
+    /**
+     * @var \Magento\Razorpay\Model\CheckoutFactory
+     */
+    protected $checkoutFactory;
+
+    /**
+     * @var \Magento\Catalog\Model\Session
+     */
+    protected $catalogSession;
+
+    /**
+     * @var \Razorpay\Magento\Model\Config
+     */
+    protected $config;
+
+    protected $webhookId;
+
+    protected $active_events;
+
+    /**
+     * @var \Magento\Store\Model\StoreManagerInterface
+     */
+    protected $_storeManager;
+
+    protected $webhookUrl;
+
+    protected $webhooks;
+
     /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
@@ -261,9 +290,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 $code = 200;
 
                 $this->catalogSession->setRazorpayOrderID($order->id);
-
-                $orderModel->setRzpOrderId($order->id)
-                   ->save();
             }
         }
         catch(\Razorpay\Api\Errors\Error $e)
@@ -289,6 +315,16 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             // @codeCoverageIgnoreEnd
         }
 
+        $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                            ->getCollection()
+                            ->addFilter('order_id', $mazeOrder->getEntityId())
+                            ->getFirstItem();
+        
+        $orderLink->setRzpOrderId($order->id)
+                    ->setOrderId($mazeOrder->getEntityId())
+                    ->save();
+
+        $this->logger->info('Data saved in razorpay_sales_order');
         $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
         $response->setData($responseContent);
         $response->setHttpResponseCode($code);

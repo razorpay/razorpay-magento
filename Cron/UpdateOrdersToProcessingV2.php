@@ -13,8 +13,9 @@ use Razorpay\Magento\Model\Config;
 use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
 use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
 use \Magento\Sales\Model\Order;
+use Razorpay\Magento\Constants\OrderCronStatus;
 
-class UpdateOrdersToProcessing {
+class UpdateOrdersToProcessingV2 {
     /**
      * @var Razorpay\Api\Api
      */
@@ -85,7 +86,7 @@ class UpdateOrdersToProcessing {
      * @var \Magento\Framework\Api\SortOrderBuilder
      */
     protected $sortOrderBuilder;
-
+    
     /**
      * @var \Psr\Log\LoggerInterface
      */
@@ -100,8 +101,6 @@ class UpdateOrdersToProcessing {
      * @var \Magento\Sales\Model\Order\Payment\State\CaptureCommand
      */
     protected $captureCommand;
-
-    protected $isUpdateOrderCronV1Enabled;
 
     /**
      * CancelOrder constructor.
@@ -151,75 +150,77 @@ class UpdateOrdersToProcessing {
 
         $this->authorizeCommand = new AuthorizeCommand();
         $this->captureCommand = new CaptureCommand();
-        $this->isUpdateOrderCronV1Enabled = $this->config->isUpdateOrderCronV1Enabled();
     }
 
     public function execute()
     {
-        $this->logger->info("Cronjob: Update Orders To Processing Cron value = " . $this->isUpdateOrderCronV1Enabled);
-        if($this->isUpdateOrderCronV1Enabled === true)
+        $this->logger->info("Cronjob: Update Orders To Processing Cron V2 started.");
+
+        $dateTimeCheck = time() - static::PROCESS_ORDER_WAIT_TIME; 
+        
+        $objectManagement = $this->getObjectManager();
+        
+        $orderLinkCollection = $objectManagement->get('Razorpay\Magento\Model\OrderLink')
+                                                        ->getCollection()
+                                                        ->addFieldToFilter('rzp_update_order_cron_status',["lt" => 3])
+                                                        ->addFieldToFilter('rzp_webhook_notified_at',["notnull" => true])
+                                                        ->addFieldToFilter('rzp_webhook_notified_at',["lt" => $dateTimeCheck])
+                                                        ->setOrder('entity_id')
+                                                        ->setPageSize(5);
+        
+        $orderLink = $orderLinkCollection->getData();
+        
+        if (count($orderLink) > 0)
         {
-            $this->logger->info("Cronjob: Update Orders To Processing Cron started.");
-
-            $dateTimeCheck = time() - static::PROCESS_ORDER_WAIT_TIME; 
-            $sortOrder = $this->sortOrderBuilder->setField('entity_id')->setDirection('DESC')->create();
-
-            $searchCriteria = $this->searchCriteriaBuilder
-                                ->addFilter(
-                                    'rzp_update_order_cron_status',
-                                    5,
-                                    'lt'
-                                )->addFilter(
-                                    'rzp_webhook_notified_at',
-                                    null, 
-                                    'neq'
-                                )->addFilter(
-                                    'rzp_webhook_notified_at',
-                                    $dateTimeCheck,
-                                    'lt'
-                                )->addFilter(
-                                    'status',
-                                    static::STATUS_PENDING,
-                                    'eq'
-                                )->setSortOrders(
-                                    [$sortOrder]
-                                )->create();
-
-            $orders = $this->orderRepository->getList($searchCriteria);
-
-            foreach ($orders->getItems() as $order)
+            foreach ($orderLink as $orderData)
             {
-                if ((empty($order) === false) && ($order->getPayment()->getMethod() === 'razorpay')) 
-                {
-                    $rzpWebhookData = $order->getRzpWebhookData();
+                $order = $this->orderRepository->get($orderData['order_id']);
+                $singleOrderLinkCollection = $objectManagement->get('Razorpay\Magento\Model\OrderLink')
+                                                ->getCollection()
+                                                ->addFilter('order_id', $order->getEntityId())
+                                                ->getFirstItem();
+                
+                if ((empty($order) === false) and (
+                    $order->getPayment()->getMethod() === 'razorpay') and 
+                    ($order->getState() === static::STATUS_PROCESSING or 
+                    $order->getState() === static::STATE_NEW)) 
+                { 
+                    $rzpWebhookData = $orderData['rzp_webhook_data'];
                     if (empty($rzpWebhookData) === false) // check if webhook cron has run and populated the rzp_webhook_data column
                     {
                         $rzpWebhookDataObj = unserialize($rzpWebhookData); // nosemgrep
-
-                        if (isset($rzpWebhookDataObj[static::PAYMENT_AUTHORIZED]) === true)
-                        {
-                            $this->updateOrderStatus($order, static::PAYMENT_AUTHORIZED, $rzpWebhookDataObj[static::PAYMENT_AUTHORIZED]);
-                        }
                         
                         if (isset($rzpWebhookDataObj[static::ORDER_PAID]) === true)
                         {
-                            $this->updateOrderStatus($order, static::ORDER_PAID, $rzpWebhookDataObj[static::ORDER_PAID]);
+                            $this->updateOrderStatus($order, static::ORDER_PAID, $rzpWebhookDataObj[static::ORDER_PAID], $singleOrderLinkCollection);
+                        }
+
+                        if (isset($rzpWebhookDataObj[static::PAYMENT_AUTHORIZED]) === true and
+                            $singleOrderLinkCollection->getRzpUpdateOrderCronStatus() < OrderCronStatus::INVOICE_GENERATED)
+                        {
+                            if ($order->getState() === static::STATUS_PROCESSING and
+                                $singleOrderLinkCollection->getRzpUpdateOrderCronStatus() == OrderCronStatus::PAYMENT_AUTHORIZED_COMPLETED)
+                            {
+                                $this->logger->info('Payment Authorized cron repeated for id: ' . $order->getIncrementId());
+                                $singleOrderLinkCollection->setRzpUpdateOrderCronStatus(OrderCronStatus::PAYMENT_AUTHORIZED_CRON_REPEAT);
+                                $singleOrderLinkCollection->save();
+                            }
+                            else{
+                                $this->updateOrderStatus($order, static::PAYMENT_AUTHORIZED, $rzpWebhookDataObj[static::PAYMENT_AUTHORIZED], $singleOrderLinkCollection);
+                            }
                         }
                     }
                     else
                     {
-                        $this->logger->info('Razorpay Webhook code not triggered yet. \'rzp_webhook_data\' is empty');
-                        
-                        $cronRunCount = $order->getRzpUpdateOrderCronStatus();
-                        $order->setRzpUpdateOrderCronStatus($cronRunCount+1);
-                        $order->save();
+                        $this->logger->info('Razorpay Webhook code not triggered yet. \'rzp_webhook_data\' is empty for id:' . $order->getEntityId());
                     }   
                 }
             }
         }
+        
     }
 
-    private function updateOrderStatus($order, $event, $rzpWebhookData)
+    private function updateOrderStatus($order, $event, $rzpWebhookData, $orderLinkCollection)
     {
         $this->logger->info("Cronjob: Updating to Processing for Order ID: " 
                         . $order->getEntityId() 
@@ -295,10 +296,8 @@ class UpdateOrdersToProcessing {
             );
         }
 
-        //update/disable the quote
-        $objectManager = $this->getObjectManager();
-        $quote = $objectManager->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
-        $quote->setIsActive(false)->save();
+        $orderLinkCollection->setRzpUpdateOrderCronStatus(OrderCronStatus::PAYMENT_AUTHORIZED_COMPLETED);
+        $this->logger->info('Payment authorized completed for id : '. $order->getIncrementId());
 
         if ($event === static::ORDER_PAID)
         {
@@ -323,8 +322,21 @@ class UpdateOrdersToProcessing {
                 $order->addStatusHistoryComment(
                             __('Notified customer about invoice #%1.', $invoice->getId())
                         )->setIsCustomerNotified(true);
+                
+                $orderLinkCollection->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATED);
+                $this->logger->info('Invoice generated for id : '. $order->getIncrementId());
+            }
+            else
+            {
+                $orderLinkCollection->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATION_NOT_POSSIBLE);
+                $this->logger->info('Invoice generation not possible for id : '. $order->getIncrementId());
             }
         }
+
+        $order->save();
+
+        $orderLinkCollection->setRzpPaymentId($paymentId);
+        $orderLinkCollection->save();
 
         //send Order email, after successfull payment
         try
@@ -341,10 +353,6 @@ class UpdateOrdersToProcessing {
         {
             $this->logger->critical($e);
         }
-
-        $cronRunCount = $order->getRzpUpdateOrderCronStatus();
-        $order->setRzpUpdateOrderCronStatus($cronRunCount+1);
-        $order->save();
 
         $this->logger->info("Cronjob: Updating to Processing for Order ID: " 
                             . $order->getEntityId() 

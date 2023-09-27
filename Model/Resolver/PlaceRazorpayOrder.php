@@ -40,6 +40,17 @@ class PlaceRazorpayOrder implements ResolverInterface
     protected $logger;
 
     /**
+     * @var \Magento\QuoteGraphQl\Model\Cart\GetCartForUser
+     */
+    protected $getCartForUser;
+
+    protected $rzp;
+
+    /**
+     * @var \Razorpay\Magento\Model\Config
+     */
+    protected $config;
+    /**
      * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
      * @param GetCartForUser $getCartForUser
      * @param \Magento\Quote\Api\CartManagementInterface $cartManagement
@@ -150,16 +161,10 @@ class PlaceRazorpayOrder implements ResolverInterface
             if (null !== $razorpay_order && !empty($razorpay_order->id))
             {
                 $this->logger->info('graphQL: Razorpay Order ID: ' . $razorpay_order->id);
-
-                if ($order)
-                {
-                    $order->setRzpOrderId($razorpay_order->id);
-                }
-                $order->save();
-
+                
                 $new_order_status = $this->config->getNewOrderStatus();
-
-                $orderModel = $this->_objectManager->get('Magento\Sales\Model\Order')->load($order_id);
+                
+                $orderModel = $this->_objectManager->get('Magento\Sales\Model\Order')->load($order_id, $this->order::INCREMENT_ID);
 
                 $orderModel->setStatus($new_order_status)->save();
 
@@ -171,7 +176,15 @@ class PlaceRazorpayOrder implements ResolverInterface
                     'currency'       => $order_currency_code,
                     'message'        => 'Razorpay Order created successfully'
                 ];
-
+                
+                $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                            ->getCollection()
+                            ->addFilter('order_id', $orderModel->getEntityId())
+                            ->getFirstItem();
+        
+                $orderLink->setRzpOrderId($razorpay_order->id)
+                            ->setOrderId($order->getEntityId())
+                            ->save();
                 return $responseContent;
             } else
             {

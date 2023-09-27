@@ -7,6 +7,7 @@ use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
 use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
 use Magento\Framework\Controller\ResultFactory;
 use Razorpay\Magento\Model\PaymentMethod;
+use Razorpay\Magento\Constants\OrderCronStatus;
 
 /**
  * CancelPendingOrders controller to cancel Magento order
@@ -15,11 +16,6 @@ use Razorpay\Magento\Model\PaymentMethod;
  */
 class Callback extends \Razorpay\Magento\Controller\BaseController
 {
-    /**
-     * @var \Magento\Sales\Api\Data\OrderInterface
-     */
-    protected $setup;
-
     /**
      * @var \Magento\Sales\Model\Service\InvoiceService
      */
@@ -33,17 +29,59 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
 
     const STATUS_APPROVED = 'APPROVED';
     const STATUS_PROCESSING = 'processing';
+    /**
+     * @var \Razorpay\Magento\Model\Config
+     */
+    protected $config;
 
     /**
-     * @var UPDATE_ORDER_CRON_STATUS
+     * @var \Magento\Checkout\Model\Session
      */
-    protected const DEFAULT = 0;
-    protected const PAYMENT_AUTHORIZED_COMPLETED = 1;
-    protected const ORDER_PAID_AFTER_MANUAL_CAPTURE = 2;
-    protected const INVOICE_GENERATED = 3;
-    protected const INVOICE_GENERATION_NOT_POSSIBLE = 4;
-    protected const PAYMENT_AUTHORIZED_CRON_REPEAT = 5;
+    protected $checkoutSession;
 
+    /**
+     * @var \Magento\Customer\Model\Session
+     */
+    protected $customerSession;
+
+    /**
+     * @var \Psr\Log\LoggerInterface
+     */
+    protected $logger;
+
+    /**
+     * @var \Magento\Sales\Api\OrderRepositoryInterface
+     */
+    protected $orderRepository;
+
+    protected $objectManagement;
+
+    /**
+     * @var \Magento\Sales\Model\Order\Email\Sender\InvoiceSender
+     */
+    protected $_invoiceSender;
+
+    /**
+     * @var \Magento\Catalog\Model\Session
+     */
+    protected $catalogSession;
+
+    /**
+     * @var \Magento\Sales\Api\Data\OrderInterface
+     */
+    protected $order;
+
+    /**
+     * @var \Magento\Sales\Model\Order\Payment\State\CaptureCommand
+     */
+    protected $captureCommand;
+
+    /**
+     * @var \Magento\Sales\Model\Order\Payment\State\AuthorizeCommand
+     */
+    protected $authorizeCommand;
+
+    protected $razorpayOrderID;
 
     /**
      * @param \Magento\Framework\App\Action\Context $context
@@ -91,8 +129,13 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                 ->addFieldToSelect('entity_id')
                 ->addFieldToSelect('rzp_order_id')
                 ->addFilter('increment_id', $orderId)->getFirstItem();
+            
+            $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                                ->getCollection()
+                                ->addFilter('order_id', $collection->getEntityId())
+                                ->getFirstItem();
 
-            $this->razorpayOrderID = $collection->getRzpOrderId();
+            $this->razorpayOrderID = $orderLink->getRzpOrderId();
             $order = $this
                 ->order
                 ->load($collection->getEntityId());
@@ -162,7 +205,9 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                 $quote->setIsActive(false)
                     ->save();
 
-                $order->setRzpUpdateOrderCronStatus(static::PAYMENT_AUTHORIZED_COMPLETED);
+                $orderLink->setRzpPaymentId($paymentId);
+
+                $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::PAYMENT_AUTHORIZED_COMPLETED);
                 $this->logger->info('Payment authorized completed for id : '. $order->getIncrementId());
 
                 if ($order->canInvoice() and ($this
@@ -193,7 +238,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                         ->setIsCustomerNotified(true)
                         ->save();
 
-                    $order->setRzpUpdateOrderCronStatus(static::INVOICE_GENERATED);
+                    $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATED);
                     $this->logger->info('Invoice generated for id : '. $order->getIncrementId());
                 }
                 else if($this->config->getPaymentAction()  === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE and
@@ -201,10 +246,11 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                         $this->config->canAutoGenerateInvoice() === false))
                 {
 
-                    $order->setRzpUpdateOrderCronStatus(static::INVOICE_GENERATION_NOT_POSSIBLE);
+                    $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATION_NOT_POSSIBLE);
                     $this->logger->info('Invoice generation not possible for id : '. $order->getIncrementId());
             
                 }
+                $orderLink->save();
                 $order->save();
 
                 //send Order email, after successfull payment
@@ -317,6 +363,11 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
             throw new \Exception("Payment Failed or error from gateway");
         }
 
+        $this->logger->info('razorpay_payment_id = '. $request['razorpay_payment_id']);
+        $this->logger->info('razorpay_order_id = '. $this->razorpayOrderID);
+        $this->logger->info('razorpay_signature = '. $request['razorpay_signature']);
+        
+        
         $attributes = array(
             'razorpay_payment_id' => $request['razorpay_payment_id'],
             'razorpay_order_id' => $this->razorpayOrderID,

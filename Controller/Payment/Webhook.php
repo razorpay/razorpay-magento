@@ -13,6 +13,7 @@ use Magento\Framework\DataObject;
 use Magento\Framework\Controller\ResultFactory;
 use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
 use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
+use Razorpay\Magento\Constants\OrderCronStatus;
 
 /**
  * Webhook controller to handle Razorpay order webhook
@@ -72,16 +73,6 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     protected const STATUS_PENDING      = 'pending';
     protected const STATUS_CANCELED     = 'canceled';
     protected const STATE_NEW           = 'new';
-
-    /**
-     * @var UPDATE_ORDER_CRON_STATUS
-     */
-    protected const DEFAULT = 0;
-    protected const PAYMENT_AUTHORIZED_COMPLETED = 1;
-    protected const ORDER_PAID_AFTER_MANUAL_CAPTURE = 2;
-    protected const INVOICE_GENERATED = 3;
-    protected const INVOICE_GENERATION_NOT_POSSIBLE = 4;
-    protected const PAYMENT_AUTHORIZED_CRON_REPEAT = 5;
     
     /**
      * @var HTTP CONFLICT Request
@@ -205,8 +196,10 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                     $orderWebhookData   = $this->getOrderWebhookData($orderId);
                     $amountPaid         = $post['payload']['payment']['entity']['amount'];
 
-                    if($post['event'] == 'order.paid')sleep(18);
-                    else sleep(15);
+                    if ($post['event'] === 'order.paid')
+                    {
+                        sleep(1);
+                    }
 
                     $this->setWebhookData($post, $orderWebhookData['entity_id'], true, $paymentId, $amountPaid);
 
@@ -249,8 +242,12 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     protected function setWebhookNotifiedAt($entity_id)
     {
         $order = $this->order->load($entity_id);
-        $order->setRzpWebhookNotifiedAt(time());
-        $order->save();
+
+        $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                        ->load($order->getEntityId(), 'order_id');
+
+        $orderLink->setRzpWebhookNotifiedAt(time());
+        $orderLink->save();
     }
     /*
     0->default
@@ -264,7 +261,11 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     protected function setWebhookData($post, $entityId, $webhookVerifiedStatus, $paymentId, $amount)
     {
         $order                  = $this->order->load($entityId);
-        $existingWebhookData    = $order->getRzpWebhookData();
+
+        $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                        ->load($order->getEntityId(), 'order_id');
+
+        $existingWebhookData    = $orderLink->getRzpWebhookData();
 
         if ($post['event'] === 'payment.authorized')
         {
@@ -296,15 +297,18 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
             $eventArray         = [$post['event'] => $webhookData];
             $webhookDataText    = serialize($eventArray);
         }
-        $order->setRzpWebhookData($webhookDataText);
+        
+        $orderLink->setOrderId($order->getEntityId());
+        $orderLink->setRzpWebhookData($webhookDataText);
         
         if ($post['event'] === 'order.paid' and
-            $order->getRzpUpdateOrderCronStatus() == static::PAYMENT_AUTHORIZED_CRON_REPEAT)
+            $orderLink->getRzpUpdateOrderCronStatus() == OrderCronStatus::PAYMENT_AUTHORIZED_CRON_REPEAT)
         {
             $this->logger->info('Order paid received after manual capture for id: ' . $order->getIncrementId());
-            $order->setRzpUpdateOrderCronStatus(static::ORDER_PAID_AFTER_MANUAL_CAPTURE);
+            $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::ORDER_PAID_AFTER_MANUAL_CAPTURE);
         }
-        $order->save();
+
+        $orderLink->save();
 
         $this->logger->info('Webhook data saved for id:' . $order->getIncrementId() . 'event:' . $post['event']);
     }

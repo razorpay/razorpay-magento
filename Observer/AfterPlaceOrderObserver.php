@@ -31,6 +31,16 @@ class AfterPlaceOrderObserver implements ObserverInterface
     private $emailProcessor;
 
     /**
+     * @var \Magento\Checkout\Model\Session
+     */
+    protected $checkoutSession;
+
+    /**
+     * @var \Razorpay\Magento\Model\Config
+     */
+    protected $config;
+    
+    /**
      * StatusAssignObserver constructor.
      *
      * @param OrderRepositoryInterface $orderRepository

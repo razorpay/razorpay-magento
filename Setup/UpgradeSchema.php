@@ -8,35 +8,49 @@ use Magento\Framework\Setup\ModuleContextInterface;
 use Razorpay\Magento\Model\TrackPluginInstrumentation;
 use Magento\Framework\Setup\SchemaSetupInterface;
 use \Psr\Log\LoggerInterface;
+use Magento\Framework\DB\Ddl\Table;
+use Magento\Framework\DB\Adapter\AdapterInterface;
+use Razorpay\Magento\Model\ResourceModel\OrderLink;
 
 class UpgradeSchema implements UpgradeSchemaInterface
 {
     protected $config;
     protected $trackPluginInstrumentation;
     protected $logger;
+    protected $orderRepository;
+    protected $searchCriteriaBuilder;
+    protected $sortOrderBuilder;
+
+    protected const STATE_NEW           = 'new';
 
     public function __construct(
         Config $config,
         TrackPluginInstrumentation $trackPluginInstrumentation,
-        LoggerInterface $logger
+        LoggerInterface $logger,
+        \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
+        \Magento\Framework\Api\SearchCriteriaBuilder $searchCriteriaBuilder,
+        \Magento\Framework\Api\SortOrderBuilder $sortOrderBuilder
     )
     {
         $this->config                       = $config;
         $this->trackPluginInstrumentation   = $trackPluginInstrumentation;
         $this->logger                       = $logger;
+        $this->orderRepository              = $orderRepository;
+        $this->searchCriteriaBuilder        = $searchCriteriaBuilder;
+        $this->sortOrderBuilder             = $sortOrderBuilder;
     }
 
-	public function upgrade(
+    public function upgrade(
         SchemaSetupInterface $setup,
         ModuleContextInterface $context
     )
-	{
+    {
         $this->pluginUpgrade();
 
-		$setup->startSetup();
+        $setup->startSetup();
 
-		//remove older configs for current version
-		$select = $setup->getConnection()->select()->from(
+        //remove older configs for current version
+        $select = $setup->getConnection()->select()->from(
             $setup->getTable('core_config_data'),
             ['config_id', 'value', 'path']
         )->where(
@@ -106,8 +120,72 @@ class UpgradeSchema implements UpgradeSchemaInterface
             );
         }
 
-		$setup->endSetup();
-	}
+        $table = $setup->getConnection()->newTable($setup->getTable(OrderLink::TABLE_NAME));
+
+        $table
+            ->addColumn(
+                'entity_id',
+                Table::TYPE_INTEGER,
+                null,
+                [
+                    'identity' => true,
+                    'unsigned' => true,
+                    'primary'  => true,
+                    'nullable' => false
+                ]
+            )
+            ->addColumn(
+                'order_id',
+                Table::TYPE_INTEGER,
+                [
+                    'nullable' => true
+                ]
+            )
+            ->addColumn(
+                'rzp_order_id',
+                Table::TYPE_TEXT,
+                25,
+                [
+                    'nullable' => true
+                ]
+            )
+            ->addColumn(
+                'rzp_payment_id',
+                Table::TYPE_TEXT,
+                25,
+                [
+                    'nullable' => true
+                ]
+            )
+            ->addColumn(
+                'rzp_webhook_data',
+                Table::TYPE_TEXT,
+                1000,
+                [
+                    'nullable' => true
+                ]
+            )
+            ->addColumn(
+                'rzp_webhook_notified_at',
+                Table::TYPE_BIGINT,
+                [
+                    'nullable' => true
+                ]
+            )
+            ->addColumn(
+                'rzp_update_order_cron_status',
+                Table::TYPE_INTEGER,
+                null,
+                [
+                    'nullable' => false,
+                    'default'  => 0,
+                ]
+            );
+
+        $setup->getConnection()->createTable($table);
+
+        $setup->endSetup();
+    }
 
     /**
      * Plugin upgrade event track
