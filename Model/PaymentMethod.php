@@ -100,6 +100,14 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
     //protected $_isOffline = true;
 
+    protected $key_id;
+
+    protected $key_secret;
+
+    protected $order;
+
+    protected $rzp;
+
     /**
      * @param \Magento\Framework\Model\Context $context
      * @param \Magento\Framework\Registry $registry

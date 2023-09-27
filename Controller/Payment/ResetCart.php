@@ -14,6 +14,23 @@ class ResetCart extends \Razorpay\Magento\Controller\BaseController
 
     protected $logger;
 
+    /**
+     * @var \Razorpay\Magento\Model\CheckoutFactory
+     */
+    protected $checkoutFactory;
+
+    /**
+     * @var \Magento\Catalog\Model\Session
+     */
+    protected $catalogSession;
+
+    /**
+     * @var \Razorpay\Magento\Model\Config
+     */
+    protected $config;
+
+    protected $objectManager;
+
 	/**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession

@@ -74,6 +74,18 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
 
     protected const STATUS_PROCESSING = 'processing';
 
+    protected $rzp;
+
+    /**
+     * @var \Magento\Sales\Model\Order\Payment\State\AuthorizeCommand
+     */
+    protected $authorizeCommand;
+
+    /**
+     * @var \Magento\Sales\Model\Order\Payment\State\CaptureCommand
+     */
+    protected $captureCommand;
+
     /**
      * @param PaymentMethod $paymentMethod
      * @param \Magento\Sales\Api\Data\OrderInterface $order

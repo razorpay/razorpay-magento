@@ -33,6 +33,29 @@ class CancelPendingOrders {
     protected const STATE_NEW = 'new';
 
     /**
+     * @var \Magento\Framework\Api\SortOrderBuilder
+     */
+    protected $sortOrderBuilder;
+
+    /**
+     * @var \Razorpay\Magento\Model\Config
+     */
+    protected $config;
+
+    /**
+     * @var \Psr\Log\LoggerInterface
+     */
+    protected $logger;
+
+    protected $isCancelPendingOrderCronEnabled;
+
+    protected $pendingOrderTimeout;
+
+    protected $isCancelResetCartCronEnabled;
+
+    protected $resetCartOrderTimeout;
+
+    /**
      * CancelOrder constructor.
      * @param \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
      * @param \Magento\Framework\Api\SearchCriteriaBuilder $searchCriteriaBuilder

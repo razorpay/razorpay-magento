@@ -28,6 +28,17 @@ class AfterConfigSaveObserver implements ObserverInterface
     private $request;
     private $configWriter;
     protected $trackPluginInstrumentation;
+    protected $config;
+    protected $_storeManager;
+    protected $logger;
+    protected $key_id;
+    protected $key_secret;
+    protected $paymentMethod;
+    protected $rzp;
+    protected $webhookUrl;
+    protected $webhookId;
+    protected $active_events;
+    protected $webhooks;
 
     /**
      * StatusAssignObserver constructor.

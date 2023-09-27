@@ -39,6 +39,8 @@ class UpgradeMessageNotification implements MessageInterface
 
     public $latestVersionLink = '';
 
+    protected $config;
+
 
     public function __construct(
         \Razorpay\Magento\Model\Config $config

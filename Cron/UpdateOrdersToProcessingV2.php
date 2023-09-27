@@ -78,6 +78,31 @@ class UpdateOrdersToProcessingV2 {
     protected const PROCESS_ORDER_WAIT_TIME = 5 * 60;
 
     /**
+     * @var \Razorpay\Magento\Model\Config
+     */
+    protected $config;
+
+    /**
+     * @var \Magento\Framework\Api\SortOrderBuilder
+     */
+    protected $sortOrderBuilder;
+    
+    /**
+     * @var \Psr\Log\LoggerInterface
+     */
+    protected $logger;
+
+    /**
+     * @var \Magento\Sales\Model\Order\Payment\State\AuthorizeCommand
+     */
+    protected $authorizeCommand;
+
+    /**
+     * @var \Magento\Sales\Model\Order\Payment\State\CaptureCommand
+     */
+    protected $captureCommand;
+
+    /**
      * CancelOrder constructor.
      * @param \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
      * @param \Magento\Framework\Api\SearchCriteriaBuilder $searchCriteriaBuilder
@@ -149,11 +174,10 @@ class UpdateOrdersToProcessingV2 {
         {
             foreach ($orderLink as $orderData)
             {
-                $order = $objectManagement->get('Magento\Sales\Model\Order')->load($orderData['order_id']);
-    
+                $order = $this->orderRepository->get($orderData['order_id']);
                 $singleOrderLinkCollection = $objectManagement->get('Razorpay\Magento\Model\OrderLink')
                                                 ->getCollection()
-                                                ->addFilter('entity_id', $orderData['entity_id'])
+                                                ->addFilter('order_id', $order->getEntityId())
                                                 ->getFirstItem();
                 
                 if ((empty($order) === false) and (
