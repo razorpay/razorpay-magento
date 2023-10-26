@@ -120,3 +120,8 @@ mutation {
 ### Support
 
 Visit [https://razorpay.com](https://razorpay.com) for support requests or email contact@razorpay.com.
+
+### FAQ
+
+Question: How to upgrade plugin using code.zip?
+Answer: Install the latest code.zip and replace all the contents of the code folder with the new code.zip content. Then follow the same steps which are there for installation through code.zip.
