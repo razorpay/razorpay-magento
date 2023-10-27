@@ -145,9 +145,6 @@ mutation {
   }
 }
 ```
-### Support
-
-Visit [https://razorpay.com](https://razorpay.com) for support requests or email contact@razorpay.com.
 
 ## **Upgrade Razorpay plugin through composer**
 If you are an existing user, you can upgrade the Magento extension using the composer. Enter the command given below:
@@ -218,3 +215,7 @@ To install Razorpay Magento module, follow installation steps provided at this r
 
 Question: How to upgrade plugin using code.zip?
 Answer: Install the latest code.zip and replace all the contents of the code folder with the new code.zip content. Then follow the same steps which are there for installation through code.zip.
+
+### Support
+
+Visit [https://razorpay.com](https://razorpay.com) for support requests or email contact@razorpay.com.
