@@ -213,8 +213,8 @@ To install Razorpay Magento module, follow installation steps provided at this r
 
 ### FAQ
 
-Question: How to upgrade plugin using code.zip?
-Answer: Install the latest code.zip and replace all the contents of the code folder with the new code.zip content. Then follow the same steps which are there for installation through code.zip.
+## How to upgrade plugin using code.zip?
+Download the latest code.zip and replace all the contents of the code folder with the new code.zip content. Then follow the same steps which are there for installation through code.zip.
 
 ### Support
 
