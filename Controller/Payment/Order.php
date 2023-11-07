@@ -249,10 +249,19 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                                     . " and amount:" . $amount);
             // @codeCoverageIgnoreEnd
 
+            $currency = $mazeOrder->getOrderCurrencyCode();
+
+            if ($currency === "KWD" or
+                $currency === "OMR" or
+                $currency === "BHD")
+            {
+                throw new \Exception($currency . " currency is not supported at the moment.");
+            }
+
             $order = $this->rzp->order->create([
                 'amount' => $amount,
                 'receipt' => $receipt_id,
-                'currency' => $mazeOrder->getOrderCurrencyCode(),
+                'currency' => $currency,
                 'payment_capture' => $payment_capture,
                 'notes' => [
                     'referrer'  => $_SERVER['HTTP_REFERER']

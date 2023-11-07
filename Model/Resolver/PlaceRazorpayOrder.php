@@ -132,6 +132,13 @@ class PlaceRazorpayOrder implements ResolverInterface
                 ];
             }
 
+            if ($order_currency_code === "KWD" or
+                $order_currency_code === "BHD" or
+                $order_currency_code === "OMR")
+            {
+                throw new \Exception($order_currency_code . " currency is not supported at the moment.");
+            }
+
             $amount          = (int) (number_format($order_grand_total * 100, 0, ".", ""));
             $payment_action  = $this->scopeConfig->getValue('payment/razorpay/rzp_payment_action', $storeScope);
             $payment_capture = 1;
