@@ -251,11 +251,22 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
             $currency = $mazeOrder->getOrderCurrencyCode();
 
-            if ($currency === "KWD" or
-                $currency === "OMR" or
-                $currency === "BHD")
+            if (in_array($currency, ["KWD", "BHD", "OMR"]))
             {
-                throw new \Exception($currency . " currency is not supported at the moment.");
+                $this->logger->info($currency . " currency is not supported at the moment.");
+                
+                $responseContent = [
+                    'message'   => 'Unable to create your order. Please contact support.',
+                    'parameters' => []
+                ];
+
+                $code = 200;
+
+                $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
+                $response->setData($responseContent);
+                $response->setHttpResponseCode($code);
+
+                return $response;
             }
 
             $order = $this->rzp->order->create([

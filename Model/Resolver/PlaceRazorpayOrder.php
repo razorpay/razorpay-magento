@@ -132,9 +132,7 @@ class PlaceRazorpayOrder implements ResolverInterface
                 ];
             }
 
-            if ($order_currency_code === "KWD" or
-                $order_currency_code === "BHD" or
-                $order_currency_code === "OMR")
+            if (in_array($order_currency_code, ["KWD", "BHD", "OMR"]))
             {
                 throw new \Exception($order_currency_code . " currency is not supported at the moment.");
             }
