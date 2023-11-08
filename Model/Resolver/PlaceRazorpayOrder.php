@@ -46,6 +46,8 @@ class PlaceRazorpayOrder implements ResolverInterface
 
     protected $rzp;
 
+    protected const THREE_DECIMAL_CURRENCIES = ["KWD", "OMR", "BHD"];
+
     /**
      * @var \Razorpay\Magento\Model\Config
      */
@@ -132,7 +134,7 @@ class PlaceRazorpayOrder implements ResolverInterface
                 ];
             }
 
-            if (in_array($order_currency_code, ["KWD", "BHD", "OMR"]))
+            if (in_array($order_currency_code, static::THREE_DECIMAL_CURRENCIES) === true)
             {
                 throw new \Exception($order_currency_code . " currency is not supported at the moment.");
             }
