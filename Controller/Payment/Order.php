@@ -260,7 +260,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                     'parameters' => []
                 ];
 
-                $code = 200;
+                $code = 400;
 
                 $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
                 $response->setData($responseContent);
