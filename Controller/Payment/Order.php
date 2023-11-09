@@ -44,6 +44,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
     protected $webhooks;
 
+    protected const THREE_DECIMAL_CURRENCIES = ["KWD", "OMR", "BHD"];
+
     /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
@@ -248,6 +250,24 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             $this->logger->info("Razorpay Order: create order started with quoteID:" . $receipt_id
                                     . " and amount:" . $amount);
             // @codeCoverageIgnoreEnd
+
+            if (in_array($mazeOrder->getOrderCurrencyCode(), static::THREE_DECIMAL_CURRENCIES) === true)
+            {
+                $this->logger->info($mazeOrder->getOrderCurrencyCode() . " currency is not supported at the moment.");
+                
+                $responseContent = [
+                    'message'   => 'Unable to create your order. Please contact support.',
+                    'parameters' => []
+                ];
+
+                $code = 400;
+
+                $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
+                $response->setData($responseContent);
+                $response->setHttpResponseCode($code);
+
+                return $response;
+            }
 
             $order = $this->rzp->order->create([
                 'amount' => $amount,

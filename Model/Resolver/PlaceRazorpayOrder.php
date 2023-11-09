@@ -46,6 +46,8 @@ class PlaceRazorpayOrder implements ResolverInterface
 
     protected $rzp;
 
+    protected const THREE_DECIMAL_CURRENCIES = ["KWD", "OMR", "BHD"];
+
     /**
      * @var \Razorpay\Magento\Model\Config
      */
@@ -130,6 +132,11 @@ class PlaceRazorpayOrder implements ResolverInterface
                     'success' => false,
                     'message' => 'graphQL: Unable to fetch order data for Order ID: ' . $order_id,
                 ];
+            }
+
+            if (in_array($order_currency_code, static::THREE_DECIMAL_CURRENCIES) === true)
+            {
+                throw new \Exception($order_currency_code . " currency is not supported at the moment.");
             }
 
             $amount          = (int) (number_format($order_grand_total * 100, 0, ".", ""));
