@@ -42,6 +42,8 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
 
     const STATUS_APPROVED = 'APPROVED';
     const STATUS_PROCESSING = 'processing';
+    const AUTHORIZED = 'authorized';
+    const CAPTURED = 'captured';
 
     /**
      * @var \Magento\Sales\Model\Service\InvoiceService
@@ -198,7 +200,9 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
             $payment = $order->getPayment();        
         
             $paymentId = $post['razorpay_payment_id'];
-            
+
+            $rzpPayment = $this->rzp->request->request('GET', 'payments/'.$paymentId);
+        
             $payment->setLastTransId($paymentId)
                 ->setTransactionId($paymentId)
                 ->setIsTransactionClosed(true)
@@ -242,6 +246,29 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
             //update/disable the quote
             $quote = $this->_objectManager->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
             $quote->setIsActive(false)->save();
+
+            $amountPaid = number_format($rzpPayment['amount'] / 100, 2, ".", "");
+            
+            if ($rzpPayment['status'] === static::AUTHORIZED)
+            {
+                $order->addStatusHistoryComment(
+                    __(
+                        'Actual Amount %1 of %2, with Razorpay Offer/Fee applied.',
+                        "Authorized",
+                        $order->getBaseCurrency()->formatTxt($amountPaid)
+                    )
+                );
+            }
+            else if ($rzpPayment['status'] === static::CAPTURED)
+            {
+                $order->addStatusHistoryComment(
+                    __(
+                        '%1 amount of %2 online, with Razorpay Offer/Fee applied.',
+                        "Captured",
+                        $order->getBaseCurrency()->formatTxt($amountPaid)
+                    )
+                );
+            }
 
             $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
                             ->getCollection()
