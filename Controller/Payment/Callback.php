@@ -29,6 +29,9 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
 
     const STATUS_APPROVED = 'APPROVED';
     const STATUS_PROCESSING = 'processing';
+    const AUTHORIZED = 'authorized';
+    const CAPTURED = 'captured';
+    
     /**
      * @var \Razorpay\Magento\Model\Config
      */

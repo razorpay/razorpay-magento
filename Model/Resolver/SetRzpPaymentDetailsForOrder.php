@@ -74,6 +74,9 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
 
     protected const STATUS_PROCESSING = 'processing';
 
+    const AUTHORIZED = 'authorized';
+    const CAPTURED = 'captured';
+
     protected $rzp;
 
     /**
@@ -296,6 +299,31 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
                 $transaction->setIsClosed(true);
 
                 $transaction->save();
+
+                $rzpPayment = $this->rzp->request->request('GET', 'payments/'.$rzp_payment_id);
+
+                $rzpAmountPaid = number_format($rzpPayment['amount'] / 100, 2, ".", "");
+        
+                if ($rzpPayment['status'] === static::AUTHORIZED)
+                {
+                    $order->addStatusHistoryComment(
+                        __(
+                            'Actual Amount %1 of %2, with Razorpay Offer/Fee applied.',
+                            "Authorized",
+                            $order->getBaseCurrency()->formatTxt($rzpAmountPaid)
+                        )
+                    );
+                }
+                else if ($rzpPayment['status'] === static::CAPTURED)
+                {
+                    $order->addStatusHistoryComment(
+                        __(
+                            '%1 amount of %2 online, with Razorpay Offer/Fee applied.',
+                            "Captured",
+                            $order->getBaseCurrency()->formatTxt($rzpAmountPaid)
+                        )
+                    );
+                }
 
                 $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::PAYMENT_AUTHORIZED_COMPLETED);
                 $this->logger->info('Payment authorized completed for id : '. $order->getIncrementId());
