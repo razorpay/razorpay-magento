@@ -249,26 +249,13 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
 
             $amountPaid = number_format($rzpPayment['amount'] / 100, 2, ".", "");
             
-            if ($rzpPayment['status'] === static::AUTHORIZED)
-            {
-                $order->addStatusHistoryComment(
-                    __(
-                        'Actual Amount %1 of %2, with Razorpay Offer/Fee applied.',
-                        "Authorized",
-                        $order->getBaseCurrency()->formatTxt($amountPaid)
-                    )
-                );
-            }
-            else if ($rzpPayment['status'] === static::CAPTURED)
-            {
-                $order->addStatusHistoryComment(
-                    __(
-                        '%1 amount of %2 online, with Razorpay Offer/Fee applied.',
-                        "Captured",
-                        $order->getBaseCurrency()->formatTxt($amountPaid)
-                    )
-                );
-            }
+            $order->addStatusHistoryComment(
+                __(
+                    'Actual Amount %1 of %2, with Razorpay Offer/Fee applied.',
+                    $rzpPayment['status'],
+                    $order->getBaseCurrency()->formatTxt($amountPaid)
+                )
+            );
 
             $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
                             ->getCollection()
