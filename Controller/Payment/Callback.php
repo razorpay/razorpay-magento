@@ -29,6 +29,9 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
 
     const STATUS_APPROVED = 'APPROVED';
     const STATUS_PROCESSING = 'processing';
+    const AUTHORIZED = 'authorized';
+    const CAPTURED = 'captured';
+    
     /**
      * @var \Razorpay\Magento\Model\Config
      */
@@ -173,6 +176,8 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                 $payment = $order->getPayment();
                 $paymentId = $params['razorpay_payment_id'];
 
+                $rzpPayment = $this->rzp->request->request('GET', 'payments/'.$paymentId);
+
                 $payment->setLastTransId($paymentId)->setTransactionId($paymentId)->setIsTransactionClosed(true)
                     ->setShouldCloseParentTransaction(true);
 
@@ -204,6 +209,16 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                     ->load($order->getQuoteId());
                 $quote->setIsActive(false)
                     ->save();
+                
+                $amountPaid = number_format($rzpPayment['amount'] / 100, 2, ".", "");
+        
+                $order->addStatusHistoryComment(
+                    __(
+                        'Amount %1 of %2, with Razorpay Offer/Fee applied.',
+                        $rzpPayment['status'],
+                        $order->getBaseCurrency()->formatTxt($amountPaid)
+                    )
+                );
 
                 $orderLink->setRzpPaymentId($paymentId);
 
