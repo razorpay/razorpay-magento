@@ -227,10 +227,10 @@ if(isset($rzp_order_data->promotions[0]->code) == true)
  $quote->setCouponCode($rzp_order_data->promotions[0]->code);   
 }
 
-$shippingAddress=$quote->getShippingAddress();
-        $shippingAddress->setCollectShippingRates(true)
-                        ->collectShippingRates()
-                        ->setShippingMethod('flatrate_flatrate');
+// $shippingAddress=$quote->getShippingAddress();
+//         $shippingAddress->setCollectShippingRates(true)
+//                         ->collectShippingRates()
+//                         ->setShippingMethod('flatrate_flatrate');
 
             if($rzp_payment_data->method === 'cod')
             {
