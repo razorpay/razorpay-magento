@@ -321,7 +321,7 @@ $shippingAddress=$quote->getShippingAddress();
                     $invoice->save();
 
                     $this->logger->info('graphQL: Created Invoice for '
-                    . 'order_id ' . $order_id . ', '
+                    . 'order_id ' . $rzp_order_id . ', '
                     . 'rzp_payment_id ' . $rzp_payment_id);
 
                     $transactionSave = $this->transaction
