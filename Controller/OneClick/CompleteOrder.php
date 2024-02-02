@@ -7,9 +7,6 @@ use Magento\Framework\App\Action\Context;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Quote\Api\CartManagementInterface;
-use Razorpay\Magento\Model\QuoteBuilderFactory;
-use Razorpay\Magento\Model\QuoteBuilder;
-use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Framework\Pricing\Helper\Data;
 // use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Store\Model\ScopeInterface;
@@ -47,11 +44,6 @@ class CompleteOrder extends Action
     protected $cartManagement;
 
     /**
-     * @var OrderRepositoryInterface
-     */
-    protected $orderRepository;
-
-    /**
      * @var ProductRepositoryInterface
      */
     protected $productRepository;
@@ -74,12 +66,6 @@ class CompleteOrder extends Action
     protected $rzp;
 
     protected $_totals;
-
-
-    /**
-     * @var QuoteBuilderFactory
-     */
-    protected $quoteBuilderFactory;
 
     /**
      * @var QuoteItem
@@ -117,12 +103,10 @@ class CompleteOrder extends Action
      * @param Context $context
      * @param JsonFactory $jsonFactory
      * @param CartManagementInterface $cartManagement
-     * @param OrderRepositoryInterface $orderRepository
      * @param Data $priceHelper
      * @param ScopeConfigInterface $config
      * @param PaymentMethod $paymentMethod
      * @param \Psr\Log\LoggerInterface $logger
-     * @param QuoteBuilderFactory $quoteBuilderFactory
      * @param ProductRepositoryInterface $productRepository
      */
     public function __construct(
@@ -130,12 +114,10 @@ class CompleteOrder extends Action
         Http $request,
         JsonFactory $jsonFactory,
         CartManagementInterface $cartManagement,
-        OrderRepositoryInterface $orderRepository,
         Data $priceHelper,
         PaymentMethod $paymentMethod,
         \Razorpay\Magento\Model\Config $config,
         \Psr\Log\LoggerInterface $logger,
-        QuoteBuilderFactory $quoteBuilderFactory,
         ProductRepositoryInterface $productRepository,
         Item $quoteItem,
         QuoteIdToMaskedQuoteIdInterface $maskedQuoteIdInterface,
@@ -156,12 +138,10 @@ class CompleteOrder extends Action
         $this->request = $request;
         $this->resultJsonFactory = $jsonFactory;
         $this->cartManagement = $cartManagement;
-        $this->orderRepository = $orderRepository;
         $this->priceHelper = $priceHelper;
         $this->config = $config;
         $this->rzp    = $paymentMethod->setAndGetRzpApiInstance();
         $this->logger = $logger;
-        $this->quoteBuilderFactory = $quoteBuilderFactory;
         $this->productRepository = $productRepository;
         $this->quoteItem = $quoteItem;
         $this->maskedQuoteIdInterface = $maskedQuoteIdInterface;
@@ -712,66 +692,5 @@ $shippingAddress=$quote->getShippingAddress();
         }
         $this->_totals = $totals;
         return $this;
-    }
-
-    public function execute11()
-    {
-        if (!$this->config->getValue('checkout/one_click_checkout/enabled', ScopeInterface::SCOPE_STORE)) {
-            return $this->resultRedirectFactory->create()->setUrl($this->_redirect->getRefererUrl());
-        }
-
-        $resultJson = $this->resultJsonFactory->create();
-
-        /** @var QuoteBuilder $quoteBuilder */
-        $quoteBuilder = $this->quoteBuilderFactory->create();
-
-        try {
-            $quote = $quoteBuilder->createQuote();
-        } catch (LocalizedException $e) {
-            return $resultJson->setData([
-                'status' => 'error',
-                'message' => __($e->getMessage()),
-            ]);
-        } catch (\Exception $e) {
-            return $resultJson->setData([
-                'status' => 'error',
-                'message' => __('An error occurred on the server. Please try again.'),
-            ]);
-        }
-
-        try {
-            $orderId = $this->cartManagement->CompleteOrder($quote->getId());
-            $order = $this->orderRepository->get($orderId);
-
-            $result = [
-                'status' => 'success',
-                'incrementId' => $order->getIncrementId(),
-                'url' => $this->_url->getUrl('sales/order/view', ['order_id' => $orderId]),
-                'totals' => [
-                    'subtotal' => $this->priceHelper->currency($order->getSubtotal(), true, false),
-                    'discount' => [
-                        'raw' => $order->getDiscountAmount(),
-                        'formatted' => $this->priceHelper->currency($order->getDiscountAmount(), true, false),
-                    ],
-                    'shipping' => [
-                        'raw' => $order->getShippingAmount(),
-                        'formatted' => $this->priceHelper->currency($order->getShippingAmount(), true, false),
-                    ],
-                    'tax' => [
-                        'raw' => $order->getTaxAmount(),
-                        'formatted' => $this->priceHelper->currency($order->getTaxAmount(), true, false),
-                    ],
-                    'grandTotal' => $this->priceHelper->currency($order->getGrandTotal(), true, false),
-                ],
-            ];
-        } catch (\Exception $e) {
-            $quote->setIsActive(false)->save();
-            $result = [
-                'status' => 'error',
-                'message' => __('An error occurred on the server. Please try again.'),
-            ];
-        }
-
-        return $resultJson->setData($result);
     }
 }
