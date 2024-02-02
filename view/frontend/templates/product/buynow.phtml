@@ -1,0 +1,74 @@
+<?php
+/** @var \Magento\Catalog\Block\Product\View $block */
+?>
+<script type="text/x-magento-init">
+    {
+        "#product_addtocart_form": {
+            "Razorpay_Magento/js/buy-now": {
+                "isAvailableUrl": "<?php echo $block->getUrl('rest/V1/buttons/buynow/canshow/') ?>",
+                "submitUrl": "<?php echo $block->getUrl('razorpay/oneclick/placeorder') ?>",
+                "sku": "<?php echo $block->getProduct()->getSku(); ?>",
+                "callbackURL": "<?php echo $block->getUrl('razorpay/oneclick/completeorder') ?>"
+            }
+        }
+    }
+</script>
+
+<script type="text/javascript">
+    // window.Razorpay.config = {
+    //     "frame": "https://api-web-cool.ext.dev.razorpay.in/test/checkout.html?branch=master",
+    //     "api": "https://api-web-cool.ext.dev.razorpay.in/",
+    //   }
+
+    var Razorpay = {
+      "config": {
+        "api": "https://api-web-meg01.ext.dev.razorpay.in/",
+       "frame": "https://api-web-meg01.ext.dev.razorpay.in/test/checkout.html?branch=master",
+      },
+    }; 
+
+     var rzpApi = Razorpay.config.api + 'v1/';
+</script>
+
+<script id="occ-template" type="text/x-occ-template">
+    <button type="button" title="<?php echo __('One Click Checkout') ?>" class="action primary tocart occ" id="product-oneclick-button">
+        <span><?php echo __('One Click Checkout') ?></span>
+    </button>
+</script>
+
+<script type="text/javascript"
+        src="https://checkout.razorpay.com/v1/magic-checkout.js"></script>
+
+<script type="text/template" class="order-template">
+    <div id="one-click-confirmation">
+        <h3><?php echo __('Your order number is') ?> <a href="<%- order.url %>"><%- order.incrementId %></a></h3>
+        <table>
+            <tr>
+                <td><strong><?php echo __('Subtotal') ?></strong></td>
+                <td><%- order.totals.subtotal %></td>
+            </tr>
+            <% if (order.totals.discount.raw) { %>
+                <tr>
+                    <td><strong><?php echo __('Discount') ?></strong></td>
+                    <td><%- order.totals.discount.formatted %></td>
+                </tr>
+            <% } %>
+            <% if (order.totals.shipping.raw) { %>
+                <tr>
+                    <td><strong><?php echo __('Shipping') ?></strong></td>
+                    <td><%- order.totals.shipping.formatted %></td>
+                </tr>
+            <% } %>
+            <% if (order.totals.tax.raw) { %>
+            <tr>
+                <td><strong><?php echo __('Tax') ?></strong></td>
+                <td><%- order.totals.tax.formatted %></td>
+            </tr>
+            <% } %>
+            <tr>
+                <td><strong><?php echo __('Grand Total') ?></strong></td>
+                <td><%- order.totals.grandTotal %></td>
+            </tr>
+        </table>
+    </div>
+</script>
