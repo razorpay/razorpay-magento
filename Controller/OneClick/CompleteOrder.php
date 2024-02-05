@@ -196,7 +196,7 @@ class CompleteOrder extends Action
             ->toArray();
 
         $this->logger->info('graphQL: Magento region:' . json_encode($regionCode));
-        $this->logger->info('graphQL: Magento region code:' . $regionCode['code']);
+        // $this->logger->info('graphQL: Magento region code:' . $regionCode['code']);
 
         $address=[
              'email'        => $rzp_order_data->customer_details->email, //buyer email id
