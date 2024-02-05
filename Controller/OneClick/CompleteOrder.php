@@ -200,7 +200,22 @@ class CompleteOrder extends Action
                          ]
         ];
         $quote->getBillingAddress()->addData($tempOrder['shipping_address']);
-        $quote->getShippingAddress()->addData($tempOrder['shipping_address']);
+        // $quote->getShippingAddress()->addData($tempOrder['shipping_address']);
+
+        if($rzp_order_data->shipping_fee > 0)
+        {
+            $shippingMethod = 'flatrate_flatrate';
+        }
+        else
+        {
+            $shippingMethod = 'freeshipping_freeshipping';
+        }
+
+        $shippingAddress=$quote->getShippingAddress();
+        $shippingAddress->setCollectShippingRates(true)
+                        ->collectShippingRates()
+                        ->setShippingMethod($shippingMethod);
+
 
         if(isset($rzp_order_data->promotions[0]->code) == true)
         {
