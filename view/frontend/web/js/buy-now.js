@@ -83,6 +83,7 @@ define([
                 data: self._parent().serialize(),
                 type: 'POST',
                 dataType: 'json',
+                showLoader: true,
                 success: function (data) {
                     console.log("*******")
                     console.log(data)
@@ -106,6 +107,7 @@ define([
                 data: data,
                 type: 'POST',
                 dataType: 'json',
+                showLoader: true,
                 success: function (data) {
                     console.log("Payment complete data")
                     console.log(data)
