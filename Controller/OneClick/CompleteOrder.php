@@ -167,8 +167,6 @@ class CompleteOrder extends Action
     {
         $params = $this->request->getParams();
 
-        $this->logger->info('graphQL: Complete Request dataaaa: ' . json_encode($params));
-
         $rzp_order_id = $params['razorpay_order_id'];
         $rzp_payment_id = $params['razorpay_payment_id'];
 
@@ -177,77 +175,51 @@ class CompleteOrder extends Action
         $receipt = isset($rzp_order_data->receipt) ? $rzp_order_data->receipt : null;
         $cart_id = isset($rzp_order_data->notes) ? $rzp_order_data->notes->cart_id : null;
         $this->logger->info('graphQL: Razorpay Order receipt:' . $cart_id);
-        // $cart_id = 227;
-// print_r($rzp_order_data->promotions[0]->code);
-// return;
+
         $quote = $this->cartRepositoryInterface->get($cart_id);
 
-        // $quote->setCustomerEmail($rzp_order_data->customer_details->email);
-        $quote->setCustomerEmail('chetan.naik@razorpay.com');
+        $quote->setCustomerEmail($rzp_order_data->customer_details->email);
+        // $quote->setCustomerEmail('chetan.naik@razorpay.com');
 
         $name = explode(' ', $rzp_order_data->customer_details->shipping_address->name);
 
-        // $quote->getBillingAddress()->setFirstname($name[0]);
-        // $quote->getBillingAddress()->setLastname($name[1]);
-        // $quote->getBillingAddress()->setStreet($rzp_order_data->customer_details->shipping_address->line1);
-        // $quote->getBillingAddress()->setCity($rzp_order_data->customer_details->shipping_address->city);
-        // $quote->getBillingAddress()->setTelephone($rzp_order_data->customer_details->shipping_address->contact);
-        // $quote->getBillingAddress()->setPostcode($rzp_order_data->customer_details->shipping_address->zipcode);
-        // $quote->getBillingAddress()->setCountryId($rzp_order_data->customer_details->shipping_address->country);
 
-        // $quote->getShippingAddress()->setFirstname($name[0]);
-        // $quote->getShippingAddress()->setLastname($name[1]);
-        // $quote->getShippingAddress()->setStreet($rzp_order_data->customer_details->shipping_address->line1);
-        // $quote->getShippingAddress()->setCity($rzp_order_data->customer_details->shipping_address->city);
-        // $quote->getShippingAddress()->setTelephone($rzp_order_data->customer_details->shipping_address->contact);
-        // $quote->getShippingAddress()->setPostcode($rzp_order_data->customer_details->shipping_address->zipcode);
-        // $quote->getShippingAddress()->setCountryId($rzp_order_data->customer_details->shipping_address->country);
-        // $quote->setCustomerEmail("chetu@gmail.com");
+        $tempOrder=[
+             'email'        => $rzp_order_data->customer_details->email, //buyer email id
+             // 'email'        => 'chetan.naik@razorpay.com',
+             'shipping_address' =>[
+                    'firstname'      => $name[0], //address Details
+                    'lastname'       => $name[1]?? '.',
+                            'street' => $rzp_order_data->customer_details->shipping_address->line1,
+                            'city' => $rzp_order_data->customer_details->shipping_address->city,
+                    'country_id' => strtoupper($rzp_order_data->customer_details->shipping_address->country),
+                    'region' => 'KA',
+                    'postcode' => $rzp_order_data->customer_details->shipping_address->zipcode,
+                    'telephone' => $rzp_order_data->customer_details->shipping_address->contact,
+                    'save_in_address_book' => 1
+                         ]
+        ];
+        $quote->getBillingAddress()->addData($tempOrder['shipping_address']);
+        $quote->getShippingAddress()->addData($tempOrder['shipping_address']);
 
-$tempOrder=[
-     // 'email'        => $rzp_order_data->customer_details->email, //buyer email id
-     'email'        => 'chetan.naik@razorpay.com',
-     'shipping_address' =>[
-            'firstname'      => $name[0], //address Details
-            'lastname'       => $name[1]?? '.',
-                    'street' => $rzp_order_data->customer_details->shipping_address->line1,
-                    'city' => $rzp_order_data->customer_details->shipping_address->city,
-            'country_id' => strtoupper($rzp_order_data->customer_details->shipping_address->country),
-            'region' => 'KA',
-            'postcode' => $rzp_order_data->customer_details->shipping_address->zipcode,
-            'telephone' => $rzp_order_data->customer_details->shipping_address->contact,
-            'save_in_address_book' => 1
-                 ]
-];
-$quote->getBillingAddress()->addData($tempOrder['shipping_address']);
-$quote->getShippingAddress()->addData($tempOrder['shipping_address']);
+        if(isset($rzp_order_data->promotions[0]->code) == true)
+        {
+         $quote->setCouponCode($rzp_order_data->promotions[0]->code);   
+        }
 
-if(isset($rzp_order_data->promotions[0]->code) == true)
-{
- $quote->setCouponCode($rzp_order_data->promotions[0]->code);   
-}
+        if($rzp_payment_data->method === 'cod')
+        {
+            $paymentMethod = 'cashondelivery';
+        }
+        else {
+            $paymentMethod = 'razorpay';
+        }
 
-// $shippingAddress=$quote->getShippingAddress();
-//         $shippingAddress->setCollectShippingRates(true)
-//                         ->collectShippingRates()
-//                         ->setShippingMethod('flatrate_flatrate');
-
-            if($rzp_payment_data->method === 'cod')
-            {
-                $paymentMethod = 'cashondelivery';
-            }
-            else {
-                $paymentMethod = 'razorpay';
-            }
-
-            $quote->setPaymentMethod($paymentMethod); //payment method
+        $quote->setPaymentMethod($paymentMethod); //payment method
         $quote->setInventoryProcessed(false); //not effetc inventory
         // Set Sales Order Payment
         $quote->getPayment()->importData(['method' => $paymentMethod]);
 
-
-        // $quote->setShippingMethod('flatrate_flatrate');
-        // $quote->setPaymentMethod('Razorpay');
         $quote->save();
 
         $orderId = $this->cartManagement->placeOrder($cart_id);
@@ -255,10 +227,6 @@ if(isset($rzp_order_data->promotions[0]->code) == true)
        
         $order->setEmailSent(0);
         $increment_id = $order->getRealOrderId();
-        // var_dump($increment_id);
-
-        // $rzpOrderAmount = $rzp_order_data->amount;
-
         if ($order)
             {
                 // $amountPaid = number_format($rzpOrderAmount / 100, 2, ".", "");
@@ -308,7 +276,6 @@ if(isset($rzp_order_data->promotions[0]->code) == true)
 
                 $transaction->save();
 
-                // $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::PAYMENT_AUTHORIZED_COMPLETED);
                 $this->logger->info('Payment authorized completed for id : '. $order->getIncrementId());
 
                 if ($order->canInvoice() && $this->config->canAutoGenerateInvoice()
@@ -335,14 +302,12 @@ if(isset($rzp_order_data->promotions[0]->code) == true)
                         __('Notified customer about invoice #%1.', $invoice->getId())
                     )->setIsCustomerNotified(true);
 
-                    // $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATED);
                     $this->logger->info('Invoice generated for id : '. $order->getIncrementId());
                 }
                 else if($rzp_order_data->status === 'paid' and
                         ($order->canInvoice() === false or
                         $this->config->canAutoGenerateInvoice() === false))
                 {
-                    // $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATION_NOT_POSSIBLE);
                     $this->logger->info('Invoice generation not possible for id : '. $order->getIncrementId());
                 }
 
@@ -366,13 +331,6 @@ if(isset($rzp_order_data->promotions[0]->code) == true)
 
                     throw new GraphQlInputException(__('Error: %1.', $e->getMessage()));
                 }
-                
-
-                // return $this->_redirect('checkout/onepage/success');
-
-                // if (0 < ($fee = $order->getExtensionAttributes()->getCashOnDeliveryFee())) {
-                    // $this->totals->addTotalBefore($totaldata, $this->totalsInterface::KEY_GRAND_TOTAL);
-                // }
 
                 $this
                     ->checkoutSession
@@ -387,274 +345,17 @@ if(isset($rzp_order_data->promotions[0]->code) == true)
                         ->setLastRealOrderId($order->getIncrementId())
                         ->setLastOrderStatus($order->getStatus());
                 }
-// 
-                // $this->_order = $order;
-
-                // $this->totals::_initTotals();
-
-                // if (empty($this->totals->getTotals())) {
-                //     var_dump('empty');
-                // }
-
-                // $totaldata = new \Magento\Framework\DataObject([
-                //         // 'code' => CashOnDeliveryFee::TOTAL_CODE,
-                //         'code' => 'cash_on_delivery_fee',
-                //         // 'base_value' => 100,
-                //         'value' => 100,
-                //         'label' => __('Cash on Delivery Fee')
-                //     ]);
-
-                // $this->_totals = [];
-
-                // $this->_totals['grand_total'] = new \Magento\Framework\DataObject(
-                //     [
-                //         'code' => 'grand_total',
-                //         'field' => 'grand_total',
-                //         'strong' => true,
-                //         'value' => $quote->getGrandTotal(),
-                //         'label' => __('Grand Total'),
-                //     ]
-                // );
-                // // var_dump($totaldata);
-                // $this->addTotalBeforeCOD($totaldata, $this->totalsInterface::KEY_GRAND_TOTAL);
-                //                 // $this->totals->addTotal($totaldata);
 
                 $order->save();
 
                 return $this->_redirect('checkout/onepage/success');
 
-                // $resultRedirect = $this->resultRedirectFactory->create();
-                // $resultRedirect->setPath('checkout/onepage/success');
-                // return $resultRedirect;
-
-                // if (empty($order) === false)
-                // {
-                //     $this
-                //         ->checkoutSession
-                //         ->setLastOrderId($order->getId())
-                //         ->setLastRealOrderId($order->getIncrementId())
-                //         ->setLastOrderStatus($order->getStatus());
-                // }
-                // $this->checkoutSession->setLastSuccessQuoteId($order->getQouteId());
-                // $this->checkoutSession->setLastQuoteId($order->getQuoteId());
-                // return $this->_redirect('checkout/onepage/success');
-
-                // $resultRedirect = $this->resultRedirectFactory->create();
-                // $resultRedirect->setPath('checkout/onepage/success');
-                // return $resultRedirect;
-
-                // $orderLink->setRzpPaymentId($rzp_payment_id);
-                // $orderLink->save();
             }
-
-//         $resultJson = $this->resultJsonFactory->create();
-
-//         /** @var QuoteBuilder $quoteBuilder */
-//         $quoteBuilder = $this->quoteBuilderFactory->create();
-
-//         try {
-//             $quote = $quoteBuilder->createQuote();
-//             $this->logger->info('graphQL: Magic Quote data: ' . $quote->getId());
-//             $this->logger->info('graphQL: Magic Quote data11: ' . $quote->getParentItemId());
-//             // var_dump($quote->getCurrency());
-//             // var_dump($quote->getTotals());
-//             $totals = $quote->getTotals();
-//             // print_r($totals);
-//             //  echo $total = $totals['grand_total']->getValue();
-//             // // $this->logger->info('graphQL: Magic Quote getCurrency: ' . $quote->getCurrency());
-//             // $this->logger->info('graphQL: Magic Quote getTotals: ' . $total);
-//             // $this->logger->info('graphQL: Magic Quote isVirtual: ' . $quote->isVirtual());
-//             // $this->logger->info('graphQL: Magic Quote getCustomAttributes: ' . $quote->getCustomAttributes());
-
-//             $productId= $this->request->getParam('product');
-//             $qty= $this->request->getParam('qty');
-//                             // var_dump(get_class_methods($quote));
-
-//             // $maskedQuoteId = $objectManager->get('Magento\Quote\Model\QuoteIdToMaskedQuoteIdInterface');
-//             //  $maskedId = $maskedQuoteId->execute($quote->getId());
-//             //  echo $maskedId;
-
-//            $maskedId = $this->maskedQuoteIdInterface->execute($quote->getId());
-
-// // var_dump($maskedId);
-
-// if ($maskedId === '') {
-//             $quoteIdMask = $this->quoteIdMaskFactory->create();
-//             $quoteIdMask->setQuoteId($quote->getId());
-//             $this->quoteIdMaskResourceModel->save($quoteIdMask);
-//             $maskedId = $this->maskedQuoteIdInterface->execute($quote->getId());
-//         }
-// // var_dump($maskedId);
-// $this->storeManager->getStore()->getBaseCurrencyCode();
-
-//             $totalAmount = 0;
-//             $lineItems = [];
-
-//             foreach ($quote->getAllVisibleItems() as $quoteItem) {
-
-//                 // var_dump(get_class_methods($quoteItem));
-
-//                 $this->logger->info('graphQL: Magic Quote sku: ' . $quoteItem->getSku());
-//                 $this->logger->info('graphQL: Magic Quote getItemId: ' . $quoteItem->getItemId());
-//                 $this->logger->info('graphQL: Magic Quote getQty: ' . $quoteItem->getQty());
-//                 $this->logger->info('graphQL: Magic Quote getPrice: ' . $quoteItem->getPrice());
-//                 $this->logger->info('graphQL: Magic Quote getOriginalPrice: ' . $quoteItem->getOriginalPrice());
-//                 $this->logger->info('graphQL: Magic Quote getName: ' . $quoteItem->getName());
-
-//                 $lineItems[] = [
-//                     'type' => 'e-commerce',
-//                     'sku' => $quoteItem->getSku(),
-//                     'variant_id' => $quoteItem->getItemId(),
-//                     'price' => $quoteItem->getPrice()*100,
-//                     'offer_price' => $quoteItem->getPrice()*100,
-//                     'tax_amount' => 0,
-//                     'quantity' => $quoteItem->getQty(),
-//                     'name' => $quoteItem->getName(),
-//                     'description' => $quoteItem->getName(),
-//                     'image_url' => 'http://127.0.0.1/magento/pub/media/catalog/product/cache/78576bdffa9c21516a7ba248c06241e8/m/t/mt07-gray_main_1.jpg',
-//                     'product_url' => 'http://127.0.0.1/magento/pub/media/catalog/product/cache/78576bdffa9c21516a7ba248c06241e8/m/t/mt07-gray_main_1.jpg',
-//                 ];
-
-//                 $totalAmount += ($quoteItem->getQty() * $quoteItem->getPrice()) * 100;
-
-
-//                 // echo $quoteItem->getSku();
-//                 // echo $quoteItem;
-//                 // echo $quoteItem->getItemId();
-//             // $this->logger->info('graphQL: Magic Quote ***: ' . json_decode(json_encode($quoteItem), true));
-
-//                 // if ($quoteItem->getSku() == $sku && $quoteItem->getProductType() == Configurable::TYPE_CODE &&
-//                 //     !$quoteItem->getParentItemId()) {
-//                 //     $item = $quoteItem;
-//                 //     break;
-//                 // }
-//             }
-
-//             // $quote1 = $this->repository->get($quote->getId());
-
-//             // $product = $this->productRepository->getById(149);
-
-//             // $quote->addProduct($product, $qty);
-//             // $this->cartModel->getQuote()->addProduct($product, $request);
-//             // $this->cartModel->save();
-
-// //             $productId = 149;
-// // $product = $obj->create('\Magento\Catalog\Model\Product')->load($productId);
-
-// // $cart = $obj->create('Magento\Checkout\Model\Cart');    
-// // $params = array();      
-// // $options = array();
-// // $params['qty'] = 1;
-// // $params['product'] = 149;
-
-// // foreach ($product->getOptions() as $o) 
-// // {       
-// //     foreach ($o->getValues() as $value) 
-// //     {
-// //         $options[$value['option_id']] = $value['option_type_id'];
-
-// //     }           
-// // }
-
-// // $params['options'] = $options;
-// // $cart->addProduct($product, $params);
-// // $cart->save();
-//             // $this->logger->info('graphQL: Magic product data: ' . $productId);
-//             // $this->logger->info('graphQL: Magic qty data: ' . $qty);
-//             // $this->logger->info('graphQL: Magic Quote data: ' . $quote1->getItems());
-
-
-//         } catch (LocalizedException $e) {
-//             return $resultJson->setData([
-//                 'status' => 'error',
-//                 'message' => __($e->getMessage()),
-//             ]);
-//         } catch (\Exception $e) {
-//             return $resultJson->setData([
-//                 'status' => 'error',
-//                 'message' => __('An error occurred on the server. Please try again.'),
-//             ]);
-//         }
-
-//         // try {
-//         //     $orderId = $this->cartManagement->CompleteOrder($quote->getId());
-//         //     $order = $this->orderRepository->get($orderId);
-
-//         //     $result = [
-//         //         'status' => 'success',
-//         //         'incrementId' => $order->getIncrementId(),
-//         //         'url' => $this->_url->getUrl('sales/order/view', ['order_id' => $orderId]),
-//         //         'totals' => [
-//         //             'subtotal' => $this->priceHelper->currency($order->getSubtotal(), true, false),
-//         //             'discount' => [
-//         //                 'raw' => $order->getDiscountAmount(),
-//         //                 'formatted' => $this->priceHelper->currency($order->getDiscountAmount(), true, false),
-//         //             ],
-//         //             'shipping' => [
-//         //                 'raw' => $order->getShippingAmount(),
-//         //                 'formatted' => $this->priceHelper->currency($order->getShippingAmount(), true, false),
-//         //             ],
-//         //             'tax' => [
-//         //                 'raw' => $order->getTaxAmount(),
-//         //                 'formatted' => $this->priceHelper->currency($order->getTaxAmount(), true, false),
-//         //             ],
-//         //             'grandTotal' => $this->priceHelper->currency($order->getGrandTotal(), true, false),
-//         //         ],
-//         //     ];
-//         // } catch (\Exception $e) {
-//         //     $quote->setIsActive(false)->save();
-//         //     $result = [
-//         //         'status' => 'error',
-//         //         'message' => __('An error occurred on the server. Please try again.'. $e->getMessage()),
-//         //     ];
-//         // }
-
-//         // $this->logger->info('graphQL: Magento Order placement: ' . json_encode($result));
-//         $this->logger->info('graphQL: Magento Order placement: ');
-
-//         $razorpay_order = $this->rzp->order->create([
-//             'amount'          => $totalAmount,
-//             'receipt'         => 'order pending',
-//             'currency'        => $this->storeManager->getStore()->getBaseCurrencyCode(),
-//             'payment_capture' => 1,
-//             'app_offer'       => 0,
-//             'notes'           => [
-//                 'cart_id'      => $maskedId
-//             ],
-//             'line_items_total' => $totalAmount,
-//             'line_items' => $lineItems
-//         ]);
-
-//         if (null !== $razorpay_order && !empty($razorpay_order->id))
-//         {
-//             $this->logger->info('graphQL: Razorpay Order ID: ' . $razorpay_order->id);
-
-//             $result = [
-//                 'status'        => 'success',
-//                 'rzp_order_id'   => $razorpay_order->id,
-//                 'total_amount'   => $totalAmount,
-//                 'message'        => 'Razorpay Order created successfully'
-//             ];
-            
-//         } 
-//         else
-//         {
-//             $this->logger->critical('graphQL: Razorpay Order not generated. Something went wrong');
-
-//             $result = [
-//                 'status' => 'error',
-//                 'message' => "Razorpay Order not generated. Something went wrong",
-//             ];
-//         }
-
-//         return $resultJson->setData($result);
 
     }
 
     public function addTotalBeforeCOD(\Magento\Framework\DataObject $total, $before = null)
     {
-        var_dump($before);
-
         if ($before !== null) {
             if (!is_array($before)) {
                 $before = [$before];

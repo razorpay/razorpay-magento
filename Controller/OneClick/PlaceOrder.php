@@ -141,7 +141,7 @@ class PlaceOrder extends Action
     {
         $params = $this->request->getParams();
 
-        $this->logger->info('graphQL: Request data: ' . json_encode($params));
+        // $this->logger->info('graphQL: Request data: ' . json_encode($params));
 
         $resultJson = $this->resultJsonFactory->create();
 
@@ -152,44 +152,35 @@ class PlaceOrder extends Action
             $quote = $quoteBuilder->createQuote();
             $this->logger->info('graphQL: Magic Quote data: ' . $quote->getId());
             $this->logger->info('graphQL: Magic Quote data11: ' . $quote->getParentItemId());
-            // var_dump($quote->getCurrency());
-            // var_dump($quote->getTotals());
+
             $totals = $quote->getTotals();
-            // print_r($totals);
-            //  echo $total = $totals['grand_total']->getValue();
-            // // $this->logger->info('graphQL: Magic Quote getCurrency: ' . $quote->getCurrency());
+            // $this->logger->info('graphQL: Magic Quote getCurrency: ' . $quote->getCurrency());
             // $this->logger->info('graphQL: Magic Quote getTotals: ' . $total);
             // $this->logger->info('graphQL: Magic Quote isVirtual: ' . $quote->isVirtual());
             // $this->logger->info('graphQL: Magic Quote getCustomAttributes: ' . $quote->getCustomAttributes());
 
             $productId= $this->request->getParam('product');
             $qty= $this->request->getParam('qty');
-                            // var_dump(get_class_methods($quote));
 
             // $maskedQuoteId = $objectManager->get('Magento\Quote\Model\QuoteIdToMaskedQuoteIdInterface');
-            //  $maskedId = $maskedQuoteId->execute($quote->getId());
-            //  echo $maskedId;
+            // $maskedId = $maskedQuoteId->execute($quote->getId());
 
            $maskedId = $this->maskedQuoteIdInterface->execute($quote->getId());
 
-// var_dump($maskedId);
 
-if ($maskedId === '') {
-            $quoteIdMask = $this->quoteIdMaskFactory->create();
-            $quoteIdMask->setQuoteId($quote->getId());
-            $this->quoteIdMaskResourceModel->save($quoteIdMask);
-            $maskedId = $this->maskedQuoteIdInterface->execute($quote->getId());
-        }
-// var_dump($maskedId);
-$this->storeManager->getStore()->getBaseCurrencyCode();
+            if ($maskedId === '') {
+                $quoteIdMask = $this->quoteIdMaskFactory->create();
+                $quoteIdMask->setQuoteId($quote->getId());
+                $this->quoteIdMaskResourceModel->save($quoteIdMask);
+                $maskedId = $this->maskedQuoteIdInterface->execute($quote->getId());
+            }
+            $this->storeManager->getStore()->getBaseCurrencyCode();
 
             $totalAmount = 0;
             $lineItems = [];
 
             foreach ($quote->getAllVisibleItems() as $quoteItem) {
 
-                // var_dump(get_class_methods($quoteItem));
-// echo $quoteItem->getProductId();
                 $this->logger->info('graphQL: Magic Quote sku: ' . $quoteItem->getSku());
                 $this->logger->info('graphQL: Magic Quote getItemId: ' . $quoteItem->getItemId());
                 $this->logger->info('graphQL: Magic Quote getParentItem: ' . $quoteItem->getProductId());
@@ -198,12 +189,12 @@ $this->storeManager->getStore()->getBaseCurrencyCode();
                 $this->logger->info('graphQL: Magic Quote getOriginalPrice: ' . $quoteItem->getOriginalPrice());
                 $this->logger->info('graphQL: Magic Quote getName: ' . $quoteItem->getName());
 
-         $store = $this->storeManager->getStore();
-         $productId = $quoteItem->getProductId();
-         $product = $this->productRepository->getById($productId);
- 
-         $productImageUrl = $store->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA) . 'catalog/product' .$product->getImage();
-         $productUrl = $product->getProductUrl();
+                $store = $this->storeManager->getStore();
+                $productId = $quoteItem->getProductId();
+                $product = $this->productRepository->getById($productId);
+
+                $productImageUrl = $store->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA) . 'catalog/product' .$product->getImage();
+                $productUrl = $product->getProductUrl();
 
                 $lineItems[] = [
                     'type' => 'e-commerce',
@@ -223,11 +214,7 @@ $this->storeManager->getStore()->getBaseCurrencyCode();
 
                 $totalAmount += ($quoteItem->getQty() * $quoteItem->getPrice()) * 100;
 
-
-                // echo $quoteItem->getSku();
-                // echo $quoteItem;
-                // echo $quoteItem->getItemId();
-            // $this->logger->info('graphQL: Magic Quote ***: ' . json_decode(json_encode($quoteItem), true));
+                // $this->logger->info('graphQL: Magic Quote ***: ' . json_decode(json_encode($quoteItem), true));
 
                 // if ($quoteItem->getSku() == $sku && $quoteItem->getProductType() == Configurable::TYPE_CODE &&
                 //     !$quoteItem->getParentItemId()) {
@@ -236,35 +223,6 @@ $this->storeManager->getStore()->getBaseCurrencyCode();
                 // }
             }
 
-            // $quote1 = $this->repository->get($quote->getId());
-
-            // $product = $this->productRepository->getById(149);
-
-            // $quote->addProduct($product, $qty);
-            // $this->cartModel->getQuote()->addProduct($product, $request);
-            // $this->cartModel->save();
-
-//             $productId = 149;
-// $product = $obj->create('\Magento\Catalog\Model\Product')->load($productId);
-
-// $cart = $obj->create('Magento\Checkout\Model\Cart');    
-// $params = array();      
-// $options = array();
-// $params['qty'] = 1;
-// $params['product'] = 149;
-
-// foreach ($product->getOptions() as $o) 
-// {       
-//     foreach ($o->getValues() as $value) 
-//     {
-//         $options[$value['option_id']] = $value['option_type_id'];
-
-//     }           
-// }
-
-// $params['options'] = $options;
-// $cart->addProduct($product, $params);
-// $cart->save();
             // $this->logger->info('graphQL: Magic product data: ' . $productId);
             // $this->logger->info('graphQL: Magic qty data: ' . $qty);
             // $this->logger->info('graphQL: Magic Quote data: ' . $quote1->getItems());
@@ -281,39 +239,6 @@ $this->storeManager->getStore()->getBaseCurrencyCode();
                 'message' => __('An error occurred on the server. Please try again.'),
             ]);
         }
-
-        // try {
-        //     $orderId = $this->cartManagement->placeOrder($quote->getId());
-        //     $order = $this->orderRepository->get($orderId);
-
-        //     $result = [
-        //         'status' => 'success',
-        //         'incrementId' => $order->getIncrementId(),
-        //         'url' => $this->_url->getUrl('sales/order/view', ['order_id' => $orderId]),
-        //         'totals' => [
-        //             'subtotal' => $this->priceHelper->currency($order->getSubtotal(), true, false),
-        //             'discount' => [
-        //                 'raw' => $order->getDiscountAmount(),
-        //                 'formatted' => $this->priceHelper->currency($order->getDiscountAmount(), true, false),
-        //             ],
-        //             'shipping' => [
-        //                 'raw' => $order->getShippingAmount(),
-        //                 'formatted' => $this->priceHelper->currency($order->getShippingAmount(), true, false),
-        //             ],
-        //             'tax' => [
-        //                 'raw' => $order->getTaxAmount(),
-        //                 'formatted' => $this->priceHelper->currency($order->getTaxAmount(), true, false),
-        //             ],
-        //             'grandTotal' => $this->priceHelper->currency($order->getGrandTotal(), true, false),
-        //         ],
-        //     ];
-        // } catch (\Exception $e) {
-        //     $quote->setIsActive(false)->save();
-        //     $result = [
-        //         'status' => 'error',
-        //         'message' => __('An error occurred on the server. Please try again.'. $e->getMessage()),
-        //     ];
-        // }
 
         // $this->logger->info('graphQL: Magento Order placement: ' . json_encode($result));
         $this->logger->info('graphQL: Magento Order placement: ');
@@ -358,66 +283,5 @@ $this->storeManager->getStore()->getBaseCurrencyCode();
 
         return $resultJson->setData($result);
 
-    }
-
-    public function execute11()
-    {
-        if (!$this->config->getValue('checkout/one_click_checkout/enabled', ScopeInterface::SCOPE_STORE)) {
-            return $this->resultRedirectFactory->create()->setUrl($this->_redirect->getRefererUrl());
-        }
-
-        $resultJson = $this->resultJsonFactory->create();
-
-        /** @var QuoteBuilder $quoteBuilder */
-        $quoteBuilder = $this->quoteBuilderFactory->create();
-
-        try {
-            $quote = $quoteBuilder->createQuote();
-        } catch (LocalizedException $e) {
-            return $resultJson->setData([
-                'status' => 'error',
-                'message' => __($e->getMessage()),
-            ]);
-        } catch (\Exception $e) {
-            return $resultJson->setData([
-                'status' => 'error',
-                'message' => __('An error occurred on the server. Please try again.'),
-            ]);
-        }
-
-        try {
-            $orderId = $this->cartManagement->placeOrder($quote->getId());
-            $order = $this->orderRepository->get($orderId);
-
-            $result = [
-                'status' => 'success',
-                'incrementId' => $order->getIncrementId(),
-                'url' => $this->_url->getUrl('sales/order/view', ['order_id' => $orderId]),
-                'totals' => [
-                    'subtotal' => $this->priceHelper->currency($order->getSubtotal(), true, false),
-                    'discount' => [
-                        'raw' => $order->getDiscountAmount(),
-                        'formatted' => $this->priceHelper->currency($order->getDiscountAmount(), true, false),
-                    ],
-                    'shipping' => [
-                        'raw' => $order->getShippingAmount(),
-                        'formatted' => $this->priceHelper->currency($order->getShippingAmount(), true, false),
-                    ],
-                    'tax' => [
-                        'raw' => $order->getTaxAmount(),
-                        'formatted' => $this->priceHelper->currency($order->getTaxAmount(), true, false),
-                    ],
-                    'grandTotal' => $this->priceHelper->currency($order->getGrandTotal(), true, false),
-                ],
-            ];
-        } catch (\Exception $e) {
-            $quote->setIsActive(false)->save();
-            $result = [
-                'status' => 'error',
-                'message' => __('An error occurred on the server. Please try again.'),
-            ];
-        }
-
-        return $resultJson->setData($result);
     }
 }
