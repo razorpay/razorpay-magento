@@ -195,7 +195,10 @@ class CompleteOrder extends Action
             ->getFirstItem()
             ->toArray();
 
-        $tempOrder=[
+        $this->logger->info('graphQL: Magento region:' . json_encode($regionCode));
+        $this->logger->info('graphQL: Magento region code:' . $regionCode['code']);
+
+        $address=[
              'email'        => $rzp_order_data->customer_details->email, //buyer email id
              // 'email'        => 'chetan.naik@razorpay.com',
              'shipping_address' =>[
@@ -210,8 +213,8 @@ class CompleteOrder extends Action
                     'save_in_address_book' => 1
                          ]
         ];
-        $quote->getBillingAddress()->addData($tempOrder['shipping_address']);
-        $quote->getShippingAddress()->addData($tempOrder['shipping_address']);
+        $quote->getBillingAddress()->addData($address['shipping_address']);
+        $quote->getShippingAddress()->addData($address['shipping_address']);
 
         if($rzp_order_data->shipping_fee > 0)
         {
