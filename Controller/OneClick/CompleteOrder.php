@@ -26,6 +26,7 @@ use Magento\Sales\Block\Order\Totals;
 use Magento\Quote\Api\Data\TotalsInterface;
 use Magento\Framework\DataObject;
 use Magento\Directory\Model\ResourceModel\Region\CollectionFactory;
+use Magento\Directory\Model\ResourceModel\Region\Collection;
 
 class CompleteOrder extends Action
 {
@@ -203,7 +204,7 @@ class CompleteOrder extends Action
                             'street' => $rzp_order_data->customer_details->shipping_address->line1,
                             'city' => $rzp_order_data->customer_details->shipping_address->city,
                     'country_id' => strtoupper($rzp_order_data->customer_details->shipping_address->country),
-                    'region' => $regionCode??'KA',
+                    'region' => $regionCode['code']??'KA',
                     'postcode' => $rzp_order_data->customer_details->shipping_address->zipcode,
                     'telephone' => $rzp_order_data->customer_details->shipping_address->contact,
                     'save_in_address_book' => 1
