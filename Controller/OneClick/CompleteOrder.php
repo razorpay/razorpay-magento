@@ -203,7 +203,7 @@ class CompleteOrder extends Action
                             'street' => $rzp_order_data->customer_details->shipping_address->line1,
                             'city' => $rzp_order_data->customer_details->shipping_address->city,
                     'country_id' => strtoupper($rzp_order_data->customer_details->shipping_address->country),
-                    'region' => $regionCode,
+                    'region' => $regionCode??'KA',
                     'postcode' => $rzp_order_data->customer_details->shipping_address->zipcode,
                     'telephone' => $rzp_order_data->customer_details->shipping_address->contact,
                     'save_in_address_book' => 1
