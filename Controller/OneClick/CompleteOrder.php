@@ -200,7 +200,7 @@ class CompleteOrder extends Action
                          ]
         ];
         $quote->getBillingAddress()->addData($tempOrder['shipping_address']);
-        // $quote->getShippingAddress()->addData($tempOrder['shipping_address']);
+        $quote->getShippingAddress()->addData($tempOrder['shipping_address']);
 
         if($rzp_order_data->shipping_fee > 0)
         {
