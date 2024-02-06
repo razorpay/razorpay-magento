@@ -173,6 +173,8 @@ class CompleteOrder extends Action
     {
         $params = $this->request->getParams();
 
+        $resultJson = $this->resultJsonFactory->create();
+
         $rzp_order_id = $params['razorpay_order_id'];
         $rzp_payment_id = $params['razorpay_payment_id'];
 
@@ -377,7 +379,13 @@ class CompleteOrder extends Action
 
                 $order->save();
 
-                return $this->_redirect('checkout/onepage/success');
+                $result = [
+                    'status' => 'success'
+                ];
+
+                return $resultJson->setData($result);
+
+                // return $this->_redirect('checkout/onepage/success');
 
             }
 

@@ -3,9 +3,10 @@ define([
     'mage/translate',
     'Magento_Ui/js/modal/alert',
     'Magento_Checkout/js/model/full-screen-loader',
+    'mage/url',
     'underscore',
     'mage/cookies'
-], function ($, $t, alert, fullScreenLoader, _) {
+], function ($, $t, alert, fullScreenLoader, url, _) {
     "use strict";
 
     $.widget('pmclain.oneClickButton', {
@@ -111,32 +112,15 @@ define([
                 success: function (data) {
                     console.log("Payment complete data")
                     console.log(data)
-
+                    var successUrl = url.build('checkout/onepage/success', {})
+                    console.log(successUrl)
+                    window.location.href = successUrl;
                 },
-                error: function () {
+                error: function (error) {
                     console.log("Payment complete fail")
+                    console.log(error)
                 }
             })
-        },
-
-        orderSuccess1: function (data) {
-            var self = this;
-
-            if (data.status === 'success') {
-                this._afterOrderButton();
-                // var orderHtml = this._getOrderTemplate(data);
-
-                alert({
-                    title: $t('Order Initiated'),
-                    // content: orderHtml
-                });
-            } else if (data.status === 'error') {
-                this._enableButton();
-                alert({
-                    title: $t('Whoops...'),
-                    content: data.message
-                });
-            }
         },
 
         renderIframe: function(data) {
@@ -147,14 +131,14 @@ define([
                 name: 'Razorpay',
                 amount: data.totalAmount,
                 // timeout: 720,
-                // handler: function (data) {
-                //     // self.rzp_response = data;
-                //     // self.validateOrder(data);
-                //     console.log("data in handler", data)
-                //     fullScreenLoader.startLoader();
+                handler: function (data) {
+                    // self.rzp_response = data;
+                    // self.validateOrder(data);
+                    console.log("data in handler", data)
+                    fullScreenLoader.startLoader();
 
-                //     self.orderSuccess(data);
-                // },
+                    self.orderSuccess(data);
+                },
                 order_id: data.rzp_order_id,
                 modal: {
                     ondismiss: function(data) {
@@ -169,7 +153,7 @@ define([
                 },
                 notes: {
                 },
-                callback_url : self.options.callbackURL,
+                // callback_url : self.options.callbackURL,
                 prefill: {
                     name: 'Chetan',
                     contact: '7795619055',
