@@ -317,7 +317,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                     'success'           => true,
                     'rzp_order'         => $rzpOrderId,
                     'order_id'          => $receipt_id,
-                    'amount'            => $order->amount,
+                    'amount'            => $amount,
                     'quote_currency'    => $mazeOrder->getOrderCurrencyCode(),
                     'quote_amount'      => number_format($mazeOrder->getGrandTotal(), 2, ".", ""),
                     'maze_version'      => $maze_version,
