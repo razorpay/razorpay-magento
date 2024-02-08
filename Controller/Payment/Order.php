@@ -256,7 +256,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         try
         {
             // @codeCoverageIgnoreStart
-            $this->logger->info("Razorpay Order: create order started with quoteID:" . $receipt_id
+            $this->logger->info("Razorpay Order: create order started with order Id:" . $receipt_id
                                     . " and amount:" . $amount);
             // @codeCoverageIgnoreEnd
 
@@ -330,6 +330,11 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 $code = 200;
 
                 $this->catalogSession->setRazorpayOrderID($rzpOrderId);
+
+                $quoteId = $mazeOrder->getQuoteId();
+                $quote = $this->_objectManager->get('Magento\Quote\Model\Quote')->load($quoteId);
+                
+                $quote->setIsActive(false)->save();
             }
         }
         catch(\Razorpay\Api\Errors\Error $e)
