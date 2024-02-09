@@ -168,11 +168,11 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
      */
     public function execute()
     {
-        // @codeCoverageIgnoreStart
-        $this->logger->info("Validate: Validation started for the incoming webhook");
-        // @codeCoverageIgnoreEnd
-
         $post = $this->getPostData(); 
+
+        // @codeCoverageIgnoreStart
+        $this->logger->info("Handler Signature Validate: RZP Signature Validation started.", print_r($post, true));
+        // @codeCoverageIgnoreEnd
 
         // @codeCoverageIgnoreStart
         if (json_last_error() !== 0)
@@ -265,6 +265,7 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
             $orderLink->setRzpPaymentId($paymentId);
 
             $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::PAYMENT_AUTHORIZED_COMPLETED);
+
             $this->logger->info('Payment authorized completed for id : '. $order->getIncrementId());
 
             if($order->canInvoice() and
@@ -290,6 +291,7 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
                 ->save();
 
                 $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATED);
+
                 $this->logger->info('Invoice generated for id : '. $order->getIncrementId());
             }
             else if($this->config->getPaymentAction()  === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE and
@@ -297,6 +299,7 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
                     $this->config->canAutoGenerateInvoice() === false))
             {
                 $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATION_NOT_POSSIBLE);
+                
                 $this->logger->info('Invoice generation not possible for id : '. $order->getIncrementId());
             }
             $orderLink->save();
@@ -370,6 +373,9 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
             throw new \Exception("Payment Failed or error from gateway");
         }
         // @codeCoverageIgnoreEnd
+
+        $this->logger->info('RZP signature validate: razorpay_payment_id = ' . $request['razorpay_payment_id'] . ', razorpay_order_id = ' . $this->catalogSession->getRazorpayOrderID()  . ', razorpay_signature = ' . $request['razorpay_signature']);
+       
 
         $attributes = array(
             'razorpay_payment_id' => $request['razorpay_payment_id'],
