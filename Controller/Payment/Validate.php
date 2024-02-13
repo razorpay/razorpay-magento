@@ -171,7 +171,7 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
         $post = $this->getPostData(); 
 
         // @codeCoverageIgnoreStart
-        $this->logger->info("Handler Signature Validate: RZP Signature Validation started.", print_r($post, true));
+        $this->logger->info("Handler Signature Validate: RZP Signature Validation started.". print_r($post, true));
         // @codeCoverageIgnoreEnd
 
         // @codeCoverageIgnoreStart
