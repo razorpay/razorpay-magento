@@ -115,7 +115,8 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
 
         $this->captureCommand = new CaptureCommand();
         $this->authorizeCommand = new AuthorizeCommand();
-    } 
+    }
+    
     public function execute()
     {
 
@@ -123,11 +124,12 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
             ->getParams();
 
         $orderId = strip_tags($params["order_id"]);
+
+        $this->logger->info('Callback started for RZP order : ' . print_r($params, true));
+
         try
         {
-            $collection = $this
-                ->objectManagement
-                ->get('Magento\Sales\Model\Order')
+            $collection = $this->objectManagement->get('Magento\Sales\Model\Order')
                 ->getCollection()
                 ->addFieldToSelect('entity_id')
                 ->addFieldToSelect('rzp_order_id')
@@ -147,17 +149,13 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
         catch(\Exception $e)
         {
             // @codeCoverageIgnoreStart
-            $this
-                ->logger
-                ->critical("Callback Error: " . $e->getMessage());
+            $this->logger->critical("Callback Error: " . $e->getMessage());
             // @codeCoverageIgnoreEnd
         }
 
         if (empty($orderId) === true)
         {
-            $this
-                ->messageManager
-                ->addError(__('Razorpay front-end callback: Payment Failed, As no active cart ID found.'));
+            $this->messageManager->addError(__('Razorpay front-end callback: Payment Failed, As no active cart ID found.'));
 
             return $this->_redirect('checkout/cart');
         }
@@ -200,8 +198,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
 
                 $order->save();
 
-                $this
-                    ->orderRepository
+                $this->orderRepository
                     ->save($order);
 
                 //update/disable the quote
@@ -225,27 +222,22 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                 $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::PAYMENT_AUTHORIZED_COMPLETED);
                 $this->logger->info('Payment authorized completed for id : '. $order->getIncrementId());
 
-                if ($order->canInvoice() and ($this
-                    ->config
-                    ->getPaymentAction() === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE) and $this
-                    ->config
-                    ->canAutoGenerateInvoice())
+                if (($order->canInvoice()) and 
+                    ($this->config->getPaymentAction() === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE) and 
+                    ($this->config->canAutoGenerateInvoice()))
                 {
-                    $invoice = $this
-                        ->_invoiceService
-                        ->prepareInvoice($order);
+                    $invoice = $this->_invoiceService->prepareInvoice($order);
+
                     $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
                     $invoice->setTransactionId($paymentId);
                     $invoice->register();
                     $invoice->save();
-                    $transactionSave = $this
-                        ->_transaction
-                        ->addObject($invoice)->addObject($invoice->getOrder());
+
+                    $transactionSave = $this->_transaction->addObject($invoice)->addObject($invoice->getOrder());
                     $transactionSave->save();
 
-                    $this
-                        ->_invoiceSender
-                        ->send($invoice);
+                    $this->_invoiceSender->send($invoice);
+
                     //send notification code
                     $order->setState(static ::STATUS_PROCESSING)
                         ->setStatus(static ::STATUS_PROCESSING);
@@ -256,9 +248,9 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                     $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATED);
                     $this->logger->info('Invoice generated for id : '. $order->getIncrementId());
                 }
-                else if($this->config->getPaymentAction()  === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE and
-                        ($order->canInvoice() === false or
-                        $this->config->canAutoGenerateInvoice() === false))
+                else if(($this->config->getPaymentAction()  === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE) and
+                        (($order->canInvoice() === false) or
+                         ($this->config->canAutoGenerateInvoice() === false)))
                 {
 
                     $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATION_NOT_POSSIBLE);
@@ -271,43 +263,32 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                 //send Order email, after successfull payment
                 try
                 {
-                    $this
-                        ->checkoutSession
-                        ->setRazorpayMailSentOnSuccess(true);
-                    $this
-                        ->orderSender
-                        ->send($order);
-                    $this
-                        ->checkoutSession
-                        ->unsRazorpayMailSentOnSuccess();
+                    $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
+                    $this->orderSender->send($order);
+                    $this->checkoutSession->unsRazorpayMailSentOnSuccess();
 
                 }
                 catch(\Magento\Framework\Exception\MailException $exception)
                 {
                     // @codeCoverageIgnoreStart
-                    $this
-                        ->logger
-                        ->critical("Validate: MailException Error message:" . $exception->getMessage());
+                    $this->logger->critical("Validate: MailException Error message:" . $exception->getMessage());
                     // @codeCoverageIgnoreEnd
                 }
                 catch(\Exception $e)
                 {
                     // @codeCoverageIgnoreStart
-                    $this
-                        ->logger
-                        ->critical("Validate: Exception Error message:" . $e->getMessage());
+                    $this->logger->critical("Validate: Exception Error message:" . $e->getMessage());
                     // @codeCoverageIgnoreEnd
                 }
 
-                $this
-                    ->checkoutSession
+                $this->checkoutSession
                     ->setLastSuccessQuoteId($order->getQuoteId())
                     ->setLastQuoteId($order->getQuoteId())
                     ->clearHelperData();
+
                 if (empty($order) === false)
                 {
-                    $this
-                        ->checkoutSession
+                    $this->checkoutSession
                         ->setLastOrderId($order->getId())
                         ->setLastRealOrderId($order->getIncrementId())
                         ->setLastOrderStatus($order->getStatus());
@@ -318,9 +299,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
             catch(\Razorpay\Api\Errors\Error $e)
             {
                 // @codeCoverageIgnoreStart
-                $this
-                    ->logger
-                    ->critical("Validate: Razorpay Error message:" . $e->getMessage());
+                $this->logger->critical("Validate: Razorpay Error message:" . $e->getMessage());
                 // @codeCoverageIgnoreEnd
                 $responseContent['message'] = $e->getMessage();
 
@@ -329,9 +308,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
             catch(\Exception $e)
             {
                 // @codeCoverageIgnoreStart
-                $this
-                    ->logger
-                    ->critical("Validate: Exception Error message:" . $e->getMessage());
+                $this->logger->critical("Validate: Exception Error message:" . $e->getMessage());
                 // @codeCoverageIgnoreEnd
                 $responseContent['message'] = $e->getMessage();
 
@@ -340,25 +317,19 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
         }
         else
         {
-            $quote = $this->objectManagement->get('Magento\Quote\Model\Quote')
-                ->load($order->getQuoteId());
+            $quote = $this->objectManagement->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
+
             $quote->setIsActive(1)
                 ->setReservedOrderId(null)
                 ->save();
 
-            $this
-                ->checkoutSession
-                ->replaceQuote($quote);
+            $this->checkoutSession->replaceQuote($quote);
 
             // @codeCoverageIgnoreStart
-            $this
-                ->logger
-                ->critical(__('Razorpay front-end callback: Payment Failed with response:  ' . json_encode($params, 1)));
+            $this->logger->critical(__('Razorpay front-end callback: Payment Failed with response:  ' . json_encode($params, 1)));
             // @codeCoverageIgnoreEnd
 
-            $this
-                ->messageManager
-                ->addError(__('Payment Failed.'));
+            $this->messageManager->addError(__('Payment Failed.'));
 
             return $this->_redirect('checkout/cart');
 
@@ -369,19 +340,13 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
     {
         if (empty($request['error']) === false)
         {
-            $this
-                ->logger
-                ->critical("Validate: Payment Failed or error from gateway");
-            $this
-                ->messageManager
-                ->addError(__('Payment Failed'));
+            $this->logger->critical("Validate: Payment Failed or error from gateway");
+            $this->messageManager->addError(__('Payment Failed'));
+
             throw new \Exception("Payment Failed or error from gateway");
         }
 
-        $this->logger->info('razorpay_payment_id = '. $request['razorpay_payment_id']);
-        $this->logger->info('razorpay_order_id = '. $this->razorpayOrderID);
-        $this->logger->info('razorpay_signature = '. $request['razorpay_signature']);
-        
+        $this->logger->info('RZP signature validate: razorpay_payment_id = ' . $request['razorpay_payment_id'] . ', razorpay_order_id = ' . $this->razorpayOrderID  . ', razorpay_signature = ' . $request['razorpay_signature']);
         
         $attributes = array(
             'razorpay_payment_id' => $request['razorpay_payment_id'],
@@ -389,10 +354,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
             'razorpay_signature' => $request['razorpay_signature'],
         );
 
-        $this
-            ->rzp
-            ->utility
-            ->verifyPaymentSignature($attributes);
+        $this->rzp->utility->verifyPaymentSignature($attributes);
     }
 }
 

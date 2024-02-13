@@ -217,7 +217,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         if($orderModel->getState() !== 'new')
         {
             $responseContent = [
-                'message'   => 'Payment already made for order.',
+                'message'   => 'Payment already made for order :' . $receipt_id,
                 'parameters' => [],
             ];
 
@@ -225,7 +225,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             $response->setData($responseContent);
             $response->setHttpResponseCode(400);
 
-            $this->logger->critical("Razorpay Order: Payment already made for order.");
+            $this->logger->critical("Razorpay Order: Payment already made for order :" . $receipt_id,);
             return $response;
         }
 
@@ -243,11 +243,20 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         }
 
         $code = 400;
+        
+        $rzpOrderId = null;
+
+        $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                        ->getCollection()
+                        ->addFilter('order_id', $mazeOrder->getEntityId())
+                        ->getFirstItem();
+
+        $rzpOrderId = $orderLink->getRzpOrderId();
 
         try
         {
             // @codeCoverageIgnoreStart
-            $this->logger->info("Razorpay Order: create order started with quoteID:" . $receipt_id
+            $this->logger->info("Razorpay Order: create order started with Magento OrderId:" . $receipt_id
                                     . " and amount:" . $amount);
             // @codeCoverageIgnoreEnd
 
@@ -269,35 +278,46 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 return $response;
             }
 
-            $order = $this->rzp->order->create([
-                'amount' => $amount,
-                'receipt' => $receipt_id,
-                'currency' => $mazeOrder->getOrderCurrencyCode(),
-                'payment_capture' => $payment_capture,
-                'notes' => [
-                    'referrer'  => $_SERVER['HTTP_REFERER']
-                ]
-            ]);
+            if ((isset($rzpOrderId) === false) and
+                (empty($rzpOrderId) === true))
+            {
+                $order = $this->rzp->order->create([
+                    'amount' => $amount,
+                    'receipt' => $receipt_id,
+                    'currency' => $mazeOrder->getOrderCurrencyCode(),
+                    'payment_capture' => $payment_capture,
+                    'notes' => [
+                        'referrer'  => (isset($_SERVER['HTTP_REFERER']) === true) ? $_SERVER['HTTP_REFERER'] : null
+                    ]
+                ]);
+
+                if (null !== $order && !empty($order->id))
+                {
+                    $rzpOrderId = $order->id;
+
+                    // @codeCoverageIgnoreStart
+                    $this->logger->info("New Razorpay Order ($rzpOrderId) created for Magento OrderId:" . $receipt_id);
+                    // @codeCoverageIgnoreEnd
+                }
+            }
+
 
             $responseContent = [
                 'message'   => 'Unable to create your order. Please contact support.',
                 'parameters' => []
             ];
 
-            if (null !== $order && !empty($order->id))
+            if ((isset($rzpOrderId) === true) and
+                (empty($rzpOrderId) === false))
             {
-                // @codeCoverageIgnoreStart
-                $this->logger->info("Razorpay Order: order created with rzp_order:" . $order->id);
-                // @codeCoverageIgnoreEnd
-
                 $is_hosted = false;
                 $merchantPreferences    = $this->getMerchantPreferences();
 
                 $responseContent = [
                     'success'           => true,
-                    'rzp_order'         => $order->id,
+                    'rzp_order'         => $rzpOrderId,
                     'order_id'          => $receipt_id,
-                    'amount'            => $order->amount,
+                    'amount'            => $amount,
                     'quote_currency'    => $mazeOrder->getOrderCurrencyCode(),
                     'quote_amount'      => number_format($mazeOrder->getGrandTotal(), 2, ".", ""),
                     'maze_version'      => $maze_version,
@@ -309,7 +329,12 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
                 $code = 200;
 
-                $this->catalogSession->setRazorpayOrderID($order->id);
+                $this->catalogSession->setRazorpayOrderID($rzpOrderId);
+
+                $quoteId = $mazeOrder->getQuoteId();
+                $quote = $this->_objectManager->get('Magento\Quote\Model\Quote')->load($quoteId);
+
+                $quote->setIsActive(false)->save();
             }
         }
         catch(\Razorpay\Api\Errors\Error $e)
@@ -320,7 +345,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             ];
 
             // @codeCoverageIgnoreStart
-            $this->logger->critical("Razorpay Order: Error message from api:" . $e->getMessage());
+            $this->logger->critical("Razorpay Order: Mage Order($receipt_id), Error message from api:" . $e->getMessage());
             // @codeCoverageIgnoreEnd
         }
         catch(\Exception $e)
@@ -331,20 +356,16 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             ];
 
             // @codeCoverageIgnoreStart
-            $this->logger->critical("Razorpay Order: Error message:" . $e->getMessage());
+            $this->logger->critical("Razorpay Order: Mage Order($receipt_id), Error message:" . $e->getMessage());
             // @codeCoverageIgnoreEnd
         }
 
-        $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
-                            ->getCollection()
-                            ->addFilter('order_id', $mazeOrder->getEntityId())
-                            ->getFirstItem();
-        
-        $orderLink->setRzpOrderId($order->id)
+        $orderLink->setRzpOrderId($rzpOrderId)
                     ->setOrderId($mazeOrder->getEntityId())
                     ->save();
 
-        $this->logger->info('Data saved in razorpay_sales_order');
+        $this->logger->info("Data saved in razorpay_sales_order for Mage Order($receipt_id)");
+
         $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
         $response->setData($responseContent);
         $response->setHttpResponseCode($code);

@@ -71,11 +71,12 @@ class ResetCart extends \Razorpay\Magento\Controller\BaseController
         $lastQuoteId = $this->checkoutSession->getLastQuoteId();
 
         $lastOrderId = $this->checkoutSession->getLastRealOrder();
+        $mazeOrderId = $lastOrderId->getIncrementId();
 
         if ($lastQuoteId && $lastOrderId)
         {
             // @codeCoverageIgnoreStart
-            $this->logger->info("Reset Cart: with lastQuoteId:" . $lastQuoteId);
+            $this->logger->info("Reset Cart: for MazeOrder ($mazeOrderId) with lastQuoteId:" . $lastQuoteId);
             // @codeCoverageIgnoreEnd
 
             $orderModel = $this->objectManager->get('Magento\Sales\Model\Order')->load($lastOrderId->getEntityId());
@@ -98,7 +99,7 @@ class ResetCart extends \Razorpay\Magento\Controller\BaseController
                 $this->checkoutSession->setFirstTimeChk('0');
 
                 // @codeCoverageIgnoreStart
-                $this->logger->info("Reset Cart: redirect_url: checkout/#payment");
+                $this->logger->info("Reset Cart: MazeOrder ($mazeOrderId) redirect_url: checkout/#payment");
                 // @codeCoverageIgnoreEnd
 
                 $responseContent = [
@@ -123,7 +124,7 @@ class ResetCart extends \Razorpay\Magento\Controller\BaseController
         $this->messageManager->addError(__('Payment Failed or Payment closed'));
 
         // @codeCoverageIgnoreStart
-        $this->logger->critical("Reset Cart: Payment Failed or Payment closed");
+        $this->logger->critical("Reset Cart: MazeOrder ($mazeOrderId) Payment Failed or Payment closed");
         // @codeCoverageIgnoreEnd
 
         $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
