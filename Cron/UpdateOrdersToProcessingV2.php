@@ -103,6 +103,11 @@ class UpdateOrdersToProcessingV2 {
     protected $captureCommand;
 
     /**
+     * @var \Razorpay\Magento\Model\Util\DebugMode
+     */
+    protected $debug;
+
+    /**
      * CancelOrder constructor.
      * @param \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
      * @param \Magento\Framework\Api\SearchCriteriaBuilder $searchCriteriaBuilder
@@ -122,7 +127,8 @@ class UpdateOrdersToProcessingV2 {
         \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender,
         \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
         \Razorpay\Magento\Model\Config $config,
-        \Psr\Log\LoggerInterface $logger
+        \Psr\Log\LoggerInterface $logger,
+        \Razorpay\Magento\Model\Util\DebugMode $debug
     )
     {
         $this->config                   = $config;
@@ -139,6 +145,7 @@ class UpdateOrdersToProcessingV2 {
         $this->orderSender              = $orderSender;
         $this->logger                   = $logger;
         $this->orderStatus              = static::STATUS_PROCESSING;
+        $this->debug                    = $debug;
 
         $this->enableCustomPaidOrderStatus = $this->config->isCustomPaidOrderStatusEnabled();
 
@@ -174,6 +181,8 @@ class UpdateOrdersToProcessingV2 {
         {
             foreach ($orderLink as $orderData)
             {
+                $this->debug->log("Cronjob: Magento Order Id = " . $orderData['order_id'] . " picked for updation");
+
                 $order = $this->orderRepository->get($orderData['order_id']);
                 $singleOrderLinkCollection = $objectManagement->get('Razorpay\Magento\Model\OrderLink')
                                                 ->getCollection()
@@ -188,6 +197,8 @@ class UpdateOrdersToProcessingV2 {
                     $rzpWebhookData = $orderData['rzp_webhook_data'];
                     if (empty($rzpWebhookData) === false) // check if webhook cron has run and populated the rzp_webhook_data column
                     {
+                        $this->debug->log("Cronjob: Webhook data present for Magento Order Id = " . $orderData['order_id']);
+
                         $rzpWebhookDataObj = unserialize($rzpWebhookData); // nosemgrep
                         
                         if (isset($rzpWebhookDataObj[static::ORDER_PAID]) === true)
@@ -223,7 +234,7 @@ class UpdateOrdersToProcessingV2 {
     private function updateOrderStatus($order, $event, $rzpWebhookData, $orderLinkCollection)
     {
         $this->logger->info("Cronjob: Updating to Processing for Order ID: " 
-                        . $order->getEntityId() 
+                        . $order->getIncrementId() 
                         . " and Event :" 
                         . $event
                         . " started."
@@ -355,7 +366,7 @@ class UpdateOrdersToProcessingV2 {
         }
 
         $this->logger->info("Cronjob: Updating to Processing for Order ID: " 
-                            . $order->getEntityId() 
+                            . $order->getIncrementId() 
                             . " and Event :" 
                             . $event
                             . " ended."
