@@ -26,6 +26,7 @@ class Config
     const ENABLE_CUSTOM_PAID_ORDER_STATUS = 'enable_custom_paid_order_status';
     const CUSTOM_PAID_ORDER_STATUS = 'custom_paid_order_status';
     const ENABLE_UPDATE_ORDER_CRON_V1 = 'enable_update_order_cron_v1';
+    const ENABLED_DEBUG_MODE = 'enable_debug_mode';
     /**
      * @var string
      */
@@ -132,6 +133,10 @@ class Config
         return $this;
     }
 
+    public function isDebugModeEnabled()
+    {
+        return (bool) (int) $this->getConfigData(self::ENABLED_DEBUG_MODE, $this->storeId);
+    }
     /**
      * Retrieve information from payment configuration
      *

@@ -56,6 +56,11 @@ class CancelPendingOrders {
     protected $resetCartOrderTimeout;
 
     /**
+     * @var \Razorpay\Magento\Model\Util\DebugMode
+     */
+    protected $debug;
+
+    /**
      * CancelOrder constructor.
      * @param \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
      * @param \Magento\Framework\Api\SearchCriteriaBuilder $searchCriteriaBuilder
@@ -70,7 +75,8 @@ class CancelPendingOrders {
         \Magento\Framework\Api\SortOrderBuilder $sortOrderBuilder,
         \Magento\Sales\Api\OrderManagementInterface $orderManagement,
         \Razorpay\Magento\Model\Config $config,
-        \Psr\Log\LoggerInterface $logger
+        \Psr\Log\LoggerInterface $logger,
+        \Razorpay\Magento\Model\Util\DebugMode $debug
     )
     {
         $this->orderRepository                 = $orderRepository;
@@ -83,6 +89,7 @@ class CancelPendingOrders {
         $this->pendingOrderTimeout             = ($this->config->getPendingOrderTimeout() > 0) ? $this->config->getPendingOrderTimeout() : 30;
         $this->isCancelResetCartCronEnabled    = $this->config->isCancelResetCartOrderCronEnabled();
         $this->resetCartOrderTimeout           = ($this->config->getResetCartOrderTimeout() > 0) ? $this->config->getResetCartOrderTimeout() : 30;
+        $this->debug                           = $debug;
     }
 
     public function execute()
@@ -110,6 +117,8 @@ class CancelPendingOrders {
             $orders = $this->orderRepository->getList($searchCriteria);
             foreach ($orders->getItems() as $order)
             {
+                $this->debug->log("Cronjob: Magento Order Id = " . $order->getIncrementId() . " picked for cancelation.");
+
                 if ($order->getPayment()->getMethod() === 'razorpay') {
                     $this->cancelOrder($order);    
                 }
@@ -149,6 +158,8 @@ class CancelPendingOrders {
 
             foreach ($orders->getItems() as $order)
             {
+                $this->debug->log("Cronjob: Magento Order Id = " . $order->getIncrementId() . " picked for cancelation in reset cart cron.");
+
                 if ($order->getPayment()->getMethod() === 'razorpay') {
                     $this->cancelOrder($order);
                 }
@@ -166,7 +177,7 @@ class CancelPendingOrders {
         if ($order)
         {
             if ($order->canCancel()) {
-                $this->logger->info("Cronjob: Cancelling Order ID: " . $order->getEntityId());
+                $this->logger->info("Cronjob: Cancelling Order ID: " . $order->getIncrementId());
 
                 $order->cancel()
                 ->setState(
