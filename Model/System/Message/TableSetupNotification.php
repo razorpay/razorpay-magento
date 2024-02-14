@@ -114,18 +114,8 @@ class TableSetupNotification implements MessageInterface
         return __('Database error: razorpay_sales_order table is not setup correctly. Please reach out to us on <a href="https://razorpay.com/support/" target="_blank"> https://razorpay.com/support/ </a> if you face any issues.');
     }
 
-   /**
-    * Retrieve system message severity
-    * Possible default system message types:
-    * - MessageInterface::SEVERITY_CRITICAL
-    * - MessageInterface::SEVERITY_MAJOR
-    * - MessageInterface::SEVERITY_MINOR
-    * - MessageInterface::SEVERITY_NOTICE
-    *
-    * @return int
-    */
     public function getSeverity()
     {
-        return self::SEVERITY_NOTICE;
+        return self::SEVERITY_CRITICAL;
     }
 }
