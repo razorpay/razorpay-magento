@@ -22,6 +22,7 @@
                 <enable_custom_paid_order_status>0</enable_custom_paid_order_status>
                 <custom_paid_order_status>processing</custom_paid_order_status>
                 <enable_update_order_cron_v1>1</enable_update_order_cron_v1>
+                <enable_debug_mode>0</enable_debug_mode>
             </razorpay>
         </payment>
     </default>

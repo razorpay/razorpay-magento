@@ -85,6 +85,11 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     protected const WEBHOOK_NOTIFY_WAIT_TIME = (5 * 60);
 
     /**
+     * @var \Razorpay\Magento\Model\Util\DebugUtils
+     */
+    protected $debug;
+
+    /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession
@@ -106,7 +111,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         \Magento\Sales\Model\Service\InvoiceService $invoiceService,
         \Magento\Framework\DB\Transaction $transaction,
         \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender,
-        \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender
+        \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
+        \Razorpay\Magento\Model\Util\DebugUtils $debug
     ) {
         parent::__construct(
             $context,
@@ -126,6 +132,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         $this->invoiceSender      = $invoiceSender;
         $this->orderSender        = $orderSender;
         $this->orderStatus        = static::STATUS_PROCESSING;
+        $this->debug              = $debug;
 
         $this->enableCustomPaidOrderStatus = $this->config->isCustomPaidOrderStatusEnabled();
 
@@ -149,6 +156,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
         if (json_last_error() !== 0)
         {
+            $this->debug->log("Razorpay Webhook processing stopped due to last json error.");
             return;
         }
 
@@ -157,12 +165,17 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         if (($this->config->isWebhookEnabled() === true) &&
             (isset($post['event']) && empty($post['event']) === false))
         {
+            $this->debug->log("Razorpay Webhook processing, webhook is enabled and event is present in post data");
+            
             if (!empty($razorpaySignature) === true)
             {
+                $this->debug->log("Razorpay Webhook processing, razorpay signature is present");
+            
                 $webhookSecret = $this->config->getWebhookSecret();
                 // To accept webhooks, the merchant must configure it on the magento backend by setting the secret.
                 if (empty($webhookSecret) === true)
                 {
+                    $this->debug->log("Razorpay Webhook processing stopped as webhook secret is not present");
                     return;
                 }
 
@@ -190,11 +203,14 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 }
 
                 if (isset($post['payload']['payment']['entity']['notes']['merchant_order_id']) === true)
-                {
+                {   
                     $orderId            = $post['payload']['payment']['entity']['notes']['merchant_order_id'];
                     $paymentId          = $post['payload']['payment']['entity']['id'];
                     $orderWebhookData   = $this->getOrderWebhookData($orderId);
                     $amountPaid         = $post['payload']['payment']['entity']['amount'];
+
+                    $this->debug->log("Razorpay Webhook processing, webhook data is present. Order Id = " . $orderId . ' Payment Id = ' . $paymentId .
+                                     " Order webhook data = " . json_encode($orderWebhookData) . ' Amount Paid = ' . $amountPaid);
 
                     if ($post['event'] === 'order.paid')
                     {

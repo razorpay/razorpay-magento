@@ -6,5 +6,10 @@
                <item name="customMessageNotification" xsi:type="string">Razorpay\Magento\Model\System\Message\UpgradeMessageNotification</item>
            </argument>
        </arguments>
+       <arguments>
+           <argument name="messages" xsi:type="array">
+               <item name="customMessageNotification" xsi:type="string">Razorpay\Magento\Model\System\Message\TableSetupNotification</item>
+           </argument>
+       </arguments>
    </type>
 </config>
