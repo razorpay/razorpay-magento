@@ -176,7 +176,9 @@ class CancelPendingOrders {
     {
         if ($order)
         {
-            if ($order->canCancel()) {
+            if ($order->canCancel() and
+                $this->isOrderAlreadyPaid($order->getEntityId()) === false) 
+            {
                 $this->logger->info("Cronjob: Cancelling Order ID: " . $order->getIncrementId());
 
                 $order->cancel()
@@ -188,5 +190,17 @@ class CancelPendingOrders {
                 )->save();
             }
         }
+    }
+
+    private function isOrderAlreadyPaid($entity_id)
+    {
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+
+        $orderLinkData = $objectManagement->get('Razorpay\Magento\Model\OrderLink')
+                        ->getCollection()
+                        ->addFilter('order_id', $entity_id)
+                        ->getFirstItem();
+        
+        return ($orderLinkData->getRzpWebhookNotifiedAt() !== null);
     }
 }
