@@ -117,9 +117,9 @@ class CancelPendingOrders {
             $orders = $this->orderRepository->getList($searchCriteria);
             foreach ($orders->getItems() as $order)
             {
-                $this->debug->log("Cronjob: Magento Order Id = " . $order->getIncrementId() . " picked for cancelation.");
-
                 if ($order->getPayment()->getMethod() === 'razorpay') {
+                    $this->debug->log("Cronjob: Magento Order Id = " . $order->getIncrementId() . " picked for cancelation.");
+
                     $this->cancelOrder($order);    
                 }
             }
@@ -158,9 +158,9 @@ class CancelPendingOrders {
 
             foreach ($orders->getItems() as $order)
             {
-                $this->debug->log("Cronjob: Magento Order Id = " . $order->getIncrementId() . " picked for cancelation in reset cart cron.");
-
                 if ($order->getPayment()->getMethod() === 'razorpay') {
+                    $this->debug->log("Cronjob: Magento Order Id = " . $order->getIncrementId() . " picked for cancelation in reset cart cron.");
+
                     $this->cancelOrder($order);
                 }
             }
