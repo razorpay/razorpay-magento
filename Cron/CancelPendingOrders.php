@@ -56,7 +56,7 @@ class CancelPendingOrders {
     protected $resetCartOrderTimeout;
 
     /**
-     * @var \Razorpay\Magento\Model\Util\DebugMode
+     * @var \Razorpay\Magento\Model\Util\DebugUtils
      */
     protected $debug;
 
@@ -76,7 +76,7 @@ class CancelPendingOrders {
         \Magento\Sales\Api\OrderManagementInterface $orderManagement,
         \Razorpay\Magento\Model\Config $config,
         \Psr\Log\LoggerInterface $logger,
-        \Razorpay\Magento\Model\Util\DebugMode $debug
+        \Razorpay\Magento\Model\Util\DebugUtils $debug
     )
     {
         $this->orderRepository                 = $orderRepository;

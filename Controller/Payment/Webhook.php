@@ -85,7 +85,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
     protected const WEBHOOK_NOTIFY_WAIT_TIME = (5 * 60);
 
     /**
-     * @var \Razorpay\Magento\Model\Util\DebugMode
+     * @var \Razorpay\Magento\Model\Util\DebugUtils
      */
     protected $debug;
 
@@ -112,7 +112,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         \Magento\Framework\DB\Transaction $transaction,
         \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender,
         \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
-        \Razorpay\Magento\Model\Util\DebugMode $debug
+        \Razorpay\Magento\Model\Util\DebugUtils $debug
     ) {
         parent::__construct(
             $context,

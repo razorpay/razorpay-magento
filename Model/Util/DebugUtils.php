@@ -2,7 +2,7 @@
 
 namespace Razorpay\Magento\Model\Util;
 
-class DebugMode
+class DebugUtils
 {
     /**
      * @var \Razorpay\Magento\Model\Config

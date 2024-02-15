@@ -70,7 +70,7 @@
 	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
 	    </arguments>
 	</type>
-	<type name="Razorpay\Magento\Model\Util\DebugMode">
+	<type name="Razorpay\Magento\Model\Util\DebugUtils">
 	    <arguments>
 	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
 	    </arguments>

@@ -103,7 +103,7 @@ class UpdateOrdersToProcessingV2 {
     protected $captureCommand;
 
     /**
-     * @var \Razorpay\Magento\Model\Util\DebugMode
+     * @var \Razorpay\Magento\Model\Util\DebugUtils
      */
     protected $debug;
 
@@ -128,7 +128,7 @@ class UpdateOrdersToProcessingV2 {
         \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
         \Razorpay\Magento\Model\Config $config,
         \Psr\Log\LoggerInterface $logger,
-        \Razorpay\Magento\Model\Util\DebugMode $debug
+        \Razorpay\Magento\Model\Util\DebugUtils $debug
     )
     {
         $this->config                   = $config;
