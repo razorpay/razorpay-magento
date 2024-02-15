@@ -177,7 +177,7 @@ class CancelPendingOrders {
         if ($order)
         {
             if ($order->canCancel() and
-                $this->isOrderNotPaid($order->getEntityId())) 
+                $this->isOrderAlreadyPaid($order->getEntityId()) === false) 
             {
                 $this->logger->info("Cronjob: Cancelling Order ID: " . $order->getIncrementId());
 
@@ -192,7 +192,7 @@ class CancelPendingOrders {
         }
     }
 
-    private function isOrderNotPaid($entity_id)
+    private function isOrderAlreadyPaid($entity_id)
     {
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
 
@@ -201,6 +201,6 @@ class CancelPendingOrders {
                         ->addFilter('order_id', $entity_id)
                         ->getFirstItem();
         
-        return ($orderLinkData->getRzpWebhookNotifiedAt() === null);
+        return ($orderLinkData->getRzpWebhookNotifiedAt() !== null);
     }
 }
