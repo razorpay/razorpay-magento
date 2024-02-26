@@ -65,7 +65,7 @@ define([
         _bind: function () {
             var self = this;
             console.log(self.options.buttonSelector)
-            this._parent().find(self.options.buttonSelector).on('click touch', function() {
+            // this._parent().find(self.options.buttonSelector).on('click touch', function() {
                 console.log('cart clicked')
                 // if (self._parent().valid()) {
                     self._buyNow();

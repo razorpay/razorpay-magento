@@ -20,8 +20,11 @@ $magicActiveField = 'activate_magic';
 
 $isMagicEnabled = $scopeConfig->getValue('payment/' . $code . '/' . $magicActiveField, \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
 
+$cartData = $objectManager->create('Magento\Checkout\Model\Cart')->getQuote()->getAllVisibleItems();
+$cartDataCount = count( $cartData );
+
 ?>
-<?php if ($isMagicEnabled == 1) :?>
+<?php if ($isMagicEnabled == 1 && $cartDataCount > 0) :?>
  
  <!-- <script id="cart-occ-template" type="text/x-occ-template"> -->
 
