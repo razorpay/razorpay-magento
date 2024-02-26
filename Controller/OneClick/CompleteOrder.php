@@ -99,6 +99,7 @@ class CompleteOrder extends Action
     protected $checkoutSession;
     protected $totals;
     protected $totalsInterface;
+    protected $stateNameMap;
     protected $_order = null;
 
     protected const STATUS_PROCESSING = 'processing';
@@ -140,7 +141,7 @@ class CompleteOrder extends Action
         Totals $totals,
         TotalsInterface $totalsInterface,
         CollectionFactory $collectionFactory,
-        StateMap $stateMap
+        StateMap $stateNameMap
     ) {
         parent::__construct($context);
         $this->request = $request;
@@ -166,7 +167,7 @@ class CompleteOrder extends Action
         $this->totals  = $totals;
         $this->totalsInterface  = $totalsInterface;
         $this->collectionFactory  = $collectionFactory;
-        $this->stateNameMap       = $stateMap;
+        $this->stateNameMap       = $stateNameMap;
         $this->resultRedirectFactory = $context->getResultFactory();;
         $this->orderStatus     = static::STATUS_PROCESSING;
         $this->authorizeCommand = new AuthorizeCommand();
