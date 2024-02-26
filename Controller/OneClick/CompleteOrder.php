@@ -140,7 +140,7 @@ class CompleteOrder extends Action
         Totals $totals,
         TotalsInterface $totalsInterface,
         CollectionFactory $collectionFactory,
-        CollectionFactory $stateMap
+        StateMap $stateMap
     ) {
         parent::__construct($context);
         $this->request = $request;
