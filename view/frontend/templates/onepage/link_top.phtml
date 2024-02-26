@@ -1,20 +1,79 @@
 <?php
+ 
 /** @var $block \Magento\Checkout\Block\Onepage\Link */
+ 
+use Magento\Framework\App\Config\ScopeConfigInterface;
+
+function getObjectManager()
+{
+    return \Magento\Framework\App\ObjectManager::getInstance();
+}
+
+$objectManager = getObjectManager();
+
+// Get the store manager
+$storeManager = $objectManager->get(\Magento\Store\Model\StoreManagerInterface::class);
+$scopeConfig = $objectManager->get(ScopeConfigInterface::class);
+
+$code = 'razorpay';
+$magicActiveField = 'activate_magic';
+
+$isMagicEnabled = $scopeConfig->getValue('payment/' . $code . '/' . $magicActiveField, \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
+
 ?>
-<?php if ($block->isPossibleOnepageCheckout()) :?>
-<button name="btnname" id="trybtn">Try it</button>
+<?php if ($isMagicEnabled == 1) :?>
+ 
+ <!-- <script id="cart-occ-template" type="text/x-occ-template"> -->
 
-    <script>
-        require(['jquery', 'myscript'], function($, myscript) {
-            myscript();
-        });
-    </script>
+    <div id="cart-occ-div">
 
+    <button type="button"
+
+            id="cart-occ-template"
+ 
+            data-role="proceed-to-checkout"
+ 
+            title="<?= $block->escapeHtmlAttr(__('Proceed to Checkout Top')) ?>"
+ 
+            data-mage-init='{
+ 
+                "Razorpay_Magento/js/cart-one-cc":{
+ 
+                   "isAvailableUrl": "<?php echo $block->getUrl('rest/V1/buttons/buynow/canshow/') ?>",
+                    "submitUrl": "<?php echo $block->getUrl('razorpay/oneclick/placeorder') ?>",
+                    "callbackURL": "<?php echo $block->getUrl('razorpay/oneclick/completeorder') ?>"
+ 
+                }
+ 
+            }'
+ 
+            class="action primary checkout<?= ($block->isDisabled()) ? ' disabled' : '' ?>"
+ 
+            <?php if ($block->isDisabled()) :?>
+ 
+                disabled="disabled"
+ 
+            <?php endif; ?>>
+ 
+        <span><?= $block->escapeHtml(__('Proceed to Checkout Top')) ?></span>
+ 
+    </button>
+    </div>
+<!-- </script> -->
+ 
 <?php endif; ?>
 
-    <!-- <script src="<?php //echo $block->getViewFileUrl('Razorpay_Magento::js/view/payment/razorpay-payments.js')?>"></script> -->
-<!-- {
-                "Magento_Checkout/js/proceed-to-checkout":{
-                    "checkoutUrl":"Razorpay_Magento::js/view/payment/razorpay-payments.js"
-                }
-            } -->
+<script type="text/javascript">
+
+    var Razorpay = {
+      "config": {
+        "api": "https://api-web-magemo.ext.dev.razorpay.in/",
+       "frame": "https://api-web-magemo.ext.dev.razorpay.in/test/checkout.html?branch=master",
+      },
+    }; 
+
+     var rzpApi = Razorpay.config.api + 'v1/';
+</script>
+
+<script type="text/javascript"
+        src="https://checkout.razorpay.com/v1/magic-checkout.js"></script>

@@ -86,6 +86,7 @@ class PlaceOrder extends Action
 
     protected $storeManager;
 
+    protected $cart;
 
     /**
      * PlaceOrder constructor.
@@ -117,7 +118,8 @@ class PlaceOrder extends Action
         QuoteIdToMaskedQuoteIdInterface $maskedQuoteIdInterface,
         QuoteIdMaskFactory $quoteIdMaskFactory,
         QuoteIdMaskResourceModel $quoteIdMaskResourceModel,
-        StoreManagerInterface $storeManager
+        StoreManagerInterface $storeManager,
+        \Magento\Checkout\Model\Cart $cart
     ) {
         parent::__construct($context);
         $this->request = $request;
@@ -135,59 +137,57 @@ class PlaceOrder extends Action
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->quoteIdMaskResourceModel = $quoteIdMaskResourceModel;
         $this->storeManager = $storeManager;
+        $this->cart = $cart;
     }
 
     public function execute()
     {
         $params = $this->request->getParams();
 
+        if(isset($params['page']) && $params['page'] == 'cart')
+        {
+            $cartItems = $this->cart->getQuote()->getAllVisibleItems();
+            $quoteId = $this->cart->getQuote()->getId();
+            $totals = $this->cart->getQuote()->getTotals();
+        }
+        else 
+        {
+            /** @var QuoteBuilder $quoteBuilder */
+            $quoteBuilder = $this->quoteBuilderFactory->create();
+            $quote = $quoteBuilder->createQuote();
+            $quoteId = $quote->getId();
+            $totals = $quote->getTotals();
+            $cartItems = $quote->getAllVisibleItems();
+        }
+
         // $this->logger->info('graphQL: Request data: ' . json_encode($params));
 
         $resultJson = $this->resultJsonFactory->create();
 
-        /** @var QuoteBuilder $quoteBuilder */
-        $quoteBuilder = $this->quoteBuilderFactory->create();
-
-        try {
-            $quote = $quoteBuilder->createQuote();
-            $this->logger->info('graphQL: Magic Quote data: ' . $quote->getId());
-            $this->logger->info('graphQL: Magic Quote data11: ' . $quote->getParentItemId());
-
-            $totals = $quote->getTotals();
-            // $this->logger->info('graphQL: Magic Quote getCurrency: ' . $quote->getCurrency());
-            // $this->logger->info('graphQL: Magic Quote getTotals: ' . $total);
-            // $this->logger->info('graphQL: Magic Quote isVirtual: ' . $quote->isVirtual());
-            // $this->logger->info('graphQL: Magic Quote getCustomAttributes: ' . $quote->getCustomAttributes());
-
-            $productId= $this->request->getParam('product');
-            $qty= $this->request->getParam('qty');
-
-            // $maskedQuoteId = $objectManager->get('Magento\Quote\Model\QuoteIdToMaskedQuoteIdInterface');
-            // $maskedId = $maskedQuoteId->execute($quote->getId());
-
-           $maskedId = $this->maskedQuoteIdInterface->execute($quote->getId());
-
+        try 
+        {
+            $maskedId = $this->maskedQuoteIdInterface->execute($quoteId);
 
             if ($maskedId === '') {
                 $quoteIdMask = $this->quoteIdMaskFactory->create();
-                $quoteIdMask->setQuoteId($quote->getId());
+                $quoteIdMask->setQuoteId($quoteId);
                 $this->quoteIdMaskResourceModel->save($quoteIdMask);
-                $maskedId = $this->maskedQuoteIdInterface->execute($quote->getId());
+                $maskedId = $this->maskedQuoteIdInterface->execute($quoteId);
             }
             $this->storeManager->getStore()->getBaseCurrencyCode();
 
             $totalAmount = 0;
             $lineItems = [];
 
-            foreach ($quote->getAllVisibleItems() as $quoteItem) {
+            foreach ($cartItems as $quoteItem) {
 
-                $this->logger->info('graphQL: Magic Quote sku: ' . $quoteItem->getSku());
-                $this->logger->info('graphQL: Magic Quote getItemId: ' . $quoteItem->getItemId());
-                $this->logger->info('graphQL: Magic Quote getParentItem: ' . $quoteItem->getProductId());
-                $this->logger->info('graphQL: Magic Quote getQty: ' . $quoteItem->getQty());
-                $this->logger->info('graphQL: Magic Quote getPrice: ' . $quoteItem->getPrice());
-                $this->logger->info('graphQL: Magic Quote getOriginalPrice: ' . $quoteItem->getOriginalPrice());
-                $this->logger->info('graphQL: Magic Quote getName: ' . $quoteItem->getName());
+                // $this->logger->info('graphQL: Magic Quote sku: ' . $quoteItem->getSku());
+                // $this->logger->info('graphQL: Magic Quote getItemId: ' . $quoteItem->getItemId());
+                // $this->logger->info('graphQL: Magic Quote getParentItem: ' . $quoteItem->getProductId());
+                // $this->logger->info('graphQL: Magic Quote getQty: ' . $quoteItem->getQty());
+                // $this->logger->info('graphQL: Magic Quote getPrice: ' . $quoteItem->getPrice());
+                // $this->logger->info('graphQL: Magic Quote getOriginalPrice: ' . $quoteItem->getOriginalPrice());
+                // $this->logger->info('graphQL: Magic Quote getName: ' . $quoteItem->getName());
 
                 $store = $this->storeManager->getStore();
                 $productId = $quoteItem->getProductId();
@@ -206,9 +206,7 @@ class PlaceOrder extends Action
                     'quantity' => $quoteItem->getQty(),
                     'name' => $quoteItem->getName(),
                     'description' => $quoteItem->getName(),
-                    // 'image_url' => 'http://127.0.0.1/magento/pub/media/catalog/product/cache/78576bdffa9c21516a7ba248c06241e8/m/t/mt07-gray_main_1.jpg',
                     'image_url' => $productImageUrl,
-                    // 'product_url' => 'http://127.0.0.1/magento/pub/media/catalog/product/cache/78576bdffa9c21516a7ba248c06241e8/m/t/mt07-gray_main_1.jpg',
                     'product_url' => $productUrl,
                 ];
 
@@ -251,7 +249,7 @@ class PlaceOrder extends Action
             'app_offer'       => 0,
             'notes'           => [
                 'cart_mask_id' => $maskedId,
-                'cart_id'      => $quote->getId()
+                'cart_id'      => $quoteId
             ],
             'line_items_total' => $totalAmount,
             'line_items' => $lineItems
@@ -265,7 +263,7 @@ class PlaceOrder extends Action
                 'status'        => 'success',
                 'rzp_order_id'   => $razorpay_order->id,
                 'total_amount'   => $totalAmount,
-                'cart_id'        => $quote->getId(),
+                'cart_id'        => $quoteId,
                 'quote_id'       => $maskedId,
                 'message'        => 'Razorpay Order created successfully'
             ];

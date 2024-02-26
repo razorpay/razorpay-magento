@@ -11,6 +11,9 @@
                 <order_status>pending</order_status>
                 <key_id>Key ID</key_id>
                 <key_secret>Key Secret</key_secret>
+                <activate_magic>0</activate_magic>
+                <activate_magic_buy_now>0</activate_magic_buy_now>
+                <activate_magic_mini_cart>0</activate_magic_mini_cart>
                 <enable_webhook>1</enable_webhook>
                 <webhook_events>order.paid,payment.authorized</webhook_events>
                 <supported_webhook_events>order.paid,payment.authorized</supported_webhook_events>

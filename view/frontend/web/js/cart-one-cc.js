@@ -11,13 +11,13 @@ define([
 
     $.widget('pmclain.oneClickButton', {
         options: {
-            addToFormSelector: '#product_addtocart_form',
+            addToFormSelector: '#cart-occ-div',
             isAvailableUrl: '',
             submitUrl: '',
             callbackURL: '',
-            actionSelector: '.actions',
-            buttonTemplateSelector: '#occ-template',
-            buttonSelector: '#product-oneclick-button',
+            actionSelector: '.action',
+            buttonTemplateSelector: '#cart-occ-div',
+            buttonSelector: '#cart-occ-template',
             confirmationSelector: '#one-click-confirmation'
         },
 
@@ -33,6 +33,7 @@ define([
             var self = this;
 
             console.log("-----");
+            console.log("helllll00");
             switch ($.mage.cookies.get(this.cookie)) {
                 case this.cookieEnabled:
                     this._createButton();
@@ -56,16 +57,19 @@ define([
 
         _createButton: function () {
             var button = $(this.options.buttonTemplateSelector).html();
+            console.log(button);
             this._parent().find(this.options.actionSelector).prepend(button);
             this._bind();
         },
 
         _bind: function () {
             var self = this;
+            console.log(self.options.buttonSelector)
             this._parent().find(self.options.buttonSelector).on('click touch', function() {
-                if (self._parent().valid()) {
+                console.log('cart clicked')
+                // if (self._parent().valid()) {
                     self._buyNow();
-                }
+                // }
             });
         },
 
@@ -76,12 +80,13 @@ define([
         _buyNow: function () {
             var self = this;
             self._disableButton();
+            console.log('hiiii')
 
             fullScreenLoader.startLoader();
 
             $.ajax({
                 url: self.options.submitUrl,
-                data: self._parent().serialize(),
+                data: { 'page' : 'cart'},
                 type: 'POST',
                 dataType: 'json',
                 showLoader: true,
@@ -110,27 +115,34 @@ define([
                 dataType: 'json',
                 showLoader: true,
                 success: function (data) {
+                    // debugger;
                     console.log("Payment complete data")
                     console.log(data)
                     var successUrl = url.build('checkout/onepage/success', {})
                     console.log(successUrl)
+
                     window.location.href = successUrl;
                 },
                 error: function (error) {
+                    debugger;
                     console.log("Payment complete fail")
-                    console.log(error)
                 }
             })
         },
 
         renderIframe: function(data) {
+            // debugger;
             var self = this;
 
             var options = {
                 key: 'rzp_test_WU34MeOkxLNp52',
                 name: 'Razorpay',
                 amount: data.totalAmount,
+                // timeout: 720,
                 handler: function (data) {
+                    // self.rzp_response = data;
+                    // self.validateOrder(data);
+                    console.log("data in handler", data)
                     fullScreenLoader.startLoader();
 
                     self.orderSuccess(data);
@@ -139,7 +151,7 @@ define([
                 modal: {
                     ondismiss: function(data) {
                         //reset the cart
-                        // self.resetCart(data);
+                        self.resetCart(data);
                         // fullScreenLoader.stopLoader();
                         // self.isPaymentProcessing.reject("Payment Closed");
                         // self.isPlaceOrderActionAllowed(true);

@@ -27,6 +27,7 @@ use Magento\Quote\Api\Data\TotalsInterface;
 use Magento\Framework\DataObject;
 use Magento\Directory\Model\ResourceModel\Region\CollectionFactory;
 use Magento\Directory\Model\ResourceModel\Region\Collection;
+use Razorpay\Magento\Controller\OneClick\StateMap;
 
 class CompleteOrder extends Action
 {
@@ -87,6 +88,7 @@ class CompleteOrder extends Action
     protected $cartRepositoryInterface;
 
     protected $order;
+    protected $stateMap;
     protected $invoiceService;
     protected $invoiceSender;
     protected $transaction;
@@ -137,7 +139,8 @@ class CompleteOrder extends Action
         \Magento\Checkout\Model\Session $checkoutSession,
         Totals $totals,
         TotalsInterface $totalsInterface,
-        CollectionFactory $collectionFactory
+        CollectionFactory $collectionFactory,
+        CollectionFactory $stateMap
     ) {
         parent::__construct($context);
         $this->request = $request;
@@ -163,6 +166,7 @@ class CompleteOrder extends Action
         $this->totals  = $totals;
         $this->totalsInterface  = $totalsInterface;
         $this->collectionFactory  = $collectionFactory;
+        $this->stateNameMap       = $stateMap;
         $this->resultRedirectFactory = $context->getResultFactory();;
         $this->orderStatus     = static::STATUS_PROCESSING;
         $this->authorizeCommand = new AuthorizeCommand();
@@ -187,28 +191,30 @@ class CompleteOrder extends Action
         $quote = $this->cartRepositoryInterface->get($cart_id);
 
         $quote->setCustomerEmail($rzp_order_data->customer_details->email);
-        // $quote->setCustomerEmail('chetan.naik@razorpay.com');
 
         $name = explode(' ', $rzp_order_data->customer_details->shipping_address->name);
 
+        $country = $rzp_order_data->customer_details->shipping_address->country;
         $state = $rzp_order_data->customer_details->shipping_address->state;
+
+        $magentoStateName = $this->stateNameMap->getMagentoStateName($country, $state);
+        $this->logger->info('graphQL: Magento state name:' . $magentoStateName);
+
         $regionCode = $this->collectionFactory->create()
-            ->addRegionNameFilter($state)
+            ->addRegionNameFilter($magentoStateName)
             ->getFirstItem()
             ->toArray();
 
         $this->logger->info('graphQL: Magento region:' . json_encode($regionCode));
-        // $this->logger->info('graphQL: Magento region code:' . $regionCode['code']);
 
         $address=[
              'email'        => $rzp_order_data->customer_details->email, //buyer email id
-             // 'email'        => 'chetan.naik@razorpay.com',
              'shipping_address' =>[
                     'firstname'      => $name[0], //address Details
                     'lastname'       => $name[1]?? '.',
                             'street' => $rzp_order_data->customer_details->shipping_address->line1,
                             'city' => $rzp_order_data->customer_details->shipping_address->city,
-                    'country_id' => strtoupper($rzp_order_data->customer_details->shipping_address->country),
+                    'country_id' => strtoupper($country),
                     'region' => $regionCode['code']??'KA',
                     'postcode' => $rzp_order_data->customer_details->shipping_address->zipcode,
                     'telephone' => $rzp_order_data->customer_details->shipping_address->contact,
