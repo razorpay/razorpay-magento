@@ -191,7 +191,7 @@ class CompleteOrder extends Action
                 $discountAmount = $order->getDiscountAmount();
 
                 $codFee = $rzpOrderData->cod_fee;
-                $totalPaid = $rzpPaymentData->amount/100;
+                $totalPaid = $rzpPaymentData->amount;
 
                 $rzpPromotionAmount = 0;
 
@@ -359,7 +359,7 @@ class CompleteOrder extends Action
             $order->setBaseGrandTotal($totalBaseGrandTotal - $offerAmount);
             $order->setGrandTotal($totalGrandTotal - $offerAmount);
 
-            $order->setTotalPaid($totalPaid);
+            $order->setTotalPaid($totalPaid/100);
 
             $order->addStatusHistoryComment(
                 __('Razorpay offer applied #%1.', $offerAmount)
