@@ -340,6 +340,9 @@ class CompleteOrder extends Action
             $order->setBaseGrandTotal($totalBaseGrandTotal - $offerAmount);
             $order->setGrandTotal($totalGrandTotal - $offerAmount);
 
+            $order->addStatusHistoryComment(
+                __('Razorpay offer applied #%1.', $offerAmount)
+            )->setIsCustomerNotified(true);
 
             return true;
         } catch (\Exception $e) {
