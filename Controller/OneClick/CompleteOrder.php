@@ -191,7 +191,7 @@ class CompleteOrder extends Action
                 $discountAmount = $order->getDiscountAmount();
 
                 $codFee = $rzpOrderData->cod_fee;
-                $totalPaid = $rzpPaymentData->amount;
+                $totalPaid = $rzpPaymentData->amount/100;
 
                 $rzpPromotionAmount = 0;
 
