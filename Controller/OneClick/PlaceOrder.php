@@ -9,7 +9,6 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Quote\Api\CartManagementInterface;
 use Razorpay\Magento\Model\QuoteBuilderFactory;
 use Razorpay\Magento\Model\QuoteBuilder;
-use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Framework\Pricing\Helper\Data;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Store\Model\ScopeInterface;
@@ -42,19 +41,9 @@ class PlaceOrder extends Action
     protected $cartManagement;
 
     /**
-     * @var OrderRepositoryInterface
-     */
-    protected $orderRepository;
-
-    /**
      * @var ProductRepositoryInterface
      */
     protected $productRepository;
-
-    /**
-     * @var Data
-     */
-    protected $priceHelper;
 
     /**
      * @var ScopeConfigInterface
@@ -73,11 +62,6 @@ class PlaceOrder extends Action
      */
     protected $quoteBuilderFactory;
 
-    /**
-     * @var QuoteItem
-     */
-    protected $quoteItem;
-
     protected $maskedQuoteIdInterface;
 
     private QuoteIdMaskFactory $quoteIdMaskFactory;
@@ -94,8 +78,6 @@ class PlaceOrder extends Action
      * @param Context $context
      * @param JsonFactory $jsonFactory
      * @param CartManagementInterface $cartManagement
-     * @param OrderRepositoryInterface $orderRepository
-     * @param Data $priceHelper
      * @param ScopeConfigInterface $config
      * @param PaymentMethod $paymentMethod
      * @param \Psr\Log\LoggerInterface $logger
@@ -107,14 +89,11 @@ class PlaceOrder extends Action
         Http $request,
         JsonFactory $jsonFactory,
         CartManagementInterface $cartManagement,
-        OrderRepositoryInterface $orderRepository,
-        Data $priceHelper,
         PaymentMethod $paymentMethod,
         ScopeConfigInterface $config,
         \Psr\Log\LoggerInterface $logger,
         QuoteBuilderFactory $quoteBuilderFactory,
         ProductRepositoryInterface $productRepository,
-        Item $quoteItem,
         QuoteIdToMaskedQuoteIdInterface $maskedQuoteIdInterface,
         QuoteIdMaskFactory $quoteIdMaskFactory,
         QuoteIdMaskResourceModel $quoteIdMaskResourceModel,
@@ -125,14 +104,11 @@ class PlaceOrder extends Action
         $this->request = $request;
         $this->resultJsonFactory = $jsonFactory;
         $this->cartManagement = $cartManagement;
-        $this->orderRepository = $orderRepository;
-        $this->priceHelper = $priceHelper;
         $this->config = $config;
         $this->rzp    = $paymentMethod->setAndGetRzpApiInstance();
         $this->logger = $logger;
         $this->quoteBuilderFactory = $quoteBuilderFactory;
         $this->productRepository = $productRepository;
-        $this->quoteItem = $quoteItem;
         $this->maskedQuoteIdInterface = $maskedQuoteIdInterface;
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->quoteIdMaskResourceModel = $quoteIdMaskResourceModel;
@@ -160,8 +136,6 @@ class PlaceOrder extends Action
             $cartItems = $quote->getAllVisibleItems();
         }
 
-        // $this->logger->info('graphQL: Request data: ' . json_encode($params));
-
         $resultJson = $this->resultJsonFactory->create();
 
         try 
@@ -180,14 +154,6 @@ class PlaceOrder extends Action
             $lineItems = [];
 
             foreach ($cartItems as $quoteItem) {
-
-                // $this->logger->info('graphQL: Magic Quote sku: ' . $quoteItem->getSku());
-                // $this->logger->info('graphQL: Magic Quote getItemId: ' . $quoteItem->getItemId());
-                // $this->logger->info('graphQL: Magic Quote getParentItem: ' . $quoteItem->getProductId());
-                // $this->logger->info('graphQL: Magic Quote getQty: ' . $quoteItem->getQty());
-                // $this->logger->info('graphQL: Magic Quote getPrice: ' . $quoteItem->getPrice());
-                // $this->logger->info('graphQL: Magic Quote getOriginalPrice: ' . $quoteItem->getOriginalPrice());
-                // $this->logger->info('graphQL: Magic Quote getName: ' . $quoteItem->getName());
 
                 $store = $this->storeManager->getStore();
                 $productId = $quoteItem->getProductId();
@@ -211,20 +177,7 @@ class PlaceOrder extends Action
                 ];
 
                 $totalAmount += ($quoteItem->getQty() * $quoteItem->getPrice()) * 100;
-
-                // $this->logger->info('graphQL: Magic Quote ***: ' . json_decode(json_encode($quoteItem), true));
-
-                // if ($quoteItem->getSku() == $sku && $quoteItem->getProductType() == Configurable::TYPE_CODE &&
-                //     !$quoteItem->getParentItemId()) {
-                //     $item = $quoteItem;
-                //     break;
-                // }
             }
-
-            // $this->logger->info('graphQL: Magic product data: ' . $productId);
-            // $this->logger->info('graphQL: Magic qty data: ' . $qty);
-            // $this->logger->info('graphQL: Magic Quote data: ' . $quote1->getItems());
-
 
         } catch (LocalizedException $e) {
             return $resultJson->setData([
@@ -238,14 +191,20 @@ class PlaceOrder extends Action
             ]);
         }
 
-        // $this->logger->info('graphQL: Magento Order placement: ' . json_encode($result));
-        $this->logger->info('graphQL: Magento Order placement: ');
+        $storeScope = \Magento\Store\Model\ScopeInterface::SCOPE_STORE;
+
+        $paymentAction  = $this->config->getValue('payment/razorpay/rzp_payment_action', $storeScope);
+        $paymentCapture = 1;
+        if ($paymentAction === 'authorize')
+        {
+            $paymentCapture = 0;
+        }
 
         $razorpay_order = $this->rzp->order->create([
             'amount'          => $totalAmount,
             'receipt'         => 'order pending',
             'currency'        => $this->storeManager->getStore()->getBaseCurrencyCode(),
-            'payment_capture' => 1,
+            'payment_capture' => $paymentCapture,
             'app_offer'       => 0,
             'notes'           => [
                 'cart_mask_id' => $maskedId,

@@ -75,9 +75,6 @@ class ItemBuilder
         $params = $this->request->getParams();
 
         if (isset($params['qty'])) {
-            // $filter = new \Zend_Filter_LocalizedToNormalized(
-            //     ['locale' => $this->resolver->getLocale()]
-            // );
             $params['qty'] = $params['qty'];
         }
 

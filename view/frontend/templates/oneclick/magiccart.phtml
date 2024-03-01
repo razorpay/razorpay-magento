@@ -1,6 +1,5 @@
 <?php
  
-/** @var $block \Magento\Checkout\Block\Onepage\Link */
  
 use Magento\Framework\App\Config\ScopeConfigInterface;
 
@@ -26,8 +25,6 @@ $cartDataCount = count( $cartData );
 ?>
 <?php if ($isMagicEnabled == 1 && $cartDataCount > 0) :?>
  
- <!-- <script id="cart-occ-template" type="text/x-occ-template"> -->
-
     <div id="cart-occ-div">
 
     <button type="button"
@@ -40,7 +37,7 @@ $cartDataCount = count( $cartData );
  
             data-mage-init='{
  
-                "Razorpay_Magento/js/cart-one-cc":{
+                "Razorpay_Magento/js/magic-cart":{
  
                    "isAvailableUrl": "<?php echo $block->getUrl('rest/V1/buttons/buynow/canshow/') ?>",
                     "submitUrl": "<?php echo $block->getUrl('razorpay/oneclick/placeorder') ?>",
@@ -62,21 +59,19 @@ $cartDataCount = count( $cartData );
  
     </button>
     </div>
-<!-- </script> -->
+
+    <script type="text/javascript">
+
+        var Razorpay = {
+          "config": {
+            "api": "https://api-web-magemo.ext.dev.razorpay.in/",
+           "frame": "https://api-web-magemo.ext.dev.razorpay.in/test/checkout.html?branch=master",
+          },
+        }; 
+
+         var rzpApi = Razorpay.config.api + 'v1/';
+    </script>
+
+    <script type="text/javascript" src="https://checkout.razorpay.com/v1/magic-checkout.js"></script>
  
 <?php endif; ?>
-
-<script type="text/javascript">
-
-    var Razorpay = {
-      "config": {
-        "api": "https://api-web-magemo.ext.dev.razorpay.in/",
-       "frame": "https://api-web-magemo.ext.dev.razorpay.in/test/checkout.html?branch=master",
-      },
-    }; 
-
-     var rzpApi = Razorpay.config.api + 'v1/';
-</script>
-
-<script type="text/javascript"
-        src="https://checkout.razorpay.com/v1/magic-checkout.js"></script>

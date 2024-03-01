@@ -8,23 +8,17 @@ use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Quote\Api\CartManagementInterface;
 use Magento\Framework\Pricing\Helper\Data;
-// use Magento\Framework\App\Config\ScopeConfigInterface;
-use Magento\Store\Model\ScopeInterface;
 use Razorpay\Magento\Model\PaymentMethod;
 use Razorpay\Magento\Model\Config;
 use Razorpay\Api\Api;
 use Magento\Framework\App\Request\Http;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Quote\Model\Quote\Item;
-use Magento\Quote\Model\QuoteIdToMaskedQuoteIdInterface;
 use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Quote\Model\ResourceModel\Quote\QuoteIdMask as QuoteIdMaskResourceModel;
 use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
 use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
-use Magento\Sales\Block\Order\Totals;
-use Magento\Quote\Api\Data\TotalsInterface;
-use Magento\Framework\DataObject;
 use Magento\Directory\Model\ResourceModel\Region\CollectionFactory;
 use Magento\Directory\Model\ResourceModel\Region\Collection;
 use Razorpay\Magento\Controller\OneClick\StateMap;
@@ -58,9 +52,6 @@ class CompleteOrder extends Action
      */
     protected $priceHelper;
 
-    /**
-     * @var ScopeConfigInterface
-     */
     protected $config;
 
     /**
@@ -77,8 +68,6 @@ class CompleteOrder extends Action
      */
     protected $quoteItem;
 
-    protected $maskedQuoteIdInterface;
-
     private QuoteIdMaskFactory $quoteIdMaskFactory;
 
     private QuoteIdMaskResourceModel $quoteIdMaskResourceModel;
@@ -88,7 +77,6 @@ class CompleteOrder extends Action
     protected $cartRepositoryInterface;
 
     protected $order;
-    protected $stateMap;
     protected $invoiceService;
     protected $invoiceSender;
     protected $transaction;
@@ -97,12 +85,12 @@ class CompleteOrder extends Action
     protected $captureCommand;
     protected $orderStatus;
     protected $checkoutSession;
-    protected $totals;
-    protected $totalsInterface;
     protected $stateNameMap;
     protected $_order = null;
 
     protected const STATUS_PROCESSING = 'processing';
+    protected const COD               = 'cashondelivery';
+    protected const RAZORPAY          = 'razorpay';
 
     /**
      * CompleteOrder constructor.
@@ -111,7 +99,6 @@ class CompleteOrder extends Action
      * @param JsonFactory $jsonFactory
      * @param CartManagementInterface $cartManagement
      * @param Data $priceHelper
-     * @param ScopeConfigInterface $config
      * @param PaymentMethod $paymentMethod
      * @param \Psr\Log\LoggerInterface $logger
      * @param ProductRepositoryInterface $productRepository
@@ -127,7 +114,6 @@ class CompleteOrder extends Action
         \Psr\Log\LoggerInterface $logger,
         ProductRepositoryInterface $productRepository,
         Item $quoteItem,
-        QuoteIdToMaskedQuoteIdInterface $maskedQuoteIdInterface,
         QuoteIdMaskFactory $quoteIdMaskFactory,
         QuoteIdMaskResourceModel $quoteIdMaskResourceModel,
         StoreManagerInterface $storeManager,
@@ -138,8 +124,6 @@ class CompleteOrder extends Action
         \Magento\Framework\DB\Transaction $transaction,
         \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
         \Magento\Checkout\Model\Session $checkoutSession,
-        Totals $totals,
-        TotalsInterface $totalsInterface,
         CollectionFactory $collectionFactory,
         StateMap $stateNameMap
     ) {
@@ -153,7 +137,6 @@ class CompleteOrder extends Action
         $this->logger = $logger;
         $this->productRepository = $productRepository;
         $this->quoteItem = $quoteItem;
-        $this->maskedQuoteIdInterface = $maskedQuoteIdInterface;
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->quoteIdMaskResourceModel = $quoteIdMaskResourceModel;
         $this->storeManager = $storeManager;
@@ -164,8 +147,6 @@ class CompleteOrder extends Action
         $this->transaction     = $transaction;
         $this->orderSender     = $orderSender;
         $this->checkoutSession  = $checkoutSession;
-        $this->totals  = $totals;
-        $this->totalsInterface  = $totalsInterface;
         $this->collectionFactory  = $collectionFactory;
         $this->stateNameMap       = $stateNameMap;
         $this->resultRedirectFactory = $context->getResultFactory();;
@@ -180,54 +161,179 @@ class CompleteOrder extends Action
 
         $resultJson = $this->resultJsonFactory->create();
 
-        $rzp_order_id = $params['razorpay_order_id'];
-        $rzp_payment_id = $params['razorpay_payment_id'];
+        $rzpOrderId = $params['razorpay_order_id'];
+        $rzpPaymentId = $params['razorpay_payment_id'];
 
-        $rzp_order_data = $this->rzp->order->fetch($rzp_order_id);
-        $rzp_payment_data = $this->rzp->payment->fetch($rzp_payment_id);
-        $receipt = isset($rzp_order_data->receipt) ? $rzp_order_data->receipt : null;
-        $cart_id = isset($rzp_order_data->notes) ? $rzp_order_data->notes->cart_id : null;
-        $this->logger->info('graphQL: Razorpay Order receipt:' . $cart_id);
+        $rzpOrderData = $this->rzp->order->fetch($rzpOrderId);
+        $rzpPaymentData = $this->rzp->payment->fetch($rzpPaymentId);
 
-        $quote = $this->cartRepositoryInterface->get($cart_id);
+        $cartId = isset($rzpOrderData->notes) ? $rzpOrderData->notes->cart_id : null;
 
-        $quote->setCustomerEmail($rzp_order_data->customer_details->email);
+        $quote = $this->cartRepositoryInterface->get($cartId);
 
-        $name = explode(' ', $rzp_order_data->customer_details->shipping_address->name);
+        $this->updateQuote($quote, $rzpOrderData, $rzpPaymentData);
 
-        $country = $rzp_order_data->customer_details->shipping_address->country;
-        $state = $rzp_order_data->customer_details->shipping_address->state;
-
-        $magentoStateName = $this->stateNameMap->getMagentoStateName($country, $state);
-        $this->logger->info('graphQL: Magento state name:' . $magentoStateName);
-
-        $regionCode = $this->collectionFactory->create()
-            ->addRegionNameFilter($magentoStateName)
-            ->getFirstItem()
-            ->toArray();
-
-        $this->logger->info('graphQL: Magento region:' . json_encode($regionCode));
-
-        $address=[
-             'email'        => $rzp_order_data->customer_details->email, //buyer email id
-             'shipping_address' =>[
-                    'firstname'      => $name[0], //address Details
-                    'lastname'       => $name[1]?? '.',
-                            'street' => $rzp_order_data->customer_details->shipping_address->line1,
-                            'city' => $rzp_order_data->customer_details->shipping_address->city,
-                    'country_id' => strtoupper($country),
-                    'region' => $regionCode['code']??'KA',
-                    'postcode' => $rzp_order_data->customer_details->shipping_address->zipcode,
-                    'telephone' => $rzp_order_data->customer_details->shipping_address->contact,
-                    'save_in_address_book' => 1
-                         ]
-        ];
-        $quote->getBillingAddress()->addData($address['shipping_address']);
-        $quote->getShippingAddress()->addData($address['shipping_address']);
-
-        if($rzp_order_data->shipping_fee > 0)
+        $orderId = $this->cartManagement->placeOrder($cartId);
+        $order = $this->order->load($orderId);
+       
+        $order->setEmailSent(0);
+        if ($order)
         {
-            $shippingMethod = 'flatrate_flatrate';
+            if ($order->getStatus() === 'pending')
+            {
+                $order->setState(static::STATUS_PROCESSING)->setStatus($this->orderStatus);
+
+                $this->logger->info('graphQL: Order Status Updated to ' . $this->orderStatus);
+            }
+
+            $payment = $order->getPayment();
+
+            $payment->setLastTransId($rzpPaymentId)
+                    ->setTransactionId($rzpPaymentId)
+                    ->setIsTransactionClosed(true)
+                    ->setShouldCloseParentTransaction(true);
+
+            $payment->setParentTransactionId($payment->getTransactionId());
+
+            if ($this->config->getPaymentAction()  === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE)
+            {
+                $payment->addTransactionCommentsToOrder(
+                    "$rzpPaymentId",
+                    $this->captureCommand->execute(
+                        $payment,
+                        $order->getGrandTotal(),
+                        $order
+                    ),
+                    ""
+                );
+            }
+            else
+            {
+                $payment->addTransactionCommentsToOrder(
+                    "$rzpPaymentId",
+                    $this->authorizeCommand->execute(
+                        $payment,
+                        $order->getGrandTotal(),
+                        $order
+                    ),
+                    ""
+                );
+            }
+
+            $transaction = $payment->addTransaction(\Magento\Sales\Model\Order\Payment\Transaction::TYPE_AUTH, null, true, "");
+
+            $transaction->setIsClosed(true);
+
+            $transaction->save();
+
+            $this->logger->info('Payment authorized completed for id : '. $order->getIncrementId());
+
+            if ($order->canInvoice() && $this->config->canAutoGenerateInvoice()
+                && $rzpOrderData->status === 'paid')
+            {
+                $invoice = $this->invoiceService->prepareInvoice($order);
+                $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
+                $invoice->setTransactionId($rzpPaymentId);
+                $invoice->register();
+                $invoice->save();
+
+                $this->logger->info('graphQL: Created Invoice for '
+                . 'order_id ' . $rzpOrderId . ', '
+                . 'rzp_payment_id ' . $rzpPaymentId);
+
+                $transactionSave = $this->transaction
+                    ->addObject($invoice)
+                    ->addObject($invoice->getOrder());
+                $transactionSave->save();
+
+                $this->invoiceSender->send($invoice);
+
+                $order->addStatusHistoryComment(
+                    __('Notified customer about invoice #%1.', $invoice->getId())
+                )->setIsCustomerNotified(true);
+
+                $this->logger->info('Invoice generated for id : '. $order->getIncrementId());
+            }
+            else if($rzpOrderData->status === 'paid' and
+                    ($order->canInvoice() === false or
+                    $this->config->canAutoGenerateInvoice() === false))
+            {
+                $this->logger->info('Invoice generation not possible for id : '. $order->getIncrementId());
+            }
+
+            try
+            {
+                $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
+                $this->orderSender->send($order);
+                $this->checkoutSession->unsRazorpayMailSentOnSuccess();
+            }
+            catch (\Magento\Framework\Exception\MailException $e)
+            {
+                $this->logger->critical('graphQL: '
+                . 'Razorpay Error:' . $e->getMessage());
+
+                throw new GraphQlInputException(__('Razorpay Error: %1.', $e->getMessage()));
+            }
+            catch (\Exception $e)
+            {
+                $this->logger->critical('graphQL: '
+                . 'Error:' . $e->getMessage());
+
+                throw new GraphQlInputException(__('Error: %1.', $e->getMessage()));
+            }
+
+            $this
+                ->checkoutSession
+                ->setLastSuccessQuoteId($order->getQuoteId())
+                ->setLastQuoteId($order->getQuoteId())
+                ->clearHelperData();
+            if (empty($order) === false)
+            {
+                $this
+                    ->checkoutSession
+                    ->setLastOrderId($order->getId())
+                    ->setLastRealOrderId($order->getIncrementId())
+                    ->setLastOrderStatus($order->getStatus());
+            }
+
+            $order->save();
+
+            $result = [
+                'status' => 'success'
+            ];
+
+            return $resultJson->setData($result);
+
+        }
+    }
+
+    protected function updateQuote($quote, $rzpOrderData)
+    {
+        $carrierCode = isset($rzpOrderData->notes) ? $rzpOrderData->notes->carrier_code : null;
+        $methodCode = isset($rzpOrderData->notes) ? $rzpOrderData->notes->method_code : null;
+
+        $email = $rzpOrderData->customer_details->email ?? '';
+
+        $quote->setCustomerEmail($email);
+
+        $shippingCountry = $rzpOrderData->customer_details->shipping_address->country;
+        $shippingState = $rzpOrderData->customer_details->shipping_address->state;
+
+        $billingingCountry = $rzpOrderData->customer_details->billing_address->country;
+        $billingingState = $rzpOrderData->customer_details->billing_address->state;
+
+        $shippingRegionCode = $this->getRegionCode($shippingCountry, $shippingState);
+        $billingRegionCode = $this->getRegionCode($billingingCountry, $billingingState);
+
+        $shipping = $this->getAddress($rzpOrderData->customer_details->shipping_address, $shippingRegionCode, $email);
+        $billing = $this->getAddress($rzpOrderData->customer_details->billing_address, $billingRegionCode, $email);
+
+        $quote->getBillingAddress()->addData($billing['address']);
+        $quote->getShippingAddress()->addData($shipping['address']);
+
+        if(empty($carrierCode) === false && empty($methodCode) === false)
+        {
+            $shippingMethod = $carrierCode ."_". $methodCode;
         }
         else
         {
@@ -239,203 +345,92 @@ class CompleteOrder extends Action
                         ->collectShippingRates()
                         ->setShippingMethod($shippingMethod);
 
-
-        if(isset($rzp_order_data->promotions[0]->code) == true)
+        if(isset($rzpOrderData->promotions[0]->code) == true)
         {
-         $quote->setCouponCode($rzp_order_data->promotions[0]->code);   
+            $quote->setCouponCode($rzpOrderData->promotions[0]->code);   
         }
 
-        if($rzp_payment_data->method === 'cod')
+        if($rzpPaymentData->method === 'cod')
         {
-            $paymentMethod = 'cashondelivery';
+            $paymentMethod = static::COD;
         }
-        else {
-            $paymentMethod = 'razorpay';
+        else
+        {
+            $paymentMethod = static::RAZORPAY;
         }
 
-        $quote->setPaymentMethod($paymentMethod); //payment method
-        $quote->setInventoryProcessed(false); //not effetc inventory
+        $quote->setPaymentMethod($paymentMethod);
+        $quote->setInventoryProcessed(false);
         // Set Sales Order Payment
         $quote->getPayment()->importData(['method' => $paymentMethod]);
 
         $quote->save();
-
-        $orderId = $this->cartManagement->placeOrder($cart_id);
-        $order = $this->order->load($orderId);
-       
-        $order->setEmailSent(0);
-        $increment_id = $order->getRealOrderId();
-        if ($order)
-            {
-                // $amountPaid = number_format($rzpOrderAmount / 100, 2, ".", "");
-                if ($order->getStatus() === 'pending')
-                {
-                    $order->setState(static::STATUS_PROCESSING)->setStatus($this->orderStatus);
-
-                    $this->logger->info('graphQL: Order Status Updated to ' . $this->orderStatus);
-                }
-
-                $payment = $order->getPayment();
-
-                $payment->setLastTransId($rzp_payment_id)
-                        ->setTransactionId($rzp_payment_id)
-                        ->setIsTransactionClosed(true)
-                        ->setShouldCloseParentTransaction(true);
-
-                $payment->setParentTransactionId($payment->getTransactionId());
-
-                if ($this->config->getPaymentAction()  === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE)
-                {
-                    $payment->addTransactionCommentsToOrder(
-                        "$rzp_payment_id",
-                        $this->captureCommand->execute(
-                            $payment,
-                            $order->getGrandTotal(),
-                            $order
-                        ),
-                        ""
-                    );
-                } else
-                {
-                    $payment->addTransactionCommentsToOrder(
-                        "$rzp_payment_id",
-                        $this->authorizeCommand->execute(
-                            $payment,
-                            $order->getGrandTotal(),
-                            $order
-                        ),
-                        ""
-                    );
-                }
-
-                $transaction = $payment->addTransaction(\Magento\Sales\Model\Order\Payment\Transaction::TYPE_AUTH, null, true, "");
-
-                $transaction->setIsClosed(true);
-
-                $transaction->save();
-
-                $this->logger->info('Payment authorized completed for id : '. $order->getIncrementId());
-
-                if ($order->canInvoice() && $this->config->canAutoGenerateInvoice()
-                    && $rzp_order_data->status === 'paid')
-                {
-                    $invoice = $this->invoiceService->prepareInvoice($order);
-                    $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
-                    $invoice->setTransactionId($rzp_payment_id);
-                    $invoice->register();
-                    $invoice->save();
-
-                    $this->logger->info('graphQL: Created Invoice for '
-                    . 'order_id ' . $rzp_order_id . ', '
-                    . 'rzp_payment_id ' . $rzp_payment_id);
-
-                    $transactionSave = $this->transaction
-                        ->addObject($invoice)
-                        ->addObject($invoice->getOrder());
-                    $transactionSave->save();
-
-                    $this->invoiceSender->send($invoice);
-
-                    $order->addStatusHistoryComment(
-                        __('Notified customer about invoice #%1.', $invoice->getId())
-                    )->setIsCustomerNotified(true);
-
-                    $this->logger->info('Invoice generated for id : '. $order->getIncrementId());
-                }
-                else if($rzp_order_data->status === 'paid' and
-                        ($order->canInvoice() === false or
-                        $this->config->canAutoGenerateInvoice() === false))
-                {
-                    $this->logger->info('Invoice generation not possible for id : '. $order->getIncrementId());
-                }
-
-                try
-                {
-                    $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
-                    $this->orderSender->send($order);
-                    $this->checkoutSession->unsRazorpayMailSentOnSuccess();
-                }
-                catch (\Magento\Framework\Exception\MailException $e)
-                {
-                    $this->logger->critical('graphQL: '
-                    . 'Razorpay Error:' . $e->getMessage());
-
-                    throw new GraphQlInputException(__('Razorpay Error: %1.', $e->getMessage()));
-                }
-                catch (\Exception $e)
-                {
-                    $this->logger->critical('graphQL: '
-                    . 'Error:' . $e->getMessage());
-
-                    throw new GraphQlInputException(__('Error: %1.', $e->getMessage()));
-                }
-
-                $this
-                    ->checkoutSession
-                    ->setLastSuccessQuoteId($order->getQuoteId())
-                    ->setLastQuoteId($order->getQuoteId())
-                    ->clearHelperData();
-                if (empty($order) === false)
-                {
-                    $this
-                        ->checkoutSession
-                        ->setLastOrderId($order->getId())
-                        ->setLastRealOrderId($order->getIncrementId())
-                        ->setLastOrderStatus($order->getStatus());
-                }
-
-                $order->save();
-
-                $result = [
-                    'status' => 'success'
-                ];
-
-                return $resultJson->setData($result);
-
-                // return $this->_redirect('checkout/onepage/success');
-
-            }
-
+        
     }
 
-    public function addTotalBeforeCOD(\Magento\Framework\DataObject $total, $before = null)
+    protected function getRegionCode($country, $state)
     {
-        if ($before !== null) {
-            if (!is_array($before)) {
-                $before = [$before];
-                echo "is_array";
-                var_dump($before);
+        $magentoStateName = $this->stateNameMap->getMagentoStateName($country, $state);
 
-            }
-            foreach ($before as $beforeTotals) {
-                echo "foreach";
-                var_dump($beforeTotals);
-                if (isset($this->_totals[$beforeTotals])) {
-                    $totals = [];
-                    echo "isset";
-                    foreach ($this->_totals as $code => $item) {
-                        if ($code == $beforeTotals) {
-                            echo "code";
-                var_dump($beforeTotals);
-                            $totals[$total->getCode()] = $total;
-                        }
-                        $totals[$code] = $item;
-                    }
-                    echo "totals";
-                var_dump($totals);
-                    $this->_totals = $totals;
-                    return $this;
-                }
-            }
-        }
-        $totals = [];
-        $first = array_shift($this->_totals);
-        $totals[$first->getCode()] = $first;
-        $totals[$total->getCode()] = $total;
-        foreach ($this->_totals as $code => $item) {
-            $totals[$code] = $item;
-        }
-        $this->_totals = $totals;
-        return $this;
+        $this->logger->info('graphQL: Magento state name:' . $magentoStateName);
+
+        $regionCode = $this->collectionFactory->create()
+            ->addRegionNameFilter($magentoStateName)
+            ->getFirstItem()
+            ->toArray();
+
+        return $regionCode['code'] ?? 'NA';
+
     }
+
+    protected function getAddress($rzpAddress, $regionCode, $email)
+    {
+        $name = explode(' ', $rzpAddress->name);
+
+        return [
+            'email'   => $email, //buyer email id
+            'address' =>[
+                'firstname'  => $name[0], //address Details
+                'lastname'   => $name[1]?? '.',
+                    'street' => $rzpAddress->line1,
+                    'city' => $rzpAddress->city,
+                'country_id' => strtoupper($rzpAddress->country),
+                'region' => $regionCode,
+                'postcode' => $rrzpAddress->zipcode,
+                'telephone' => $rzpAddress->contact,
+                'save_in_address_book' => 1
+            ]
+        ];
+    }
+
+    protected function validateSignature($request)
+    {
+        if (empty($request['error']) === false)
+        {
+            $this
+                ->logger
+                ->critical("Validate: Payment Failed or error from gateway");
+            $this
+                ->messageManager
+                ->addError(__('Payment Failed'));
+            throw new \Exception("Payment Failed or error from gateway");
+        }
+
+        $this->logger->info('razorpay_payment_id = '. $request['razorpay_payment_id']);
+        $this->logger->info('razorpay_order_id = '. $request['razorpay_order_id']);
+        $this->logger->info('razorpay_signature = '. $request['razorpay_signature']);
+        
+        
+        $attributes = array(
+            'razorpay_payment_id' => $request['razorpay_payment_id'],
+            'razorpay_order_id' => $request['razorpay_order_id'],
+            'razorpay_signature' => $request['razorpay_signature'],
+        );
+
+        $this
+            ->rzp
+            ->utility
+            ->verifyPaymentSignature($attributes);
+    }
+
 }

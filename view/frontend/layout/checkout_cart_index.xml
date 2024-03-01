@@ -2,7 +2,7 @@
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" layout="1column" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <body>
         <referenceContainer name="content">
-            <block class="Magento\Checkout\Block\Onepage\Link" name="checkout.cart.methods.onepage.top" template="Razorpay_Magento::onepage/magic_cart.phtml" before="checkout.cart">
+            <block class="Magento\Checkout\Block\Oneclick\Link" name="checkout.cart.methods.oneclick.top" template="Razorpay_Magento::oneclick/magiccart.phtml" before="checkout.cart">
             </block>
         </referenceContainer>
     </body>

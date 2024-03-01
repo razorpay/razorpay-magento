@@ -1,31 +1,31 @@
 <?php
-/** @var \Magento\Catalog\Block\Product\View $block */
-use Magento\Framework\App\Config\ScopeConfigInterface;
 
-function getObjectManager()
-{
-    return \Magento\Framework\App\ObjectManager::getInstance();
-}
+    use Magento\Framework\App\Config\ScopeConfigInterface;
 
-$objectManager = getObjectManager();
+    function getObjectManager()
+    {
+        return \Magento\Framework\App\ObjectManager::getInstance();
+    }
 
-// Get the store manager
-$storeManager = $objectManager->get(\Magento\Store\Model\StoreManagerInterface::class);
-$scopeConfig = $objectManager->get(ScopeConfigInterface::class);
+    $objectManager = getObjectManager();
 
-$code = 'razorpay';
-$magicActiveField = 'activate_magic';
-$buynowActiveField = 'activate_magic_buy_now';
+    // Get the store manager
+    $storeManager = $objectManager->get(\Magento\Store\Model\StoreManagerInterface::class);
+    $scopeConfig = $objectManager->get(ScopeConfigInterface::class);
 
-$isMagicEnabled = $scopeConfig->getValue('payment/' . $code . '/' . $magicActiveField, \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
-$isBuynowEnabled = $scopeConfig->getValue('payment/' . $code . '/' . $buynowActiveField, \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
+    $code = 'razorpay';
+    $magicActiveField = 'activate_magic';
+    $buynowActiveField = 'activate_magic_buy_now';
+
+    $isMagicEnabled = $scopeConfig->getValue('payment/' . $code . '/' . $magicActiveField, \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
+    $isBuynowEnabled = $scopeConfig->getValue('payment/' . $code . '/' . $buynowActiveField, \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
 
 ?>
 <?php if ($isMagicEnabled == 1 && $isBuynowEnabled == 1) :?>
 <script type="text/x-magento-init">
     {
         "#product_addtocart_form": {
-            "Razorpay_Magento/js/buy-now": {
+            "Razorpay_Magento/js/magic-buy-now": {
                 "isAvailableUrl": "<?php echo $block->getUrl('rest/V1/buttons/buynow/canshow/') ?>",
                 "submitUrl": "<?php echo $block->getUrl('razorpay/oneclick/placeorder') ?>",
                 "sku": "<?php echo $block->getProduct()->getSku(); ?>",
