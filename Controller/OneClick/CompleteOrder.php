@@ -194,7 +194,7 @@ class CompleteOrder extends Action
 
                 $rzpPromotionAmount = 0;
 
-                foreach($razorpayData->promotions as $promotion)
+                foreach($rzpOrderData->promotions as $promotion)
                 {
                     if (empty($promotion['code']) === false)
                     {
