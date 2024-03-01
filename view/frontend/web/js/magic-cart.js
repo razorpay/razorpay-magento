@@ -58,7 +58,7 @@ define([
         _createButton: function () {
             var button = $(this.options.buttonTemplateSelector).html();
             console.log(button);
-            this._parent().find(this.options.actionSelector).prepend(button);
+            // this._parent().find(this.options.actionSelector).prepend(button);
             this._bind();
         },
 
