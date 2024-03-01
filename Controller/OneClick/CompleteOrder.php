@@ -191,6 +191,7 @@ class CompleteOrder extends Action
                 $discountAmount = $order->getDiscountAmount();
 
                 $codFee = $rzpOrderData->cod_fee;
+                $totalPaid = $rzpPaymentData->amount;
 
                 $rzpPromotionAmount = 0;
 
@@ -202,12 +203,13 @@ class CompleteOrder extends Action
                     }
                 }
 
-                $offerDiff = $rzpOrderData->line_items_total + $rzpOrderData->shipping_fee + $codFee - $rzpPaymentData->amount - $rzpPromotionAmount;
+                $offerDiff = $rzpOrderData->line_items_total + $rzpOrderData->shipping_fee + $codFee - $totalPaid - $rzpPromotionAmount;
 
                 if($offerDiff > 0)
                 {
                     $offerDiscount = ($offerDiff/100);
-                    $newDiscountAmount = $discountAmount + $offerDiscount;
+                    // abs is used here as discount amount is returned as minus from order object.
+                    $newDiscountAmount = abs($discountAmount) + $offerDiscount;
 
                     $this->logger->info('graphQL: offerDiscount ' . $offerDiscount);
                     $this->logger->info('graphQL: newDiscountAmount ' . $newDiscountAmount);
@@ -215,7 +217,7 @@ class CompleteOrder extends Action
                     $this->logger->info('graphQL: codFee ' . $codFee);
                     $this->logger->info('graphQL: discountAmount ' . $discountAmount);
 
-                    $this->updateDiscountAmount($orderId, $newDiscountAmount, $offerDiscount);
+                    $this->updateDiscountAmount($orderId, $newDiscountAmount, $offerDiscount, $totalPaid);
 
                 }
             }
@@ -341,7 +343,7 @@ class CompleteOrder extends Action
         }
     }
 
-    public function updateDiscountAmount($orderId, $newDiscountAmount, $offerAmount)
+    public function updateDiscountAmount($orderId, $newDiscountAmount, $offerAmount, $totalPaid)
     {
         try {
             // Load the order
@@ -357,8 +359,10 @@ class CompleteOrder extends Action
             $order->setBaseGrandTotal($totalBaseGrandTotal - $offerAmount);
             $order->setGrandTotal($totalGrandTotal - $offerAmount);
 
+            $order->setTotalPaid($totalPaid);
+
             $order->addStatusHistoryComment(
-                __('Razorpay offer applied #%1.', $offerAmount."_".$totalBaseGrandTotal."_".$totalGrandTotal)
+                __('Razorpay offer applied #%1.', $offerAmount)
             )->setIsCustomerNotified(true);
 
             return true;
