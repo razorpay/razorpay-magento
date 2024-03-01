@@ -3,7 +3,7 @@
       xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <body>
         <referenceContainer name="alert.urls">
-            <block class="Magento\Catalog\Block\Product\View" name="product.buynow" template="Razorpay_Magento::oneclick/buynow.phtml" before="-" />
+            <block class="Magento\Catalog\Block\Product\View" name="oneclick.buynow" template="Razorpay_Magento::oneclick/buynow.phtml" before="-" />
         </referenceContainer>
     </body>
 </page>
