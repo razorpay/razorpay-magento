@@ -16,9 +16,11 @@
     $code = 'razorpay';
     $magicActiveField = 'activate_magic';
     $buynowActiveField = 'activate_magic_buy_now';
+    $keyField = 'key_id';
 
     $isMagicEnabled = $scopeConfig->getValue('payment/' . $code . '/' . $magicActiveField, \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
     $isBuynowEnabled = $scopeConfig->getValue('payment/' . $code . '/' . $buynowActiveField, \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
+    $rzpKey = $scopeConfig->getValue('payment/' . $code . '/' . $keyField, \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
 
 ?>
 <?php if ($isMagicEnabled == 1 && $isBuynowEnabled == 1) :?>
@@ -29,7 +31,8 @@
                 "isAvailableUrl": "<?php echo $block->getUrl('rest/V1/buttons/buynow/canshow/') ?>",
                 "submitUrl": "<?php echo $block->getUrl('razorpay/oneclick/placeorder') ?>",
                 "sku": "<?php echo $block->getProduct()->getSku(); ?>",
-                "callbackURL": "<?php echo $block->getUrl('razorpay/oneclick/completeorder') ?>"
+                "callbackURL": "<?php echo $block->getUrl('razorpay/oneclick/completeorder') ?>",
+                "key": "<?php echo $rzpKey ?>"
             }
         }
     }

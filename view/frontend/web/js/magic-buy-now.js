@@ -15,6 +15,7 @@ define([
             isAvailableUrl: '',
             submitUrl: '',
             callbackURL: '',
+            key: '',
             actionSelector: '.actions',
             buttonTemplateSelector: '#occ-template',
             buttonSelector: '#product-oneclick-button',
@@ -127,7 +128,7 @@ define([
             var self = this;
 
             var options = {
-                key: 'rzp_test_WU34MeOkxLNp52',
+                key: self.options.key,
                 name: 'Razorpay',
                 amount: data.totalAmount,
                 handler: function (data) {

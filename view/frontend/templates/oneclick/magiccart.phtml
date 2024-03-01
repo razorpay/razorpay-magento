@@ -16,8 +16,10 @@ $scopeConfig = $objectManager->get(ScopeConfigInterface::class);
 
 $code = 'razorpay';
 $magicActiveField = 'activate_magic';
+$keyField = 'key_id';
 
 $isMagicEnabled = $scopeConfig->getValue('payment/' . $code . '/' . $magicActiveField, \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
+$rzpKey = $scopeConfig->getValue('payment/' . $code . '/' . $keyField, \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
 
 $cartData = $objectManager->create('Magento\Checkout\Model\Cart')->getQuote()->getAllVisibleItems();
 $cartDataCount = count( $cartData );
@@ -41,8 +43,8 @@ $cartDataCount = count( $cartData );
  
                    "isAvailableUrl": "<?php echo $block->getUrl('rest/V1/buttons/buynow/canshow/') ?>",
                     "submitUrl": "<?php echo $block->getUrl('razorpay/oneclick/placeorder') ?>",
-                    "callbackURL": "<?php echo $block->getUrl('razorpay/oneclick/completeorder') ?>"
- 
+                    "callbackURL": "<?php echo $block->getUrl('razorpay/oneclick/completeorder') ?>",
+                    "key": "<?php echo $rzpKey ?>"
                 }
  
             }'

@@ -15,6 +15,7 @@ define([
             isAvailableUrl: '',
             submitUrl: '',
             callbackURL: '',
+            key: '',
             actionSelector: '.action',
             buttonTemplateSelector: '#cart-occ-div',
             buttonSelector: '#cart-occ-template',
@@ -134,7 +135,7 @@ define([
             var self = this;
 
             var options = {
-                key: 'rzp_test_WU34MeOkxLNp52',
+                key: self.options.key,
                 name: 'Razorpay',
                 amount: data.totalAmount,
                 // timeout: 720,
