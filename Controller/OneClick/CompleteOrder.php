@@ -192,7 +192,17 @@ class CompleteOrder extends Action
 
                 $codFee = $rzpOrderData->cod_fee;
 
-                $offerDiff = $rzpOrderData->line_items_total + $rzpOrderData->shipping_fee + $codFee - $rzpPaymentData->amount - ($discountAmount * 100);
+                $rzpPromotionAmount = 0;
+
+                foreach($razorpayData->promotions as $promotion)
+                {
+                    if (empty($promotion['code']) === false)
+                    {
+                        $rzpPromotionAmount = $promotion['value'];
+                    }
+                }
+
+                $offerDiff = $rzpOrderData->line_items_total + $rzpOrderData->shipping_fee + $codFee - $rzpPaymentData->amount - $rzpPromotionAmount;
 
                 if($offerDiff > 0)
                 {
