@@ -309,8 +309,8 @@ class CompleteOrder extends Action
 
     protected function updateQuote($quote, $rzpOrderData)
     {
-        $carrierCode = isset($rzpOrderData->notes) ? $rzpOrderData->notes->carrier_code : null;
-        $methodCode = isset($rzpOrderData->notes) ? $rzpOrderData->notes->method_code : null;
+        $carrierCode = $rzpOrderData->notes->carrier_code ?? 'freeshipping';
+        $methodCode = $rzpOrderData->notes->method_code ?? 'freeshipping';
 
         $email = $rzpOrderData->customer_details->email ?? '';
 
@@ -331,13 +331,10 @@ class CompleteOrder extends Action
         $quote->getBillingAddress()->addData($billing['address']);
         $quote->getShippingAddress()->addData($shipping['address']);
 
+        $shippingMethod = 'NA';
         if(empty($carrierCode) === false && empty($methodCode) === false)
         {
             $shippingMethod = $carrierCode ."_". $methodCode;
-        }
-        else
-        {
-            $shippingMethod = 'freeshipping_freeshipping';
         }
 
         $shippingAddress=$quote->getShippingAddress();
