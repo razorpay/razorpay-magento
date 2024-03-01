@@ -186,6 +186,23 @@ class CompleteOrder extends Action
                 $this->logger->info('graphQL: Order Status Updated to ' . $this->orderStatus);
             }
 
+            if(!empty($rzpOrderData->offers))
+            {
+                $discountAmount = $order->getDiscountAmount();
+
+                $codFee = $rzpOrderData->cod_fee;
+
+                $offerDiff = $rzpOrderData->line_items_total + $rzpOrderData->shipping_fee + $codFee - $rzpPaymentData->amount - ($discountAmount * 100);
+
+                if($offerDiff > 0)
+                {
+                    $offerDiscount = ($offerDiff/100);
+                    $newDiscountAmount = $discountAmount + $offerDiscount;
+                    $this->updateDiscountAmount($orderId, $newDiscountAmount, $offerDiscount);
+
+                }
+            }
+
             $payment = $order->getPayment();
 
             $payment->setLastTransId($rzpPaymentId)
@@ -304,6 +321,30 @@ class CompleteOrder extends Action
 
             return $resultJson->setData($result);
 
+        }
+    }
+
+    public function updateDiscountAmount($orderId, $newDiscountAmount, $offerAmount)
+    {
+        try {
+            // Load the order
+            $order = $this->order->load($orderId);
+
+            // Update discount amount
+            $order->setDiscountAmount($newDiscountAmount);
+            $order->setBaseDiscountAmount($newDiscountAmount);
+
+            $totalBaseGrandTotal = $order->getBaseGrandTotal();
+            $totalGrandTotal = $order->getGrandTotal();
+
+            $order->setBaseGrandTotal($totalBaseGrandTotal - $offerAmount);
+            $order->setGrandTotal($totalGrandTotal - $offerAmount);
+
+
+            return true;
+        } catch (\Exception $e) {
+            // Handle exception
+            return false;
         }
     }
 
