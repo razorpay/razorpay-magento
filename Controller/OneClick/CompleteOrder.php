@@ -22,6 +22,7 @@ use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
 use Magento\Directory\Model\ResourceModel\Region\CollectionFactory;
 use Magento\Directory\Model\ResourceModel\Region\Collection;
 use Razorpay\Magento\Controller\OneClick\StateMap;
+use Razorpay\Magento\Model\CartConverter;
 
 class CompleteOrder extends Action
 {
@@ -86,6 +87,7 @@ class CompleteOrder extends Action
     protected $orderStatus;
     protected $checkoutSession;
     protected $stateNameMap;
+    protected $cartConverter;
     protected $_order = null;
 
     protected const STATUS_PROCESSING = 'processing';
@@ -125,7 +127,8 @@ class CompleteOrder extends Action
         \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
         \Magento\Checkout\Model\Session $checkoutSession,
         CollectionFactory $collectionFactory,
-        StateMap $stateNameMap
+        StateMap $stateNameMap,
+        CartConverter $cartConverter
     ) {
         parent::__construct($context);
         $this->request = $request;
@@ -149,6 +152,7 @@ class CompleteOrder extends Action
         $this->checkoutSession  = $checkoutSession;
         $this->collectionFactory  = $collectionFactory;
         $this->stateNameMap       = $stateNameMap;
+        $this->cartConverter = $cartConverter;
         $this->resultRedirectFactory = $context->getResultFactory();;
         $this->orderStatus     = static::STATUS_PROCESSING;
         $this->authorizeCommand = new AuthorizeCommand();
@@ -172,6 +176,13 @@ class CompleteOrder extends Action
         $quote = $this->cartRepositoryInterface->get($cartId);
 
         $this->updateQuote($quote, $rzpOrderData, $rzpPaymentData);
+
+        $customerPassword = 'chetu@12345';
+        $email = $rzpPaymentData->customer_details->email;
+        $quoteId = $rzpPaymentData->notes->cart_mask_id;
+
+        $customerCartId = $this->cartConverter->convertGuestCartToCustomer($quoteId, $email, $customerPassword);
+        $this->logger->info('graphQL: customerCartId ' . $customerCartId);
 
         $orderId = $this->cartManagement->placeOrder($cartId);
         $order = $this->order->load($orderId);
