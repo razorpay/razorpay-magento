@@ -307,7 +307,7 @@ class CompleteOrder extends Action
         }
     }
 
-    protected function updateQuote($quote, $rzpOrderData)
+    protected function updateQuote($quote, $rzpOrderData, $rzpPaymentData)
     {
         $carrierCode = $rzpOrderData->notes->carrier_code ?? 'freeshipping';
         $methodCode = $rzpOrderData->notes->method_code ?? 'freeshipping';

@@ -124,7 +124,6 @@ define([
                     window.location.href = successUrl;
                 },
                 error: function (error) {
-                    debugger;
                     console.log("Payment complete fail")
                 }
             })
