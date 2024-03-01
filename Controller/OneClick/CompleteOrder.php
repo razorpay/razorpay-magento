@@ -198,6 +198,13 @@ class CompleteOrder extends Action
                 {
                     $offerDiscount = ($offerDiff/100);
                     $newDiscountAmount = $discountAmount + $offerDiscount;
+
+                    $this->logger->info('graphQL: offerDiscount ' . $offerDiscount);
+                    $this->logger->info('graphQL: newDiscountAmount ' . $newDiscountAmount);
+                    $this->logger->info('graphQL: offerDiff ' . $offerDiff);
+                    $this->logger->info('graphQL: codFee ' . $codFee);
+                    $this->logger->info('graphQL: discountAmount ' . $discountAmount);
+
                     $this->updateDiscountAmount($orderId, $newDiscountAmount, $offerDiscount);
 
                 }
@@ -341,7 +348,7 @@ class CompleteOrder extends Action
             $order->setGrandTotal($totalGrandTotal - $offerAmount);
 
             $order->addStatusHistoryComment(
-                __('Razorpay offer applied #%1.', $offerAmount)
+                __('Razorpay offer applied #%1.', $offerAmount."_".$totalBaseGrandTotal."_".$totalGrandTotal)
             )->setIsCustomerNotified(true);
 
             return true;

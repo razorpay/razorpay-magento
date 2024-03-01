@@ -94,12 +94,18 @@
                     <label>Magic Buy Now Enabled</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <config_path>payment/razorpay/activate_magic_buy_now</config_path>
+                    <depends>
+                        <field id="activate_magic">1</field>
+                    </depends>
                 </field>
 
                 <field id="activate_magic_mini_cart" translate="label" type="select" sortOrder="6" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Magic Mini Cart Enabled</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <config_path>payment/razorpay/activate_magic_mini_cart</config_path>
+                    <depends>
+                        <field id="activate_magic">1</field>
+                    </depends>
                 </field>
 
                 <field id="order_status" translate="label" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
