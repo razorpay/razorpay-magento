@@ -178,8 +178,8 @@ class CompleteOrder extends Action
         $this->updateQuote($quote, $rzpOrderData, $rzpPaymentData);
 
         $customerPassword = 'chetu@12345';
-        $email = $rzpPaymentData->customer_details->email;
-        $quoteId = $rzpPaymentData->notes->cart_mask_id;
+        $email = $rzpOrderData->customer_details->email;
+        $quoteId = $rzpOrderData->notes->cart_mask_id;
 
         $customerCartId = $this->cartConverter->convertGuestCartToCustomer($quoteId, $email, $customerPassword);
         $this->logger->info('graphQL: customerCartId ' . $customerCartId);
