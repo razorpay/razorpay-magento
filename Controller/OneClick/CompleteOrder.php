@@ -362,7 +362,7 @@ class CompleteOrder extends Action
             $order->setTotalPaid($totalPaid/100);
 
             $order->addStatusHistoryComment(
-                __('Razorpay offer applied #%1.', $offerAmount)
+                __('Razorpay offer applied ₹%1.', $offerAmount)
             )->setIsCustomerNotified(true);
 
             return true;

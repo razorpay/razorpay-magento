@@ -33,7 +33,6 @@ define([
         _initButton: function () {
             var self = this;
 
-            console.log("-----");
             switch ($.mage.cookies.get(this.cookie)) {
                 case this.cookieEnabled:
                     this._createButton();
@@ -152,9 +151,9 @@ define([
                 },
                 // callback_url : self.options.callbackURL,
                 prefill: {
-                    name: 'Chetan',
-                    contact: '7795619055',
-                    email: 'chetan@mail.com'
+                    name: '',
+                    contact: '',
+                    email: ''
                 },
                 _: {
                     integration: 'magento',
@@ -175,17 +174,6 @@ define([
             this.rzp.open();
         },
 
-        _getOrderTemplate: function (order) {
-            _.templateSettings.variable = 'order';
-
-            var template = _.template($('script.order-template').html());
-            var output = template(order);
-
-            delete _.templateSettings.variable;
-
-            return output;
-        },
-
         _orderError: function (request) {
             console.log(request);
             this.enableButton();
@@ -196,12 +184,6 @@ define([
             button.addClass('disabled');
             button.find('span').text($t('One Click Checkout'));
             button.attr('title', $t('One Click Checkout'));
-        },
-
-        _afterOrderButton: function () {
-            var button = this._parent().find(this.options.buttonSelector);
-            button.find('span').text($t('Purchased'));
-            button.attr('title', $t('Purchased'));
         },
 
         enableButton: function () {

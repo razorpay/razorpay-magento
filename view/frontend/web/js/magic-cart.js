@@ -33,8 +33,6 @@ define([
         _initButton: function () {
             var self = this;
 
-            console.log("-----");
-            console.log("helllll00");
             switch ($.mage.cookies.get(this.cookie)) {
                 case this.cookieEnabled:
                     this._createButton();
@@ -58,8 +56,6 @@ define([
 
         _createButton: function () {
             var button = $(this.options.buttonTemplateSelector).html();
-            console.log(button);
-            // this._parent().find(this.options.actionSelector).prepend(button);
             this._bind();
         },
 
@@ -67,9 +63,8 @@ define([
             var self = this;
             console.log(self.options.buttonSelector)
             this._parent().find(self.options.buttonSelector).on('click touch', function() {
-                console.log('cart clicked')
                 // if (self._parent().valid()) {
-                    self._buyNow();
+                    self._cartCheckout();
                 // }
             });
         },
@@ -78,10 +73,9 @@ define([
             return $(this.options.addToFormSelector);
         },
 
-        _buyNow: function () {
+        _cartCheckout: function () {
             var self = this;
             self._disableButton();
-            console.log('hiiii')
 
             fullScreenLoader.startLoader();
 
@@ -92,9 +86,7 @@ define([
                 dataType: 'json',
                 showLoader: true,
                 success: function (data) {
-                    console.log("*******")
                     console.log(data)
-
                     self.renderIframe(data);
                 },
                 error: function (request) {
@@ -138,10 +130,8 @@ define([
                 key: self.options.key,
                 name: 'Razorpay',
                 amount: data.totalAmount,
-                // timeout: 720,
                 handler: function (data) {
-                    // self.rzp_response = data;
-                    // self.validateOrder(data);
+
                     console.log("data in handler", data)
                     fullScreenLoader.startLoader();
 
@@ -163,9 +153,9 @@ define([
                 },
                 // callback_url : self.options.callbackURL,
                 prefill: {
-                    name: 'Chetan',
-                    contact: '7795619055',
-                    email: 'chetan@mail.com'
+                    name: '',
+                    contact: '',
+                    email: ''
                 },
                 _: {
                     integration: 'magento',
@@ -186,17 +176,6 @@ define([
             this.rzp.open();
         },
 
-        _getOrderTemplate: function (order) {
-            _.templateSettings.variable = 'order';
-
-            var template = _.template($('script.order-template').html());
-            var output = template(order);
-
-            delete _.templateSettings.variable;
-
-            return output;
-        },
-
         _orderError: function (request) {
             console.log(request);
             this.enableButton();
@@ -207,12 +186,6 @@ define([
             button.addClass('disabled');
             button.find('span').text($t('One Click Checkout'));
             button.attr('title', $t('One Click Checkout'));
-        },
-
-        _afterOrderButton: function () {
-            var button = this._parent().find(this.options.buttonSelector);
-            button.find('span').text($t('Purchased'));
-            button.attr('title', $t('Purchased'));
         },
 
         enableButton: function () {
