@@ -58,8 +58,8 @@ class QuoteBuilder
         $quote = $this->quoteFactory->create();
         $quote->setStoreId($this->storeManager->getStore()->getId());
 
-        $quote->setCustomer($this->session->getCustomerDataObject());
-        // $quote->setCustomerIsGuest(1);
+        // $quote->setCustomer($this->session->getCustomerDataObject());
+        $quote->setCustomerIsGuest(1);
 
         /** @var ItemBuilder $itemBuilder */
         $itemBuilder = $this->itemBuilderFactory->create(['quote' => $quote]);
