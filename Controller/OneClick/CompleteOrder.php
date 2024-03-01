@@ -393,7 +393,7 @@ class CompleteOrder extends Action
                     'city' => $rzpAddress->city,
                 'country_id' => strtoupper($rzpAddress->country),
                 'region' => $regionCode,
-                'postcode' => $rrzpAddress->zipcode,
+                'postcode' => $rzpAddress->zipcode,
                 'telephone' => $rzpAddress->contact,
                 'save_in_address_book' => 1
             ]
