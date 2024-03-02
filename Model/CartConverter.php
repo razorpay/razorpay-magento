@@ -53,7 +53,7 @@ class CartConverter
                 // Set the customer ID in the customer session
                 $this->customerSession->setCustomerId($customerId);
 
-                return "true";
+                return $customerId;
             } catch (\Exception $e) {
                 // Handle the exception
                 return "false";

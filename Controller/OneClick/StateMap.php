@@ -71,7 +71,9 @@ class StateMap
             'WESTBENGAL'               => 'West Bengal',
         ];
 
-        $magentoStateName = $stateCodeMap[$stateName] ?? $stateName;
+        $trimmedStateName = str_replace(' ', '', $stateName);
+
+        $magentoStateName = $stateCodeMap[$trimmedStateName] ?? $stateName;
 
         return $magentoStateName;
     }
