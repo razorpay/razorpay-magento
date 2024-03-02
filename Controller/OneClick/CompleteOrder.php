@@ -181,7 +181,7 @@ class CompleteOrder extends Action
         $email = $rzpOrderData->customer_details->email;
         $quoteId = $rzpOrderData->notes->cart_mask_id;
 
-        $customerCartId = $this->cartConverter->convertGuestCartToCustomer($quoteId, $email, $customerPassword);
+        $customerCartId = $this->cartConverter->convertGuestCartToCustomer($cartId);
         $this->logger->info('graphQL: customerCartId ' . $customerCartId);
 
         $orderId = $this->cartManagement->placeOrder($cartId);
@@ -418,6 +418,7 @@ class CompleteOrder extends Action
                         ->collectShippingRates()
                         ->setShippingMethod($shippingMethod);
 
+        // Todo: Loop through promotions and fetch the discount data.
         if(isset($rzpOrderData->promotions[0]->code) == true)
         {
             $quote->setCouponCode($rzpOrderData->promotions[0]->code);   
