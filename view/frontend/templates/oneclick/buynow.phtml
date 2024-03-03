@@ -28,7 +28,6 @@
     {
         "#product_addtocart_form": {
             "Razorpay_Magento/js/magic-buy-now": {
-                "isAvailableUrl": "<?php echo $block->getUrl('rest/V1/buttons/buynow/canshow/') ?>",
                 "submitUrl": "<?php echo $block->getUrl('razorpay/oneclick/placeorder') ?>",
                 "sku": "<?php echo $block->getProduct()->getSku(); ?>",
                 "callbackURL": "<?php echo $block->getUrl('razorpay/oneclick/completeorder') ?>",

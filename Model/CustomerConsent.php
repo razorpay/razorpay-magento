@@ -46,15 +46,12 @@ class CustomerConsent
             /** @var \Magento\Newsletter\Model\Subscriber $subscriber */
             $subscriber = $this->subscriberFactory->create();
 
-            if (!$subscriber->loadByEmail($customerEmail)->getId())
-            {
-                $subscriber->setStoreId($storeId)
-                       ->setCustomerId($customerId)
-                       ->setSubscriberEmail($customerEmail)
-                       ->setSubscriberStatus(\Magento\Newsletter\Model\Subscriber::STATUS_SUBSCRIBED);
+            $subscriber->setStoreId($storeId)
+                   ->setCustomerId($customerId)
+                   ->setSubscriberEmail($customerEmail)
+                   ->setSubscriberStatus(\Magento\Newsletter\Model\Subscriber::STATUS_SUBSCRIBED);
 
-            	$subscriber->save();
-            }
+        	$subscriber->save();
 
             return true;
         } catch (\Exception $e) {

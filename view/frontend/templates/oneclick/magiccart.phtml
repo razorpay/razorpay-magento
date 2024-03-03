@@ -39,9 +39,7 @@ $cartDataCount = count( $cartData );
  
             data-mage-init='{
  
-                "Razorpay_Magento/js/magic-cart":{
- 
-                   "isAvailableUrl": "<?php echo $block->getUrl('rest/V1/buttons/buynow/canshow/') ?>",
+                "Razorpay_Magento/js/magic-cart":{ 
                     "submitUrl": "<?php echo $block->getUrl('razorpay/oneclick/placeorder') ?>",
                     "callbackURL": "<?php echo $block->getUrl('razorpay/oneclick/completeorder') ?>",
                     "key": "<?php echo $rzpKey ?>"

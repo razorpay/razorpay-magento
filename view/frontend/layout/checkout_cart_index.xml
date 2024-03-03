@@ -1,9 +1,12 @@
 <?xml version="1.0"?>
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" layout="1column" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <!-- Add CSS file -->
+        <css src="Razorpay_Magento/css/magic.css" />
+    </head>
     <body>
-        <referenceContainer name="content">
-            <block class="Magento\Checkout\Block\Onepage\Link" name="checkout.cart.methods.onepage.top" template="Razorpay_Magento::oneclick/magiccart.phtml" before="checkout.cart">
-            </block>
+        <referenceContainer name="checkout.cart.totals.container">
+            <block class="Magento\Checkout\Block\Onepage\Link" name="checkout.cart.methods.onepage.top" template="Razorpay_Magento::onepage/magiccart.phtml" after="checkout.cart.totals" />
         </referenceContainer>
     </body>
 </page>

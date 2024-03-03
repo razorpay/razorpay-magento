@@ -12,7 +12,6 @@ define([
     $.widget('pmclain.oneClickButton', {
         options: {
             addToFormSelector: '#product_addtocart_form',
-            isAvailableUrl: '',
             submitUrl: '',
             callbackURL: '',
             key: '',

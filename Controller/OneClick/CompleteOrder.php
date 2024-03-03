@@ -188,9 +188,13 @@ class CompleteOrder extends Action
         $customerCartId = $this->cartConverter->convertGuestCartToCustomer($cartId);
         $this->logger->info('graphQL: customerCartId ' . $customerCartId);
 
-        // Subscribe news letter based on customer consent data
-        $subscribeNewsLetter = $this->customerConsent->subscribeCustomer($cartId, $email);
-        $this->logger->info('graphQL: subscribed ' . $subscribeNewsLetter);
+        $isCustomerConsentSet = false;
+        if($isCustomerConsentSet === true)
+        {
+            // Subscribe news letter based on customer consent data
+            $subscribeNewsLetter = $this->customerConsent->subscribeCustomer($customerCartId, $email);
+            $this->logger->info('graphQL: subscribed ' . $subscribeNewsLetter);
+        }
 
         $orderId = $this->cartManagement->placeOrder($cartId);
         $order = $this->order->load($orderId);
