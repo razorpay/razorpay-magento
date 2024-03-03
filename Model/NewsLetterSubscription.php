@@ -1,4 +1,5 @@
 <?php
+namespace Razorpay\Magento\Model;
 
 use Magento\Newsletter\Model\SubscriberFactory;
 use Magento\Store\Model\StoreManagerInterface;
