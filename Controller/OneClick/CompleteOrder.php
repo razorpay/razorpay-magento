@@ -189,7 +189,7 @@ class CompleteOrder extends Action
         $this->logger->info('graphQL: customerCartId ' . $customerCartId);
 
         // Subscribe news letter based on customer consent data
-        $subscribeNewsLetter = $this->newsLetterSubscription->subscribeCustomer($cartId, $email);
+        $subscribeNewsLetter = $this->customerConsent->subscribeCustomer($cartId, $email);
         $this->logger->info('graphQL: subscribed ' . $subscribeNewsLetter);
 
         $orderId = $this->cartManagement->placeOrder($cartId);

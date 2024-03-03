@@ -4,7 +4,7 @@ namespace Razorpay\Magento\Model;
 use Magento\Newsletter\Model\SubscriberFactory;
 use Magento\Store\Model\StoreManagerInterface;
 
-class NewsletterSubscription
+class CustomerConsent
 {
     /**
      * @var SubscriberFactory
@@ -17,7 +17,7 @@ class NewsletterSubscription
     protected $storeManager;
 
     /**
-     * NewsletterSubscription constructor.
+     * CustomerConsent constructor.
      *
      * @param SubscriberFactory $subscriberFactory
      * @param StoreManagerInterface $storeManager
