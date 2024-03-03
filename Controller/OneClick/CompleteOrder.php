@@ -23,7 +23,7 @@ use Magento\Directory\Model\ResourceModel\Region\CollectionFactory;
 use Magento\Directory\Model\ResourceModel\Region\Collection;
 use Razorpay\Magento\Controller\OneClick\StateMap;
 use Razorpay\Magento\Model\CartConverter;
-use Razorpay\Magento\Model\NewsLetterSubscription;
+use Razorpay\Magento\Model\CustomerConsent;
 
 class CompleteOrder extends Action
 {
@@ -89,7 +89,7 @@ class CompleteOrder extends Action
     protected $checkoutSession;
     protected $stateNameMap;
     protected $cartConverter;
-    protected $newsLetterSubscription;
+    protected $customerConsent;
     protected $_order = null;
 
     protected const STATUS_PROCESSING = 'processing';
@@ -131,7 +131,7 @@ class CompleteOrder extends Action
         CollectionFactory $collectionFactory,
         StateMap $stateNameMap,
         CartConverter $cartConverter,
-        NewsLetterSubscription $newsLetterSubscription
+        CustomerConsent $customerConsent
     ) {
         parent::__construct($context);
         $this->request = $request;
@@ -156,7 +156,7 @@ class CompleteOrder extends Action
         $this->collectionFactory  = $collectionFactory;
         $this->stateNameMap       = $stateNameMap;
         $this->cartConverter = $cartConverter;
-        $this->newsLetterSubscription = $newsLetterSubscription;
+        $this->customerConsent = $customerConsent;
         $this->resultRedirectFactory = $context->getResultFactory();;
         $this->orderStatus     = static::STATUS_PROCESSING;
         $this->authorizeCommand = new AuthorizeCommand();
