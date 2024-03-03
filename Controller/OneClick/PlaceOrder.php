@@ -22,6 +22,7 @@ use Magento\Quote\Model\QuoteIdToMaskedQuoteIdInterface;
 use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Quote\Model\ResourceModel\Quote\QuoteIdMask as QuoteIdMaskResourceModel;
+use Magento\Checkout\Model\Session;
 
 class PlaceOrder extends Action
 {
@@ -72,6 +73,8 @@ class PlaceOrder extends Action
 
     protected $cart;
 
+    protected $checkoutSession;
+
     /**
      * PlaceOrder constructor.
      * @param Http $request
@@ -98,7 +101,8 @@ class PlaceOrder extends Action
         QuoteIdMaskFactory $quoteIdMaskFactory,
         QuoteIdMaskResourceModel $quoteIdMaskResourceModel,
         StoreManagerInterface $storeManager,
-        \Magento\Checkout\Model\Cart $cart
+        \Magento\Checkout\Model\Cart $cart,
+        Session $checkoutSession
     ) {
         parent::__construct($context);
         $this->request = $request;
@@ -114,6 +118,7 @@ class PlaceOrder extends Action
         $this->quoteIdMaskResourceModel = $quoteIdMaskResourceModel;
         $this->storeManager = $storeManager;
         $this->cart = $cart;
+        $this->checkoutSession = $checkoutSession;
     }
 
     public function execute()
@@ -125,6 +130,20 @@ class PlaceOrder extends Action
             $cartItems = $this->cart->getQuote()->getAllVisibleItems();
             $quoteId = $this->cart->getQuote()->getId();
             $totals = $this->cart->getQuote()->getTotals();
+
+            $quote = $this->checkoutSession->getQuote();
+            $customerId = $quote->getCustomerId();
+
+            // Set customer as guest to update the quote during checkout journey.
+            if($customerId)
+            {
+                $this->logger->info('graphQL: customer: ' . json_encode($customerId));
+
+                $connection = $this->resourceConnection->getConnection();
+                $tableName = $this->resourceConnection->getTableName('quote');
+
+                $connection->update($tableName, ['customer_id' => null, 'customer_is_guest' => 1], ['entity_id = ?' => $quoteId]);
+            }
         }
         else 
         {

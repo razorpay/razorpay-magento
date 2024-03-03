@@ -23,6 +23,7 @@ use Magento\Directory\Model\ResourceModel\Region\CollectionFactory;
 use Magento\Directory\Model\ResourceModel\Region\Collection;
 use Razorpay\Magento\Controller\OneClick\StateMap;
 use Razorpay\Magento\Model\CartConverter;
+use Razorpay\Magento\Model\NewsLetterSubscription;
 
 class CompleteOrder extends Action
 {
@@ -88,6 +89,7 @@ class CompleteOrder extends Action
     protected $checkoutSession;
     protected $stateNameMap;
     protected $cartConverter;
+    protected $newsLetterSubscription;
     protected $_order = null;
 
     protected const STATUS_PROCESSING = 'processing';
@@ -128,7 +130,8 @@ class CompleteOrder extends Action
         \Magento\Checkout\Model\Session $checkoutSession,
         CollectionFactory $collectionFactory,
         StateMap $stateNameMap,
-        CartConverter $cartConverter
+        CartConverter $cartConverter,
+        NewsLetterSubscription $newsLetterSubscription
     ) {
         parent::__construct($context);
         $this->request = $request;
@@ -153,6 +156,7 @@ class CompleteOrder extends Action
         $this->collectionFactory  = $collectionFactory;
         $this->stateNameMap       = $stateNameMap;
         $this->cartConverter = $cartConverter;
+        $this->newsLetterSubscription = $newsLetterSubscription;
         $this->resultRedirectFactory = $context->getResultFactory();;
         $this->orderStatus     = static::STATUS_PROCESSING;
         $this->authorizeCommand = new AuthorizeCommand();
@@ -172,17 +176,21 @@ class CompleteOrder extends Action
         $rzpPaymentData = $this->rzp->payment->fetch($rzpPaymentId);
 
         $cartId = isset($rzpOrderData->notes) ? $rzpOrderData->notes->cart_id : null;
+        $email = $rzpOrderData->customer_details->email ?? null;
 
         $quote = $this->cartRepositoryInterface->get($cartId);
 
         $this->updateQuote($quote, $rzpOrderData, $rzpPaymentData);
 
-        $customerPassword = 'chetu@12345';
-        $email = $rzpOrderData->customer_details->email;
         $quoteId = $rzpOrderData->notes->cart_mask_id;
 
+        // Set customer to quote
         $customerCartId = $this->cartConverter->convertGuestCartToCustomer($cartId);
         $this->logger->info('graphQL: customerCartId ' . $customerCartId);
+
+        // Subscribe news letter based on customer consent data
+        $subscribeNewsLetter = $this->newsLetterSubscription->subscribeCustomer($cartId, $email);
+        $this->logger->info('graphQL: subscribed ' . $subscribeNewsLetter);
 
         $orderId = $this->cartManagement->placeOrder($cartId);
         $order = $this->order->load($orderId);
