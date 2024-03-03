@@ -62,9 +62,3 @@ class NewsletterSubscription
         }
     }
 }
-
-// Usage
-$customerId = CUSTOMER_ID; // Replace with the actual customer ID
-
-$newsletterSubscription = new NewsletterSubscription($subscriberFactory, $storeManager);
-$newsletterSubscription->subscribeCustomer($customerId);
