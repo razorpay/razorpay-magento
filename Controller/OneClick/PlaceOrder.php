@@ -74,6 +74,8 @@ class PlaceOrder extends Action
     protected $cart;
 
     protected $checkoutSession;
+    
+    protected $resourceConnection;
 
     /**
      * PlaceOrder constructor.
@@ -102,7 +104,8 @@ class PlaceOrder extends Action
         QuoteIdMaskResourceModel $quoteIdMaskResourceModel,
         StoreManagerInterface $storeManager,
         \Magento\Checkout\Model\Cart $cart,
-        Session $checkoutSession
+        Session $checkoutSession,
+        \Magento\Framework\App\ResourceConnection $resourceConnection,
     ) {
         parent::__construct($context);
         $this->request = $request;
@@ -119,6 +122,7 @@ class PlaceOrder extends Action
         $this->storeManager = $storeManager;
         $this->cart = $cart;
         $this->checkoutSession = $checkoutSession;
+        $this->resourceConnection = $resourceConnection;
     }
 
     public function execute()
