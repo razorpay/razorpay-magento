@@ -1,0 +1,37 @@
+<?php    
+/** @var $block \Magento\Checkout\Block\Cart\Sidebar */
+?>
+
+<!-- Your custom minicart content goes here -->
+<!-- <div class="custom-minicart-actions">
+    <button class="action primary checkout" onclick="window.location.href = '<?php echo $block->getUrl('checkout'); ?>';">
+        <?php /* @escapeNotVerified */ echo __('Proceed to Checkout1') ?>
+    </button>
+</div>
+
+    <script type="text/x-magento-init">
+    {
+        "Razorpay_Magento/js/cart-one-cc":{
+           "isAvailableUrl": "<?php echo $block->getUrl('rest/V1/buttons/buynow/canshow/') ?>",
+            "submitUrl": "<?php echo $block->getUrl('razorpay/oneclick/placeorder') ?>",
+            "callbackURL": "<?php echo $block->getUrl('razorpay/oneclick/completeorder') ?>"
+
+        }
+    }
+    </script>
+</div>
+
+<script id="occ-template" type="text/x-occ-template">
+        <button type="button" title="<?php echo __('One Click Checkout') ?>" class="action primary tocart occ" id="product-oneclick-button">
+            <span><?php echo __('One Click Checkout') ?></span>
+        </button>
+</script> -->
+
+<!-- app/code/Vendor/Module/view/frontend/templates/custom_button.phtml -->
+<button onclick="customButtonClick()">Custom Button</button>
+<script>
+    function customButtonClick() {
+        // Your custom button logic here
+        alert('Button Clicked!');
+    }
+</script>

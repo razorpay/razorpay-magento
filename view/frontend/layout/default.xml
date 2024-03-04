@@ -1,0 +1,39 @@
+<!-- <?xml version="1.0"?> -->
+<!-- <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceContainer name="minicart">
+            <block class="Magento\Framework\View\Element\Template" name="custom.minicart.button" template="Razorpay_Magento::onepage/minicart.phtml" />
+        </referenceContainer>
+    </body>
+</page> -->
+
+<!-- File: app/code/Vendor/Module/view/frontend/layout/default.xml -->
+<!-- <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="minicart">
+            <action method="setTemplate">
+                <argument name="template" xsi:type="string">Razorpay_Magento::onepage/minicart.phtml</argument>
+            </action>
+        </referenceBlock>
+    </body>
+</page> -->
+
+<!-- app/code/Vendor/Module/view/frontend/layout/default.xml -->
+<!-- <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="minicart">
+            <block class="Vendor\Module\Block\CustomButton" name="custom.button" template="Razorpay_Magento::onepage/minicart.phtml"/>
+        </referenceBlock>
+    </body>
+</page> -->
+
+<!-- app/code/Vendor/Module/view/frontend/layout/default.xml -->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceContainer name="header-wrapper">
+            <!-- <block class="Vendor\Module\Block\CustomButton" name="custom.button" template="Razorpay_Magento::onepage/minicart.phtml"/> -->
+            <block class="Magento\Checkout\Block\Cart\Sidebar" name="minicart" as="minicart" after="logo" template="Razorpay_Magento::oneclick/minicart.phtml"/>
+
+        </referenceContainer>
+    </body>
+</page>

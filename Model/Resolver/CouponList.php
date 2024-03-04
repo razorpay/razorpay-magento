@@ -51,6 +51,8 @@ class CouponList implements ResolverInterface
 
         $ruleCollection = $this->ruleCollectionFactory->create();
 
+        $currentDate = (new \DateTime())->format(\Magento\Framework\Stdlib\DateTime::DATETIME_PHP_FORMAT);
+
         // Add filters to include only active and non-expired rules
         $ruleCollection->addFieldToFilter('is_active', 1);
 
