@@ -50,6 +50,16 @@ class CouponList implements ResolverInterface
         $appliedCoupons = [];
 
         $ruleCollection = $this->ruleCollectionFactory->create();
+
+        // Add filters to include only active and non-expired rules
+        $ruleCollection->addFieldToFilter('is_active', 1);
+
+        $ruleCollection->addFieldToFilter('to_date', [['gteq' => $currentDate], ['null' => true]]);
+
+        $ruleCollection->addFieldToFilter('conditions_serialized', ['nlike' => '%"shipping_method"%']);
+
+        $ruleCollection->addFieldToFilter('conditions_serialized', ['nlike' => '%"payment_method"%']);
+
         foreach ($ruleCollection as $rule) {
             $couponCollection = $this->couponModel->getCollection()
                 ->addFieldToFilter('rule_id', $rule->getId());

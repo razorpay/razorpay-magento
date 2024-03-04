@@ -477,7 +477,7 @@ class CompleteOrder extends Action
             'email'   => $email, //buyer email id
             'address' =>[
                 'firstname'  => $name[0], //address Details
-                'lastname'   => $name[1]?? '.',
+                'lastname'   => empty($name[1]) === false ? $name[1] : '.',
                     'street' => $rzpAddress->line1,
                     'city' => $rzpAddress->city,
                 'country_id' => strtoupper($rzpAddress->country),

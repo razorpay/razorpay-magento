@@ -6,4 +6,8 @@
 }
 #product-oneclick-button{
 	padding: 17px 26px;
+	margin-bottom: 10px;
+}
+.fieldset.coupon{
+	display: none;
 }

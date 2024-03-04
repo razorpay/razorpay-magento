@@ -181,15 +181,11 @@ define([
         _disableButton: function () {
             var button = this._parent().find(this.options.buttonSelector);
             button.addClass('disabled');
-            button.find('span').text($t('One Click Checkout'));
-            button.attr('title', $t('One Click Checkout'));
         },
 
         enableButton: function () {
             var button = this._parent().find(this.options.buttonSelector);
             button.removeClass('disabled');
-            button.find('span').text($t('One Click Checkout'));
-            button.attr('title', $t('One Click Checkout'));
         }
     });
 
