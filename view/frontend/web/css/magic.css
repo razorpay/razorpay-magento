@@ -4,3 +4,6 @@
 .action.primary.checkout{
 	display: none;
 }
+#product-oneclick-button{
+	padding: 17px 26px;
+}
