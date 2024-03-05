@@ -27,39 +27,27 @@ $cartDataCount = count( $cartData );
 ?>
 <?php if ($isMagicEnabled == 1 && $cartDataCount > 0) :?>
  
-    <div id="cart-occ-div">
-
-    <button type="button"
-
-            id="cart-occ-template"
- 
-            data-role="proceed-to-checkout"
- 
-            title="<?= $block->escapeHtmlAttr(__('Magic Checkout')) ?>"
- 
+    <div style="margin-top:10px;" id="cart-occ-div">
+        <magic-checkout-btn id="cart-occ-template" border-radius="4px"
             data-mage-init='{
- 
-                "Razorpay_Magento/js/magic-cart":{ 
-                    "submitUrl": "<?php echo $block->getUrl('razorpay/oneclick/placeorder') ?>",
-                    "callbackURL": "<?php echo $block->getUrl('razorpay/oneclick/completeorder') ?>",
-                    "key": "<?php echo $rzpKey ?>"
-                }
- 
-            }'
- 
-            class="action primary<?= ($block->isDisabled()) ? ' disabled' : '' ?>"
- 
-            <?php if ($block->isDisabled()) :?>
- 
-                disabled="disabled"
- 
-            <?php endif; ?>>
- 
-        <span><?= $block->escapeHtml(__('Magic Checkout')) ?></span>
- 
-    </button>
+     
+                    "Razorpay_Magento/js/magic-cart":{
+                        "submitUrl": "<?php echo $block->getUrl('razorpay/oneclick/placeorder') ?>",
+                        "callbackURL": "<?php echo $block->getUrl('razorpay/oneclick/completeorder') ?>",
+                        "key": "<?php echo $rzpKey ?>"
+                    }
+     
+                }'
+                class="<?= ($block->isDisabled()) ? ' disabled' : '' ?>"
+     
+                <?php if ($block->isDisabled()) :?>
+     
+                    disabled="disabled"
+     
+                <?php endif; ?>>
+        </magic-checkout-btn>
     </div>
-
+    <link rel="stylesheet" type="text/css" href="<?php echo $block->getViewFileUrl('Razorpay_Magento::css/magic.css'); ?>">
     <script type="text/javascript">
 
         var Razorpay = {

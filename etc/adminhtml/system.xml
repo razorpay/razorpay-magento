@@ -84,30 +84,6 @@
                     <config_path>payment/razorpay/key_secret</config_path>
                 </field>
 
-                <field id="activate_magic" translate="label" type="select" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="1">
-                    <label>Magic Enabled</label>
-                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                    <config_path>payment/razorpay/activate_magic</config_path>
-                </field>
-
-                <field id="activate_magic_buy_now" translate="label" type="select" sortOrder="6" showInDefault="1" showInWebsite="1" showInStore="1">
-                    <label>Magic Buy Now Enabled</label>
-                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                    <config_path>payment/razorpay/activate_magic_buy_now</config_path>
-                    <depends>
-                        <field id="activate_magic">1</field>
-                    </depends>
-                </field>
-
-                <field id="activate_magic_mini_cart" translate="label" type="select" sortOrder="6" showInDefault="1" showInWebsite="1" showInStore="1">
-                    <label>Magic Mini Cart Enabled</label>
-                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                    <config_path>payment/razorpay/activate_magic_mini_cart</config_path>
-                    <depends>
-                        <field id="activate_magic">1</field>
-                    </depends>
-                </field>
-
                 <field id="order_status" translate="label" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>New Order Status</label>
                     <source_model>Magento\Sales\Model\Config\Source\Order\Status\NewStatus</source_model>
@@ -131,6 +107,30 @@
                     </depends>
                     <frontend_model>Razorpay\Magento\Model\FormFieldTrack</frontend_model>
                     <validate>required-entry</validate>
+                </field>
+
+                <field id="activate_magic" translate="label" type="select" sortOrder="25" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Magic Enabled</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <config_path>payment/razorpay/activate_magic</config_path>
+                </field>
+
+                <field id="activate_magic_buy_now" translate="label" type="select" sortOrder="26" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Magic Buy Now Enabled</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <config_path>payment/razorpay/activate_magic_buy_now</config_path>
+                    <depends>
+                        <field id="activate_magic">1</field>
+                    </depends>
+                </field>
+
+                <field id="activate_magic_mini_cart" translate="label" type="select" sortOrder="27" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Magic Mini Cart Enabled</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <config_path>payment/razorpay/activate_magic_mini_cart</config_path>
+                    <depends>
+                        <field id="activate_magic">1</field>
+                    </depends>
                 </field>
 
                 <field id="auto_invoice" translate="label" type="select" sortOrder="2" showInDefault="1" showInWebsite="1" showInStore="1">

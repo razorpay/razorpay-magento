@@ -23,6 +23,7 @@ use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Quote\Model\ResourceModel\Quote\QuoteIdMask as QuoteIdMaskResourceModel;
 use Magento\Checkout\Model\Session;
+use Magento\SalesSequence\Model\Manager as SequenceManager;
 
 class PlaceOrder extends Action
 {
@@ -77,6 +78,8 @@ class PlaceOrder extends Action
     
     protected $resourceConnection;
 
+    protected $sequenceManager;
+
     /**
      * PlaceOrder constructor.
      * @param Http $request
@@ -106,6 +109,7 @@ class PlaceOrder extends Action
         \Magento\Checkout\Model\Cart $cart,
         Session $checkoutSession,
         \Magento\Framework\App\ResourceConnection $resourceConnection,
+        SequenceManager $sequenceManager
     ) {
         parent::__construct($context);
         $this->request = $request;
@@ -123,6 +127,7 @@ class PlaceOrder extends Action
         $this->cart = $cart;
         $this->checkoutSession = $checkoutSession;
         $this->resourceConnection = $resourceConnection;
+        $this->sequenceManager = $sequenceManager;
     }
 
     public function execute()
@@ -223,9 +228,11 @@ class PlaceOrder extends Action
             $paymentCapture = 0;
         }
 
+        $orderNumber = $this->getLastOrderId($quote);
+
         $razorpay_order = $this->rzp->order->create([
             'amount'          => $totalAmount,
-            'receipt'         => 'order pending',
+            'receipt'         => (string)$quote->getReservedOrderId() ?? 'order pending',
             'currency'        => $this->storeManager->getStore()->getBaseCurrencyCode(),
             'payment_capture' => $paymentCapture,
             'app_offer'       => 0,
@@ -244,12 +251,8 @@ class PlaceOrder extends Action
             $result = [
                 'status'        => 'success',
                 'rzp_order_id'   => $razorpay_order->id,
-                'total_amount'   => $totalAmount,
-                'cart_id'        => $quoteId,
-                'quote_id'       => $maskedId,
                 'message'        => 'Razorpay Order created successfully'
             ];
-            
         } 
         else
         {
@@ -263,5 +266,31 @@ class PlaceOrder extends Action
 
         return $resultJson->setData($result);
 
+    }
+
+    public function getLastOrderId($quote)
+    {
+        try {
+            $sequence = $this->sequenceManager->getSequence(
+                \Magento\Sales\Model\Order::ENTITY,
+                $quote->getStoreId()
+            );
+
+            // Generate a reserved order ID using the sequence
+            $reservedOrderId = $sequence->getNextValue();
+
+            // Check if the order and quote are available
+            if ($reservedOrderId) {
+                // Save the order ID in the quote for future reference
+                $quote->setReservedOrderId($reservedOrderId);
+            }
+
+            $quote->save();
+
+            return $reservedOrderId;
+        } catch (\Exception $e) {
+            // Handle exception if needed
+            return 'order pending';
+        }
     }
 }
