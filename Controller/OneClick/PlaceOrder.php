@@ -280,9 +280,13 @@ class PlaceOrder extends Action
                 ->setPageSize(1)
                 ->getFirstItem();
 
-            $quote->setReservedOrderId((string)$lastOrder->getIncrementId()+1);
+            $lastIncrementId = $lastOrder->getIncrementId();
+            $incrementedNumber = str_pad(intval($lastIncrementId) + 1, strlen($lastIncrementId), '0', STR_PAD_LEFT);
+
+            $quote->setReservedOrderId($incrementedNumber);
             $quote->save();
-            return $lastIncrementId = (string)$lastOrder->getIncrementId()+1;
+
+            return $incrementedNumber;
 
         } catch (\Exception $e) {
             // Handle exception if needed
