@@ -228,11 +228,11 @@ class PlaceOrder extends Action
             $paymentCapture = 0;
         }
 
-        $orderNumber = $this->getLastOrderId();
+        // $orderNumber = $this->getLastOrderId();
 
         $razorpay_order = $this->rzp->order->create([
             'amount'          => $totalAmount,
-            'receipt'         => (string)$orderNumber,
+            'receipt'         => (string)$quote->getReservedOrderId() ?? 'order pending',
             'currency'        => $this->storeManager->getStore()->getBaseCurrencyCode(),
             'payment_capture' => $paymentCapture,
             'app_offer'       => 0,

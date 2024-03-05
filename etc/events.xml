@@ -3,4 +3,7 @@
     <event name="sales_order_payment_place_end">
         <observer name="razorpay_payment_gateway_after_place_order" instance="Razorpay\Magento\Observer\AfterPlaceOrderObserver"/>
     </event>
+    <event name="sales_quote_save_after">
+        <observer name="custom_quote_save_after" instance="Razorpay\Magento\Observer\CustomQuoteSaveAfter" />
+    </event>
 </config>
