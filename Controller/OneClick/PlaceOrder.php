@@ -24,6 +24,7 @@ use Magento\Store\Model\StoreManagerInterface;
 use Magento\Quote\Model\ResourceModel\Quote\QuoteIdMask as QuoteIdMaskResourceModel;
 use Magento\Checkout\Model\Session;
 use Magento\Sales\Model\OrderFactory;
+use Magento\SalesSequence\Model\Manager as SequenceManager;
 
 class PlaceOrder extends Action
 {
@@ -79,6 +80,8 @@ class PlaceOrder extends Action
     protected $resourceConnection;
 
     protected $orderFactory;
+    
+    protected $sequenceManager;
 
     /**
      * PlaceOrder constructor.
@@ -110,6 +113,7 @@ class PlaceOrder extends Action
         Session $checkoutSession,
         \Magento\Framework\App\ResourceConnection $resourceConnection,
         OrderFactory $orderFactory,
+        SequenceManager $sequenceManager
     ) {
         parent::__construct($context);
         $this->request = $request;
@@ -128,6 +132,7 @@ class PlaceOrder extends Action
         $this->checkoutSession = $checkoutSession;
         $this->resourceConnection = $resourceConnection;
         $this->orderFactory = $orderFactory;
+        $this->sequenceManager = $sequenceManager;
     }
 
     public function execute()
@@ -275,18 +280,32 @@ class PlaceOrder extends Action
     public function getLastOrderId($quote)
     {
         try {
-            $lastOrder = $this->orderFactory->create()->getCollection()
-                ->setOrder('entity_id', 'DESC')
-                ->setPageSize(1)
-                ->getFirstItem();
+            // $lastOrder = $this->orderFactory->create()->getCollection()
+            //     ->setOrder('entity_id', 'DESC')
+            //     ->setPageSize(1)
+            //     ->getFirstItem();
 
-            $lastIncrementId = $lastOrder->getIncrementId();
-            $incrementedNumber = str_pad(intval($lastIncrementId) + 1, strlen($lastIncrementId), '0', STR_PAD_LEFT);
+            // $lastIncrementId = $lastOrder->getIncrementId();
+            // $incrementedNumber = str_pad(intval($lastIncrementId) + 1, strlen($lastIncrementId), '0', STR_PAD_LEFT);
 
-            $quote->setReservedOrderId($incrementedNumber);
+            $sequence = $this->sequenceManager->getSequence(
+                \Magento\Sales\Model\Order::ENTITY,
+                $quote->getStoreId()
+            );
+
+            // Generate a reserved order ID using the sequence
+            $reservedOrderId = $sequence->getNextValue();
+
+            // Check if the order and quote are available
+            if ($reservedOrderId) {
+                // Save the order ID in the quote for future reference
+                $quote->setReservedOrderId($reservedOrderId);
+            }
+
+            // $quote->setReservedOrderId($incrementedNumber);
             $quote->save();
 
-            return $incrementedNumber;
+            return $reservedOrderId;
 
         } catch (\Exception $e) {
             // Handle exception if needed
