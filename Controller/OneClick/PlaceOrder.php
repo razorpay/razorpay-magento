@@ -228,7 +228,7 @@ class PlaceOrder extends Action
             $paymentCapture = 0;
         }
 
-        // $orderNumber = $this->getLastOrderId();
+        $orderNumber = $this->getLastOrderId($quote);
 
         $razorpay_order = $this->rzp->order->create([
             'amount'          => $totalAmount,
@@ -272,7 +272,7 @@ class PlaceOrder extends Action
 
     }
 
-    public function getLastOrderId()
+    public function getLastOrderId($quote)
     {
         try {
             $lastOrder = $this->orderFactory->create()->getCollection()
@@ -280,6 +280,8 @@ class PlaceOrder extends Action
                 ->setPageSize(1)
                 ->getFirstItem();
 
+            $quote->setReservedOrderId((string)$lastOrder->getIncrementId()+1);
+            $quote->save();
             return $lastIncrementId = (string)$lastOrder->getIncrementId()+1;
 
         } catch (\Exception $e) {
