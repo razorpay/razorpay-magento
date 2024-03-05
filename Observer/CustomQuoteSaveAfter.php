@@ -38,7 +38,7 @@ class CustomQuoteSaveAfter implements ObserverInterface
             // Check if the order and quote are available
             if ($reservedOrderId) {
                 // Save the order ID in the quote for future reference
-                $quote->setReservedOrderId($reservedOrderId);
+                // $quote->setReservedOrderId($reservedOrderId);
 
             }
 

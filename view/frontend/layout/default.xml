@@ -28,12 +28,12 @@
 </page> -->
 
 <!-- app/code/Vendor/Module/view/frontend/layout/default.xml -->
-<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+<!-- <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <body>
         <referenceContainer name="header-wrapper">
-            <!-- <block class="Vendor\Module\Block\CustomButton" name="custom.button" template="Razorpay_Magento::onepage/minicart.phtml"/> -->
             <block class="Magento\Checkout\Block\Cart\Sidebar" name="minicart" as="minicart" after="logo" template="Razorpay_Magento::oneclick/minicart.phtml"/>
 
         </referenceContainer>
     </body>
 </page>
+ -->
