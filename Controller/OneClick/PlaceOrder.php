@@ -23,6 +23,7 @@ use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Quote\Model\ResourceModel\Quote\QuoteIdMask as QuoteIdMaskResourceModel;
 use Magento\Checkout\Model\Session;
+use Magento\Sales\Model\OrderFactory;
 
 class PlaceOrder extends Action
 {
@@ -74,8 +75,10 @@ class PlaceOrder extends Action
     protected $cart;
 
     protected $checkoutSession;
-    
+
     protected $resourceConnection;
+
+    protected $orderFactory;
 
     /**
      * PlaceOrder constructor.
@@ -106,6 +109,7 @@ class PlaceOrder extends Action
         \Magento\Checkout\Model\Cart $cart,
         Session $checkoutSession,
         \Magento\Framework\App\ResourceConnection $resourceConnection,
+        OrderFactory $orderFactory,
     ) {
         parent::__construct($context);
         $this->request = $request;
@@ -123,6 +127,7 @@ class PlaceOrder extends Action
         $this->cart = $cart;
         $this->checkoutSession = $checkoutSession;
         $this->resourceConnection = $resourceConnection;
+        $this->orderFactory = $orderFactory;
     }
 
     public function execute()
@@ -223,9 +228,11 @@ class PlaceOrder extends Action
             $paymentCapture = 0;
         }
 
+        $orderNumber = $this->getLastOrderId();
+
         $razorpay_order = $this->rzp->order->create([
             'amount'          => $totalAmount,
-            'receipt'         => 'order pending',
+            'receipt'         => (string)$orderNumber,
             'currency'        => $this->storeManager->getStore()->getBaseCurrencyCode(),
             'payment_capture' => $paymentCapture,
             'app_offer'       => 0,
@@ -263,5 +270,21 @@ class PlaceOrder extends Action
 
         return $resultJson->setData($result);
 
+    }
+
+    public function getLastOrderId()
+    {
+        try {
+            $lastOrder = $this->orderFactory->create()->getCollection()
+                ->setOrder('entity_id', 'DESC')
+                ->setPageSize(1)
+                ->getFirstItem();
+
+            return $lastIncrementId = (string)$lastOrder->getIncrementId()+1;
+
+        } catch (\Exception $e) {
+            // Handle exception if needed
+            return 'order pending';
+        }
     }
 }
