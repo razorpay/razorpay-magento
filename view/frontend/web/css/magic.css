@@ -11,3 +11,6 @@
 .fieldset.coupon{
 	display: none;
 }
+div.product-info-main #occ-template magic-checkout-btn {
+    display: none !important;
+}
