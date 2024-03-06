@@ -18,7 +18,8 @@ define([
             actionSelector: '.actions',
             buttonTemplateSelector: '#occ-template',
             buttonSelector: '#product-oneclick-button',
-            confirmationSelector: '#one-click-confirmation'
+            confirmationSelector: '#one-click-confirmation',
+            spinnerId: 'magic-razorpay-spinner'
         },
 
         cookie: 'occ_status',
@@ -75,19 +76,14 @@ define([
         _buyNow: function () {
             var self = this;
             self._disableButton();
-
-            fullScreenLoader.startLoader();
+            self.toggleLoader(true);
 
             $.ajax({
                 url: self.options.submitUrl,
                 data: self._parent().serialize(),
                 type: 'POST',
                 dataType: 'json',
-                showLoader: true,
                 success: function (data) {
-                    console.log("*******")
-                    console.log(data)
-
                     self.renderIframe(data);
                 },
                 error: function (request) {
@@ -107,12 +103,9 @@ define([
                 data: data,
                 type: 'POST',
                 dataType: 'json',
-                showLoader: true,
                 success: function (data) {
-                    console.log("Payment complete data")
-                    console.log(data)
+                    self.toggleLoader(true);
                     var successUrl = url.build('checkout/onepage/success', {})
-                    console.log(successUrl)
                     window.location.href = successUrl;
                 },
                 error: function (error) {
@@ -169,6 +162,7 @@ define([
             // }
 
             this.rzp = new Razorpay(options);
+            self.toggleLoader(false);
 
             this.rzp.open();
         },
@@ -186,6 +180,58 @@ define([
         enableButton: function () {
             var button = this._parent().find(this.options.buttonSelector);
             button.removeClass('disabled');
+        },
+
+        hide: function() {
+            document.getElementById(this.options.spinnerId)?.remove();
+            // unblockPageScroll();
+        },
+
+        show: function() {
+            if (typeof (window.Razorpay)?.showLoader === 'function') {
+                (window.Razorpay).showLoader?.();
+            } else {
+                if (this.isVisible()) {
+                    return;
+                }
+                document.body.appendChild(this.createTemplate(this.options.spinnerId));
+            }
+            // blockPageScroll();
+        },
+
+        isVisible: function() {
+            return document.getElementById(this.options.spinnerId) !== null;
+        },
+
+        createTemplate: function(id) {
+            const templateStr = `
+              <div id="${id}" style="position: fixed; top: 0; left: 0; z-index: 2147483647; width: 100%; height: 100%; background: rgb(0,0,0); opacity: 0.4;">
+              <style>
+                @keyframes rotate { 0% { transform: rotate(0); } 100% { transform: rotate(360deg); } }
+                #${id}::after {
+                  content: "";
+                  --length: 80px;
+                  position: absolute;
+                  width: var(--length);
+                  height: var(--length);
+                  left: calc(50% - var(--length) / 2);
+                  top: calc(50% - var(--length) / 2);
+                  border-radius: 50%;
+                  border: 4px solid;
+                  border-color: rgb(59, 124, 245) transparent rgb(59, 124, 245) rgb(59, 124, 245) !important;
+                  animation: 1s linear 0s infinite normal none running rotate;
+                  box-sizing: border-box;
+                }
+               </style>
+              </div>`;
+
+            return document.createRange().createContextualFragment(templateStr);
+        },
+
+        toggleLoader: function(flag) {
+            var self = this;
+
+            flag ? self.show() : self.hide();
         }
     });
 
