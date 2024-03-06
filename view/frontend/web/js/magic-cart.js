@@ -124,8 +124,7 @@ define([
                 handler: function (data) {
 
                     console.log("data in handler", data)
-                    fullScreenLoader.startLoader();
-
+                    self.toggleLoader(true);
                     self.orderSuccess(data);
                 },
                 order_id: data.rzp_order_id,
