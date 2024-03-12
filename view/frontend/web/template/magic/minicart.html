@@ -17,7 +17,6 @@
 </div>
 
 <div class="block-content">
-    <script type="text/javascript" src="https://checkout.razorpay.com/v1/magic-checkout.js"></script>
     <button type="button"
             id="btn-minicart-close"
             class="action close"
@@ -45,16 +44,6 @@
 
         <each args="getRegion('subtotalContainer')" render=""></each>
         <each args="getRegion('extraInfo')" render=""></each>
-        <div style="margin-top:10px;" id="occ-template">
-            <magic-checkout-btn id="product-oneclick-button" class="" page-type="product" border-radius="4px"
-                                data-mage-init='{
-                "Razorpay_Magento/js/magic-cart":{
-                        "submitUrl": "<?php echo $block->getUrl(razorpay/oneclick/placeorder) ?>",
-                        "callbackURL": "<?php echo $block->getUrl(razorpay/oneclick/completeorder) ?>"
-                }
-            }'>
-            </magic-checkout-btn>
-        </div>
     </if>
 
     <if args="getCartParam('summary_count')">
@@ -88,6 +77,15 @@
                 <span translate="'View and Edit Cart'"></span>
             </a>
         </div>
+    </div>
+    <div style="margin-top:10px;" id="cart-occ-div">
+        <magic-checkout-btn id="cart-occ-template" class="" page-type="product" border-radius="4px"
+                            data-mage-init='{
+                "Razorpay_Magento/js/magic-cart": {
+                    "from": "minicart"
+                }
+            }'>
+        </magic-checkout-btn>
     </div>
 
     <div id="minicart-widgets" class="minicart-widgets" if="regionHasElements('promotion')">

@@ -1,4 +1,7 @@
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <script src="https://checkout.razorpay.com/v1/magic-checkout.js" src_type="url" />
+    </head>
     <body>
         <referenceBlock name="minicart">
             <arguments>

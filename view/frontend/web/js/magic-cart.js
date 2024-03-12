@@ -78,8 +78,9 @@ define([
             self._disableButton();
             self.toggleLoader(true);
 
+            var placeOrder = url.build('razorpay/oneclick/placeorder', {})
             $.ajax({
-                url: self.options.submitUrl,
+                url: placeOrder,
                 data: { 'page' : 'cart'},
                 type: 'POST',
                 dataType: 'json',
@@ -96,8 +97,10 @@ define([
         orderSuccess: function (data) {
             var self = this;
             self.enableButton();
+
+            var completeOrder = url.build('razorpay/oneclick/completeorder', {})
             $.ajax({
-                url: self.options.callbackURL,
+                url: completeOrder,
                 data: data,
                 type: 'POST',
                 dataType: 'json',
