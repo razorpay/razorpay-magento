@@ -78,15 +78,17 @@
             </a>
         </div>
     </div>
-    <div style="margin-top:10px;" id="cart-occ-div">
-        <magic-checkout-btn id="cart-occ-template" class="" page-type="product" border-radius="4px"
-                            data-mage-init='{
-                "Razorpay_Magento/js/magic-cart": {
-                    "from": "minicart"
-                }
-            }'>
-        </magic-checkout-btn>
-    </div>
+    <if args="getCartParam('summary_count')">
+        <div style="margin-top:10px;" id="cart-occ-div">
+            <magic-checkout-btn id="cart-occ-template" class="" page-type="product" border-radius="4px"
+                                data-mage-init='{
+                    "Razorpay_Magento/js/magic-cart": {
+                        "from": "minicart"
+                    }
+                }'>
+            </magic-checkout-btn>
+        </div>
+    </if>
 
     <div id="minicart-widgets" class="minicart-widgets" if="regionHasElements('promotion')">
         <each args="getRegion('promotion')" render=""></each>
