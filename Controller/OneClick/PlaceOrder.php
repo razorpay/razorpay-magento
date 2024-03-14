@@ -190,12 +190,19 @@ class PlaceOrder extends Action
                 $productImageUrl = $store->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA) . 'catalog/product' .$product->getImage();
                 $productUrl = $product->getProductUrl();
 
+                $offerPrice = $quoteItem->getPrice() * 100;
+                // Check if the item has applied discounts
+                if ($quoteItem->getDiscountAmount()) {
+                    // Get the discount amount applied to the item
+                    $offerPrice = abs($quoteItem->getDiscountAmount()) * 100;
+                }
+
                 $lineItems[] = [
                     'type' => 'e-commerce',
                     'sku' => $quoteItem->getSku(),
                     'variant_id' => $quoteItem->getProductId(),
                     'price' => $quoteItem->getPrice()*100,
-                    'offer_price' => $quoteItem->getPrice()*100,
+                    'offer_price' => $offerPrice,
                     'tax_amount' => 0,
                     'quantity' => $quoteItem->getQty(),
                     'name' => $quoteItem->getName(),
@@ -204,8 +211,8 @@ class PlaceOrder extends Action
                     'product_url' => $productUrl,
                 ];
 
-                $totalAmount += ($quoteItem->getQty() * $quoteItem->getPrice()) * 100;
             }
+            $totalAmount = $quote->getGrandTotal();
 
         } catch (LocalizedException $e) {
             return $resultJson->setData([
