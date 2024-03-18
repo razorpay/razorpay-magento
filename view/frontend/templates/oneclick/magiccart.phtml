@@ -1,7 +1,4 @@
 <?php
- 
- 
-use Magento\Framework\App\Config\ScopeConfigInterface;
 
 function getObjectManager()
 {
@@ -10,16 +7,9 @@ function getObjectManager()
 
 $objectManager = getObjectManager();
 
-// Get the store manager
-$storeManager = $objectManager->get(\Magento\Store\Model\StoreManagerInterface::class);
-$scopeConfig = $objectManager->get(ScopeConfigInterface::class);
+$configData = $objectManager->get(\Razorpay\Magento\Model\Config::class);
 
-$code = 'razorpay';
-$magicActiveField = 'activate_magic';
-$keyField = 'key_id';
-
-$isMagicEnabled = $scopeConfig->getValue('payment/' . $code . '/' . $magicActiveField, \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
-$rzpKey = $scopeConfig->getValue('payment/' . $code . '/' . $keyField, \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
+$isMagicEnabled = $configData->getMagicStatus();
 
 $cartData = $objectManager->create('Magento\Checkout\Model\Cart')->getQuote()->getAllVisibleItems();
 $cartDataCount = count( $cartData );
@@ -30,13 +20,7 @@ $cartDataCount = count( $cartData );
     <div style="margin-top:10px;" id="cart-occ-div">
         <magic-checkout-btn id="cart-occ-template" border-radius="4px"
             data-mage-init='{
-     
-                    "Razorpay_Magento/js/magic-cart":{
-                        "submitUrl": "<?php echo $block->getUrl('razorpay/oneclick/placeorder') ?>",
-                        "callbackURL": "<?php echo $block->getUrl('razorpay/oneclick/completeorder') ?>",
-                        "key": "<?php echo $rzpKey ?>"
-                    }
-     
+                    "Razorpay_Magento/js/magic-cart":{}
                 }'
                 class="<?= ($block->isDisabled()) ? ' disabled' : '' ?>"
      

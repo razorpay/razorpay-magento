@@ -12,9 +12,6 @@ define([
     $.widget('pmclain.oneClickButton', {
         options: {
             addToFormSelector: '#product_addtocart_form',
-            submitUrl: '',
-            callbackURL: '',
-            key: '',
             actionSelector: '.actions',
             buttonTemplateSelector: '#occ-template',
             buttonSelector: '#product-oneclick-button',
@@ -78,8 +75,10 @@ define([
             self._disableButton();
             self.toggleLoader(true);
 
+            var placeOrder = url.build('razorpay/oneclick/placeorder', {})
+
             $.ajax({
-                url: self.options.submitUrl,
+                url: placeOrder,
                 data: self._parent().serialize(),
                 type: 'POST',
                 dataType: 'json',
@@ -98,8 +97,10 @@ define([
             self.enableButton();
             fullScreenLoader.startLoader();
 
+            var completeOrder = url.build('razorpay/oneclick/completeorder', {})
+
             $.ajax({
-                url: self.options.callbackURL,
+                url: completeOrder,
                 data: data,
                 type: 'POST',
                 dataType: 'json',
@@ -119,8 +120,8 @@ define([
             var self = this;
 
             var options = {
-                key: self.options.key,
-                name: 'Razorpay',
+                key: data.rzp_key_id,
+                name: data.merchant_name,
                 amount: data.totalAmount,
                 handler: function (data) {
                     self.toggleLoader(true);

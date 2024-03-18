@@ -12,9 +12,6 @@ define([
     $.widget('pmclain.oneClickButton', {
         options: {
             addToFormSelector: '#cart-occ-div',
-            submitUrl: '',
-            callbackURL: '',
-            key: '',
             actionSelector: '.action',
             buttonTemplateSelector: '#cart-occ-div',
             buttonSelector: '#cart-occ-template',
@@ -112,6 +109,8 @@ define([
                 },
                 error: function (error) {
                     console.log("Payment complete fail")
+                    var failureUrl = url.build('checkout/onepage/failure', {})
+                    window.location.href = failureUrl;
                 }
             })
         },
@@ -121,8 +120,8 @@ define([
             var self = this;
 
             var options = {
-                key: self.options.key,
-                name: 'Razorpay',
+                key: data.rzp_key_id,
+                name: data.merchant_name,
                 amount: data.totalAmount,
                 handler: function (data) {
 
@@ -132,7 +131,7 @@ define([
                 },
                 order_id: data.rzp_order_id,
                 modal: {
-                    ondismiss: function(data) {
+                    ondismiss: function (data) {
                         //reset the cart
                         self.resetCart(data);
                         // fullScreenLoader.stopLoader();
@@ -142,8 +141,7 @@ define([
 
                     }
                 },
-                notes: {
-                },
+                notes: {},
                 // callback_url : self.options.callbackURL,
                 prefill: {
                     name: '',
@@ -163,6 +161,14 @@ define([
             //     options.display_currency = data.quote_currency;
             //     options.display_amount = data.quote_amount;
             // }
+
+                var RazorpayConfigMagento = {
+                    "config": {
+                        "api": "https://api-web-magentobase.ext.dev.razorpay.in/",
+                        "frame": "https://api-web-magentobase.ext.dev.razorpay.in/test/checkout.html?branch=master",
+                    },
+                };
+                window.rzpApi = RazorpayConfigMagento.config.api + 'v1/';
 
             this.rzp = new Razorpay(options);
             self.toggleLoader(false);

@@ -93,8 +93,8 @@ class CompleteOrder extends Action
     protected $_order = null;
 
     protected const STATUS_PROCESSING = 'processing';
-    protected const COD               = 'cashondelivery';
-    protected const RAZORPAY          = 'razorpay';
+    protected const COD = 'cashondelivery';
+    protected const RAZORPAY = 'razorpay';
 
     /**
      * CompleteOrder constructor.
@@ -108,38 +108,39 @@ class CompleteOrder extends Action
      * @param ProductRepositoryInterface $productRepository
      */
     public function __construct(
-        Context $context,
-        Http $request,
-        JsonFactory $jsonFactory,
-        CartManagementInterface $cartManagement,
-        Data $priceHelper,
-        PaymentMethod $paymentMethod,
-        \Razorpay\Magento\Model\Config $config,
-        \Psr\Log\LoggerInterface $logger,
-        ProductRepositoryInterface $productRepository,
-        Item $quoteItem,
-        QuoteIdMaskFactory $quoteIdMaskFactory,
-        QuoteIdMaskResourceModel $quoteIdMaskResourceModel,
-        StoreManagerInterface $storeManager,
-        \Magento\Quote\Api\CartRepositoryInterface $cartRepositoryInterface,
-        \Magento\Sales\Model\Order $order,
-        \Magento\Sales\Model\Service\InvoiceService $invoiceService,
+        Context                                               $context,
+        Http                                                  $request,
+        JsonFactory                                           $jsonFactory,
+        CartManagementInterface                               $cartManagement,
+        Data                                                  $priceHelper,
+        PaymentMethod                                         $paymentMethod,
+        \Razorpay\Magento\Model\Config                        $config,
+        \Psr\Log\LoggerInterface                              $logger,
+        ProductRepositoryInterface                            $productRepository,
+        Item                                                  $quoteItem,
+        QuoteIdMaskFactory                                    $quoteIdMaskFactory,
+        QuoteIdMaskResourceModel                              $quoteIdMaskResourceModel,
+        StoreManagerInterface                                 $storeManager,
+        \Magento\Quote\Api\CartRepositoryInterface            $cartRepositoryInterface,
+        \Magento\Sales\Model\Order                            $order,
+        \Magento\Sales\Model\Service\InvoiceService           $invoiceService,
         \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender,
-        \Magento\Framework\DB\Transaction $transaction,
-        \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
-        \Magento\Checkout\Model\Session $checkoutSession,
-        CollectionFactory $collectionFactory,
-        StateMap $stateNameMap,
-        CartConverter $cartConverter,
-        CustomerConsent $customerConsent
-    ) {
+        \Magento\Framework\DB\Transaction                     $transaction,
+        \Magento\Sales\Model\Order\Email\Sender\OrderSender   $orderSender,
+        \Magento\Checkout\Model\Session                       $checkoutSession,
+        CollectionFactory                                     $collectionFactory,
+        StateMap                                              $stateNameMap,
+        CartConverter                                         $cartConverter,
+        CustomerConsent                                       $customerConsent
+    )
+    {
         parent::__construct($context);
         $this->request = $request;
         $this->resultJsonFactory = $jsonFactory;
         $this->cartManagement = $cartManagement;
         $this->priceHelper = $priceHelper;
         $this->config = $config;
-        $this->rzp    = $paymentMethod->setAndGetRzpApiInstance();
+        $this->rzp = $paymentMethod->setAndGetRzpApiInstance();
         $this->logger = $logger;
         $this->productRepository = $productRepository;
         $this->quoteItem = $quoteItem;
@@ -148,17 +149,17 @@ class CompleteOrder extends Action
         $this->storeManager = $storeManager;
         $this->cartRepositoryInterface = $cartRepositoryInterface;
         $this->order = $order;
-        $this->invoiceService  = $invoiceService;
-        $this->invoiceSender   = $invoiceSender;
-        $this->transaction     = $transaction;
-        $this->orderSender     = $orderSender;
-        $this->checkoutSession  = $checkoutSession;
-        $this->collectionFactory  = $collectionFactory;
-        $this->stateNameMap       = $stateNameMap;
+        $this->invoiceService = $invoiceService;
+        $this->invoiceSender = $invoiceSender;
+        $this->transaction = $transaction;
+        $this->orderSender = $orderSender;
+        $this->checkoutSession = $checkoutSession;
+        $this->collectionFactory = $collectionFactory;
+        $this->stateNameMap = $stateNameMap;
         $this->cartConverter = $cartConverter;
         $this->customerConsent = $customerConsent;
         $this->resultRedirectFactory = $context->getResultFactory();;
-        $this->orderStatus     = static::STATUS_PROCESSING;
+        $this->orderStatus = static::STATUS_PROCESSING;
         $this->authorizeCommand = new AuthorizeCommand();
         $this->captureCommand = new CaptureCommand();
     }
@@ -189,8 +190,7 @@ class CompleteOrder extends Action
         $this->logger->info('graphQL: customerCartId ' . $customerCartId);
 
         $isCustomerConsentSet = false;
-        if($isCustomerConsentSet === true)
-        {
+        if ($isCustomerConsentSet === true) {
             // Subscribe news letter based on customer consent data
             $subscribeNewsLetter = $this->customerConsent->subscribeCustomer($customerCartId, $email);
             $this->logger->info('graphQL: subscribed ' . $subscribeNewsLetter);
@@ -198,19 +198,29 @@ class CompleteOrder extends Action
 
         $orderId = $this->cartManagement->placeOrder($cartId);
         $order = $this->order->load($orderId);
-       
+
         $order->setEmailSent(0);
-        if ($order)
-        {
-            if ($order->getStatus() === 'pending')
-            {
-                $order->setState(static::STATUS_PROCESSING)->setStatus($this->orderStatus);
+        if ($order) {
+            // Return to failure page if payment is failed.
+            if ($rzpPaymentData->status === 'failed') {
+                $result = [
+                    'status' => 'failed'
+                ];
+
+                return $resultJson->setData($result);
+            }
+
+            if ($order->getStatus() === 'pending') {
+                if ($rzpPaymentData->status === 'pending' && $rzpPaymentData->method === 'cod') {
+                    $order->setStatus(\Magento\Sales\Model\Order::STATE_PENDING_PAYMENT)->setStatus($this->orderStatus);
+                } else {
+                    $order->setState(\Magento\Sales\Model\Order::STATE_PROCESSING)->setStatus($this->orderStatus);
+                }
 
                 $this->logger->info('graphQL: Order Status Updated to ' . $this->orderStatus);
             }
 
-            if(!empty($rzpOrderData->offers))
-            {
+            if (!empty($rzpOrderData->offers)) {
                 $discountAmount = $order->getDiscountAmount();
 
                 $codFee = $rzpOrderData->cod_fee;
@@ -218,19 +228,16 @@ class CompleteOrder extends Action
 
                 $rzpPromotionAmount = 0;
 
-                foreach($rzpOrderData->promotions as $promotion)
-                {
-                    if (empty($promotion['code']) === false)
-                    {
+                foreach ($rzpOrderData->promotions as $promotion) {
+                    if (empty($promotion['code']) === false) {
                         $rzpPromotionAmount = $promotion['value'];
                     }
                 }
 
                 $offerDiff = $rzpOrderData->line_items_total + $rzpOrderData->shipping_fee + $codFee - $totalPaid - $rzpPromotionAmount;
 
-                if($offerDiff > 0)
-                {
-                    $offerDiscount = ($offerDiff/100);
+                if ($offerDiff > 0) {
+                    $offerDiscount = ($offerDiff / 100);
                     // abs is used here as discount amount is returned as minus from order object.
                     $newDiscountAmount = abs($discountAmount) + $offerDiscount;
 
@@ -248,14 +255,13 @@ class CompleteOrder extends Action
             $payment = $order->getPayment();
 
             $payment->setLastTransId($rzpPaymentId)
-                    ->setTransactionId($rzpPaymentId)
-                    ->setIsTransactionClosed(true)
-                    ->setShouldCloseParentTransaction(true);
+                ->setTransactionId($rzpPaymentId)
+                ->setIsTransactionClosed(true)
+                ->setShouldCloseParentTransaction(true);
 
             $payment->setParentTransactionId($payment->getTransactionId());
 
-            if ($this->config->getPaymentAction()  === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE)
-            {
+            if ($this->config->getPaymentAction() === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE) {
                 $payment->addTransactionCommentsToOrder(
                     "$rzpPaymentId",
                     $this->captureCommand->execute(
@@ -265,9 +271,7 @@ class CompleteOrder extends Action
                     ),
                     ""
                 );
-            }
-            else
-            {
+            } else {
                 $payment->addTransactionCommentsToOrder(
                     "$rzpPaymentId",
                     $this->authorizeCommand->execute(
@@ -285,11 +289,10 @@ class CompleteOrder extends Action
 
             $transaction->save();
 
-            $this->logger->info('Payment authorized completed for id : '. $order->getIncrementId());
+            $this->logger->info('Payment authorized completed for id : ' . $order->getIncrementId());
 
             if ($order->canInvoice() && $this->config->canAutoGenerateInvoice()
-                && $rzpOrderData->status === 'paid')
-            {
+                && $rzpOrderData->status === 'paid') {
                 $invoice = $this->invoiceService->prepareInvoice($order);
                 $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
                 $invoice->setTransactionId($rzpPaymentId);
@@ -297,8 +300,8 @@ class CompleteOrder extends Action
                 $invoice->save();
 
                 $this->logger->info('graphQL: Created Invoice for '
-                . 'order_id ' . $rzpOrderId . ', '
-                . 'rzp_payment_id ' . $rzpPaymentId);
+                    . 'order_id ' . $rzpOrderId . ', '
+                    . 'rzp_payment_id ' . $rzpPaymentId);
 
                 $transactionSave = $this->transaction
                     ->addObject($invoice)
@@ -311,32 +314,25 @@ class CompleteOrder extends Action
                     __('Notified customer about invoice #%1.', $invoice->getId())
                 )->setIsCustomerNotified(true);
 
-                $this->logger->info('Invoice generated for id : '. $order->getIncrementId());
-            }
-            else if($rzpOrderData->status === 'paid' and
-                    ($order->canInvoice() === false or
-                    $this->config->canAutoGenerateInvoice() === false))
-            {
-                $this->logger->info('Invoice generation not possible for id : '. $order->getIncrementId());
+                $this->logger->info('Invoice generated for id : ' . $order->getIncrementId());
+            } else if ($rzpOrderData->status === 'paid' and
+                ($order->canInvoice() === false or
+                    $this->config->canAutoGenerateInvoice() === false)) {
+                $this->logger->info('Invoice generation not possible for id : ' . $order->getIncrementId());
             }
 
-            try
-            {
+            try {
                 $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
                 $this->orderSender->send($order);
                 $this->checkoutSession->unsRazorpayMailSentOnSuccess();
-            }
-            catch (\Magento\Framework\Exception\MailException $e)
-            {
+            } catch (\Magento\Framework\Exception\MailException $e) {
                 $this->logger->critical('graphQL: '
-                . 'Razorpay Error:' . $e->getMessage());
+                    . 'Razorpay Error:' . $e->getMessage());
 
                 throw new GraphQlInputException(__('Razorpay Error: %1.', $e->getMessage()));
-            }
-            catch (\Exception $e)
-            {
+            } catch (\Exception $e) {
                 $this->logger->critical('graphQL: '
-                . 'Error:' . $e->getMessage());
+                    . 'Error:' . $e->getMessage());
 
                 throw new GraphQlInputException(__('Error: %1.', $e->getMessage()));
             }
@@ -346,8 +342,7 @@ class CompleteOrder extends Action
                 ->setLastSuccessQuoteId($order->getQuoteId())
                 ->setLastQuoteId($order->getQuoteId())
                 ->clearHelperData();
-            if (empty($order) === false)
-            {
+            if (empty($order) === false) {
                 $this
                     ->checkoutSession
                     ->setLastOrderId($order->getId())
@@ -382,7 +377,7 @@ class CompleteOrder extends Action
             $order->setBaseGrandTotal($totalBaseGrandTotal - $offerAmount);
             $order->setGrandTotal($totalGrandTotal - $offerAmount);
 
-            $order->setTotalPaid($totalPaid/100);
+            $order->setTotalPaid($totalPaid / 100);
 
             $comment = __('Razorpay offer applied ₹%1.', $offerAmount);
 
@@ -425,28 +420,23 @@ class CompleteOrder extends Action
         $quote->getShippingAddress()->addData($shipping['address']);
 
         $shippingMethod = 'NA';
-        if(empty($carrierCode) === false && empty($methodCode) === false)
-        {
-            $shippingMethod = $carrierCode ."_". $methodCode;
+        if (empty($carrierCode) === false && empty($methodCode) === false) {
+            $shippingMethod = $carrierCode . "_" . $methodCode;
         }
 
-        $shippingAddress=$quote->getShippingAddress();
+        $shippingAddress = $quote->getShippingAddress();
         $shippingAddress->setCollectShippingRates(true)
-                        ->collectShippingRates()
-                        ->setShippingMethod($shippingMethod);
+            ->collectShippingRates()
+            ->setShippingMethod($shippingMethod);
 
         // Todo: Loop through promotions and fetch the discount data.
-        if(isset($rzpOrderData->promotions[0]->code) == true)
-        {
-            $quote->setCouponCode($rzpOrderData->promotions[0]->code);   
+        if (isset($rzpOrderData->promotions[0]->code) == true) {
+            $quote->setCouponCode($rzpOrderData->promotions[0]->code);
         }
 
-        if($rzpPaymentData->method === 'cod')
-        {
+        if ($rzpPaymentData->method === 'cod') {
             $paymentMethod = static::COD;
-        }
-        else
-        {
+        } else {
             $paymentMethod = static::RAZORPAY;
         }
 
@@ -456,7 +446,7 @@ class CompleteOrder extends Action
         $quote->getPayment()->importData(['method' => $paymentMethod]);
 
         $quote->save();
-        
+
     }
 
     protected function getRegionCode($country, $state)
@@ -479,12 +469,12 @@ class CompleteOrder extends Action
         $name = explode(' ', $rzpAddress->name);
 
         return [
-            'email'   => $email, //buyer email id
-            'address' =>[
-                'firstname'  => $name[0], //address Details
-                'lastname'   => empty($name[1]) === false ? $name[1] : '.',
-                    'street' => $rzpAddress->line1,
-                    'city' => $rzpAddress->city,
+            'email' => $email, //buyer email id
+            'address' => [
+                'firstname' => $name[0], //address Details
+                'lastname' => empty($name[1]) === false ? $name[1] : '.',
+                'street' => $rzpAddress->line1,
+                'city' => $rzpAddress->city,
                 'country_id' => strtoupper($rzpAddress->country),
                 'region' => $regionCode,
                 'postcode' => $rzpAddress->zipcode,
@@ -496,8 +486,7 @@ class CompleteOrder extends Action
 
     protected function validateSignature($request)
     {
-        if (empty($request['error']) === false)
-        {
+        if (empty($request['error']) === false) {
             $this
                 ->logger
                 ->critical("Validate: Payment Failed or error from gateway");
@@ -507,11 +496,11 @@ class CompleteOrder extends Action
             throw new \Exception("Payment Failed or error from gateway");
         }
 
-        $this->logger->info('razorpay_payment_id = '. $request['razorpay_payment_id']);
-        $this->logger->info('razorpay_order_id = '. $request['razorpay_order_id']);
-        $this->logger->info('razorpay_signature = '. $request['razorpay_signature']);
-        
-        
+        $this->logger->info('razorpay_payment_id = ' . $request['razorpay_payment_id']);
+        $this->logger->info('razorpay_order_id = ' . $request['razorpay_order_id']);
+        $this->logger->info('razorpay_signature = ' . $request['razorpay_signature']);
+
+
         $attributes = array(
             'razorpay_payment_id' => $request['razorpay_payment_id'],
             'razorpay_order_id' => $request['razorpay_order_id'],

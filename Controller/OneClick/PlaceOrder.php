@@ -7,13 +7,14 @@ use Magento\Framework\App\Action\Context;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Quote\Api\CartManagementInterface;
+use Magento\Quote\Model\QuoteFactory;
 use Razorpay\Magento\Model\QuoteBuilderFactory;
 use Razorpay\Magento\Model\QuoteBuilder;
 use Magento\Framework\Pricing\Helper\Data;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Store\Model\ScopeInterface;
 use Razorpay\Magento\Model\PaymentMethod;
-use Razorpay\Magento\Model\Config;
+use Razorpay\Magento\Model\Config as RazorpayConfig;
 use Razorpay\Api\Api;
 use Magento\Framework\App\Request\Http;
 use Magento\Catalog\Api\ProductRepositoryInterface;
@@ -50,7 +51,7 @@ class PlaceOrder extends Action
     /**
      * @var ScopeConfigInterface
      */
-    protected $config;
+    protected $scopeConfig;
 
     /**
      * @var \Psr\Log\LoggerInterface
@@ -75,10 +76,14 @@ class PlaceOrder extends Action
     protected $cart;
 
     protected $checkoutSession;
-    
+
     protected $resourceConnection;
 
     protected $sequenceManager;
+
+    protected $quoteFactory;
+
+    protected $config;
 
     /**
      * PlaceOrder constructor.
@@ -86,37 +91,39 @@ class PlaceOrder extends Action
      * @param Context $context
      * @param JsonFactory $jsonFactory
      * @param CartManagementInterface $cartManagement
-     * @param ScopeConfigInterface $config
+     * @param RazorpayConfig $config
      * @param PaymentMethod $paymentMethod
      * @param \Psr\Log\LoggerInterface $logger
      * @param QuoteBuilderFactory $quoteBuilderFactory
      * @param ProductRepositoryInterface $productRepository
      */
     public function __construct(
-        Context $context,
-        Http $request,
-        JsonFactory $jsonFactory,
-        CartManagementInterface $cartManagement,
-        PaymentMethod $paymentMethod,
-        ScopeConfigInterface $config,
-        \Psr\Log\LoggerInterface $logger,
-        QuoteBuilderFactory $quoteBuilderFactory,
-        ProductRepositoryInterface $productRepository,
-        QuoteIdToMaskedQuoteIdInterface $maskedQuoteIdInterface,
-        QuoteIdMaskFactory $quoteIdMaskFactory,
-        QuoteIdMaskResourceModel $quoteIdMaskResourceModel,
-        StoreManagerInterface $storeManager,
-        \Magento\Checkout\Model\Cart $cart,
-        Session $checkoutSession,
+        Context                                   $context,
+        Http                                      $request,
+        JsonFactory                               $jsonFactory,
+        CartManagementInterface                   $cartManagement,
+        PaymentMethod                             $paymentMethod,
+        RazorpayConfig                            $config,
+        \Psr\Log\LoggerInterface                  $logger,
+        QuoteBuilderFactory                       $quoteBuilderFactory,
+        ProductRepositoryInterface                $productRepository,
+        QuoteIdToMaskedQuoteIdInterface           $maskedQuoteIdInterface,
+        QuoteIdMaskFactory                        $quoteIdMaskFactory,
+        QuoteIdMaskResourceModel                  $quoteIdMaskResourceModel,
+        StoreManagerInterface                     $storeManager,
+        \Magento\Checkout\Model\Cart              $cart,
+        Session                                   $checkoutSession,
         \Magento\Framework\App\ResourceConnection $resourceConnection,
-        SequenceManager $sequenceManager
-    ) {
+        SequenceManager                           $sequenceManager,
+        QuoteFactory                              $quoteFactory
+    )
+    {
         parent::__construct($context);
         $this->request = $request;
         $this->resultJsonFactory = $jsonFactory;
         $this->cartManagement = $cartManagement;
         $this->config = $config;
-        $this->rzp    = $paymentMethod->setAndGetRzpApiInstance();
+        $this->rzp = $paymentMethod->setAndGetRzpApiInstance();
         $this->logger = $logger;
         $this->quoteBuilderFactory = $quoteBuilderFactory;
         $this->productRepository = $productRepository;
@@ -128,14 +135,14 @@ class PlaceOrder extends Action
         $this->checkoutSession = $checkoutSession;
         $this->resourceConnection = $resourceConnection;
         $this->sequenceManager = $sequenceManager;
+        $this->quoteFactory = $quoteFactory;
     }
 
     public function execute()
     {
         $params = $this->request->getParams();
 
-        if(isset($params['page']) && $params['page'] == 'cart')
-        {
+        if (isset($params['page']) && $params['page'] == 'cart') {
             $cartItems = $this->cart->getQuote()->getAllVisibleItems();
             $quoteId = $this->cart->getQuote()->getId();
             $totals = $this->cart->getQuote()->getTotals();
@@ -144,8 +151,7 @@ class PlaceOrder extends Action
             $customerId = $quote->getCustomerId();
 
             // Set customer as guest to update the quote during checkout journey.
-            if($customerId)
-            {
+            if ($customerId) {
                 $this->logger->info('graphQL: customer: ' . json_encode($customerId));
 
                 $connection = $this->resourceConnection->getConnection();
@@ -153,21 +159,20 @@ class PlaceOrder extends Action
 
                 $connection->update($tableName, ['customer_id' => null, 'customer_is_guest' => 1], ['entity_id = ?' => $quoteId]);
             }
-        }
-        else 
-        {
+        } else {
             /** @var QuoteBuilder $quoteBuilder */
             $quoteBuilder = $this->quoteBuilderFactory->create();
             $quote = $quoteBuilder->createQuote();
             $quoteId = $quote->getId();
+            $quote = $this->quoteFactory->create()->load($quoteId);
             $totals = $quote->getTotals();
+            $quote->collectTotals();
             $cartItems = $quote->getAllVisibleItems();
         }
 
         $resultJson = $this->resultJsonFactory->create();
 
-        try 
-        {
+        try {
             $maskedId = $this->maskedQuoteIdInterface->execute($quoteId);
 
             if ($maskedId === '') {
@@ -187,21 +192,23 @@ class PlaceOrder extends Action
                 $productId = $quoteItem->getProductId();
                 $product = $this->productRepository->getById($productId);
 
-                $productImageUrl = $store->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA) . 'catalog/product' .$product->getImage();
+                $productImageUrl = $store->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA) . 'catalog/product' . $product->getImage();
                 $productUrl = $product->getProductUrl();
 
                 $offerPrice = $quoteItem->getPrice() * 100;
                 // Check if the item has applied discounts
                 if ($quoteItem->getDiscountAmount()) {
                     // Get the discount amount applied to the item
-                    $offerPrice = abs($quoteItem->getDiscountAmount()) * 100;
+                    $discountAmount = abs($quoteItem->getDiscountAmount());
+
+                    $offerPrice = ($quoteItem->getPrice() - $discountAmount) * 100;
                 }
 
                 $lineItems[] = [
                     'type' => 'e-commerce',
                     'sku' => $quoteItem->getSku(),
                     'variant_id' => $quoteItem->getProductId(),
-                    'price' => $quoteItem->getPrice()*100,
+                    'price' => $quoteItem->getPrice() * 100,
                     'offer_price' => $offerPrice,
                     'tax_amount' => 0,
                     'quantity' => $quoteItem->getQty(),
@@ -212,7 +219,7 @@ class PlaceOrder extends Action
                 ];
 
             }
-            $totalAmount = $quote->getGrandTotal();
+            $totalAmount = $quote->getGrandTotal() * 100;
 
         } catch (LocalizedException $e) {
             return $resultJson->setData([
@@ -228,41 +235,41 @@ class PlaceOrder extends Action
 
         $storeScope = \Magento\Store\Model\ScopeInterface::SCOPE_STORE;
 
-        $paymentAction  = $this->config->getValue('payment/razorpay/rzp_payment_action', $storeScope);
+        $paymentAction = $this->config->getPaymentAction();
         $paymentCapture = 1;
-        if ($paymentAction === 'authorize')
-        {
+        if ($paymentAction === 'authorize') {
             $paymentCapture = 0;
         }
+        $rzpKey = $this->config->getKeyId();
+        $merchantName = $this->config->getMerchantNameOverride();
 
-        $orderNumber = $this->getLastOrderId($quote);
+        $this->getLastOrderId($quote);
 
         $razorpay_order = $this->rzp->order->create([
-            'amount'          => $totalAmount,
-            'receipt'         => (string)$quote->getReservedOrderId() ?? 'order pending',
-            'currency'        => $this->storeManager->getStore()->getBaseCurrencyCode(),
+            'amount' => $totalAmount,
+            'receipt' => (string)$quote->getReservedOrderId() ?? 'order pending',
+            'currency' => $this->storeManager->getStore()->getBaseCurrencyCode(),
             'payment_capture' => $paymentCapture,
-            'app_offer'       => 0,
-            'notes'           => [
+            'app_offer' => 0,
+            'notes' => [
                 'cart_mask_id' => $maskedId,
-                'cart_id'      => $quoteId
+                'cart_id' => $quoteId
             ],
             'line_items_total' => $totalAmount,
             'line_items' => $lineItems
         ]);
 
-        if (null !== $razorpay_order && !empty($razorpay_order->id))
-        {
+        if (null !== $razorpay_order && !empty($razorpay_order->id)) {
             $this->logger->info('graphQL: Razorpay Order ID: ' . $razorpay_order->id);
 
             $result = [
-                'status'        => 'success',
-                'rzp_order_id'   => $razorpay_order->id,
-                'message'        => 'Razorpay Order created successfully'
+                'status' => 'success',
+                'rzp_key_id' => $rzpKey,
+                'merchant_name' => $merchantName,
+                'rzp_order_id' => $razorpay_order->id,
+                'message' => 'Razorpay Order created successfully'
             ];
-        } 
-        else
-        {
+        } else {
             $this->logger->critical('graphQL: Razorpay Order not generated. Something went wrong');
 
             $result = [
