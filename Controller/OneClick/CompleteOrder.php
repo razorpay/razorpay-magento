@@ -382,7 +382,7 @@ class CompleteOrder extends Action
             $comment = __('Razorpay offer applied ₹%1.', $offerAmount);
 
             // Remove "Pending Payment COD" from the comment
-            $comment = str_replace('Pending Payment COD', '', $comment);
+            $comment = str_replace('Pending', '', $comment);
 
             $order->addStatusHistoryComment(
                 $comment
