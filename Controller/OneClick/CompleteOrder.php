@@ -248,7 +248,6 @@ class CompleteOrder extends Action
                     $this->logger->info('graphQL: discountAmount ' . $discountAmount);
 
                     $this->updateDiscountAmount($orderId, $newDiscountAmount, $offerDiscount, $totalPaid);
-
                 }
             }
 
@@ -321,6 +320,18 @@ class CompleteOrder extends Action
                 $this->logger->info('Invoice generation not possible for id : ' . $order->getIncrementId());
             }
 
+            $comment = __('Razorpay order id %1.', $rzpOrderId);
+
+            $order->addStatusHistoryComment(
+                $comment
+            )->setStatus($order->getStatus())->setIsCustomerNotified(true);
+
+            $comment = __('Razorpay magic order.');
+
+            $order->addStatusHistoryComment(
+                $comment
+            )->setStatus($order->getStatus())->setIsCustomerNotified(true);
+
             try {
                 $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
                 $this->orderSender->send($order);
@@ -381,12 +392,9 @@ class CompleteOrder extends Action
 
             $comment = __('Razorpay offer applied ₹%1.', $offerAmount);
 
-            // Remove "Pending Payment COD" from the comment
-            $comment = str_replace('Pending', '', $comment);
-
             $order->addStatusHistoryComment(
                 $comment
-            )->setIsCustomerNotified(true);
+            )->setStatus($order->getStatus())->setIsCustomerNotified(true);
 
             return true;
         } catch (\Exception $e) {

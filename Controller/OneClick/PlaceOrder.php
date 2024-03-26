@@ -157,6 +157,10 @@ class PlaceOrder extends Action
                 $connection = $this->resourceConnection->getConnection();
                 $tableName = $this->resourceConnection->getTableName('quote');
 
+                $quote->setCustomerId(null);
+
+                $quote->save();
+
                 $connection->update($tableName, ['customer_id' => null, 'customer_is_guest' => 1], ['entity_id = ?' => $quoteId]);
             }
         } else {
