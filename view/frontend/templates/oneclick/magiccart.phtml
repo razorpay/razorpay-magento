@@ -1,0 +1,49 @@
+<?php
+
+function getObjectManager()
+{
+    return \Magento\Framework\App\ObjectManager::getInstance();
+}
+
+$objectManager = getObjectManager();
+
+$configData = $objectManager->get(\Razorpay\Magento\Model\Config::class);
+
+$isMagicEnabled = $configData->getMagicStatus();
+
+$cartData = $objectManager->create('Magento\Checkout\Model\Cart')->getQuote()->getAllVisibleItems();
+$cartDataCount = count( $cartData );
+
+?>
+<?php if ($isMagicEnabled == 1 && $cartDataCount > 0) :?>
+ 
+    <div style="margin-top:10px;" id="cart-occ-div">
+        <magic-checkout-btn id="cart-occ-template" border-radius="4px"
+            data-mage-init='{
+                    "Razorpay_Magento/js/magic-cart":{}
+                }'
+                class="<?= ($block->isDisabled()) ? ' disabled' : '' ?>"
+     
+                <?php if ($block->isDisabled()) :?>
+     
+                    disabled="disabled"
+     
+                <?php endif; ?>>
+        </magic-checkout-btn>
+    </div>
+    <link rel="stylesheet" type="text/css" href="<?php echo $block->getViewFileUrl('Razorpay_Magento::css/magic.css'); ?>">
+<!--    <script type="text/javascript">-->
+<!---->
+<!--        var Razorpay = {-->
+<!--          "config": {-->
+<!--            "api": "https://api-web-magentobase.ext.dev.razorpay.in/",-->
+<!--           "frame": "https://api-web-magentobase.ext.dev.razorpay.in/test/checkout.html?branch=master",-->
+<!--          },-->
+<!--        };-->
+<!---->
+<!--         var rzpApi = Razorpay.config.api + 'v1/';-->
+<!--    </script>-->
+
+    <script type="text/javascript" src="https://checkout.razorpay.com/v1/magic-checkout.js"></script>
+ 
+<?php endif; ?>

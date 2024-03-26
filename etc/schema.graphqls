@@ -31,3 +31,13 @@ type SetRzpPaymentDetailsForOrderOutput {
 type ResetCart {
 	success: Boolean!
 }
+
+type Coupon {
+    title: String
+    discountAmount: Float
+    description: String
+}
+
+type Query {
+    getCoupons: [Coupon] @resolver(class: "Razorpay\\Magento\\Model\\Resolver\\CouponList") @doc(description: "Get the list of coupons")
+}
