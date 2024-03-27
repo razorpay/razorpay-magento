@@ -94,7 +94,9 @@ class TableSetupNotification implements MessageInterface
             $name = $singleColumnDescription['COLUMN_NAME'];
             foreach($singleColumnDescription as $key => $value)
             {
-                if($tableDescription[$name][$key] !== $value)
+                if (isset($tableDescription[$name]) === false or
+                    isset($tableDescription[$name][$key]) === false or
+                    $tableDescription[$name][$key] !== $value)
                 {
                     return true;
                 }
