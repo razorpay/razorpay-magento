@@ -206,6 +206,7 @@ define(
                         self.rzp_response = data;
                         self.validateOrder(data);
                     },
+                    callback_url: url.build('razorpay/payment/callback?order_id=' + data.order_id),
                     order_id: data.rzp_order,
                     modal: {
                         ondismiss: function(data) {
