@@ -255,7 +255,7 @@ class PlaceOrder extends Action
                 ];
 
             }
-            $totalAmount = $quote->getGrandTotal() * 100;
+            $totalAmount = $quote->getSubtotalWithDiscount() * 100;
 
         } catch (LocalizedException $e) {
             return $resultJson->setData([
