@@ -85,6 +85,7 @@ define([
                     self.renderIframe(data);
                 },
                 error: function (request) {
+                    self.toggleLoader(false);
                     self._orderError(request);
                     self.enableButton();
                 }
@@ -108,6 +109,7 @@ define([
                     window.location.href = successUrl;
                 },
                 error: function (error) {
+                    self.toggleLoader(false);
                     console.log("Payment complete fail")
                     var failureUrl = url.build('checkout/onepage/failure', {})
                     window.location.href = failureUrl;
@@ -116,7 +118,6 @@ define([
         },
 
         renderIframe: function(data) {
-            // debugger;
             var self = this;
 
             var options = {
@@ -132,13 +133,13 @@ define([
                 order_id: data.rzp_order_id,
                 modal: {
                     ondismiss: function (data) {
+                        self.enableButton();
+
                         //reset the cart
-                        self.resetCart(data);
+                        // self.resetCart(data);
                         // fullScreenLoader.stopLoader();
                         // self.isPaymentProcessing.reject("Payment Closed");
                         // self.isPlaceOrderActionAllowed(true);
-                        self.enableButton();
-
                     }
                 },
                 notes: {},
@@ -162,13 +163,6 @@ define([
             //     options.display_amount = data.quote_amount;
             // }
 
-                var RazorpayConfigMagento = {
-                    "config": {
-                        "api": "https://api-web-magentobase.ext.dev.razorpay.in/",
-                        "frame": "https://api-web-magentobase.ext.dev.razorpay.in/test/checkout.html?branch=master",
-                    },
-                };
-                window.rzpApi = RazorpayConfigMagento.config.api + 'v1/';
 
             this.rzp = new Razorpay(options);
             self.toggleLoader(false);
@@ -176,17 +170,16 @@ define([
         },
 
         _orderError: function (request) {
-            console.log(request);
             this.enableButton();
         },
 
         _disableButton: function () {
-            var button = this._parent().find(this.options.buttonSelector);
+            var button = this._parent().find(this.options.buttonTemplateSelector);
             button.addClass('disabled');
         },
 
         enableButton: function () {
-            var button = this._parent().find(this.options.buttonSelector);
+            var button = this._parent().find(this.options.buttonTemplateSelector);
             button.removeClass('disabled');
         },
 

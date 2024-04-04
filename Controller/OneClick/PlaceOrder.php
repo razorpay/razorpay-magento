@@ -25,6 +25,8 @@ use Magento\Store\Model\StoreManagerInterface;
 use Magento\Quote\Model\ResourceModel\Quote\QuoteIdMask as QuoteIdMaskResourceModel;
 use Magento\Checkout\Model\Session;
 use Magento\SalesSequence\Model\Manager as SequenceManager;
+use Magento\ConfigurableProduct\Model\Product\Type\Configurable as ConfigurableProduct;
+use Magento\GroupedProduct\Model\Product\Type\Grouped as GroupedProduct;
 
 class PlaceOrder extends Action
 {
@@ -85,6 +87,9 @@ class PlaceOrder extends Action
 
     protected $config;
 
+    protected $configurableProduct;
+    protected $groupedProduct;
+
     /**
      * PlaceOrder constructor.
      * @param Http $request
@@ -115,7 +120,9 @@ class PlaceOrder extends Action
         Session                                   $checkoutSession,
         \Magento\Framework\App\ResourceConnection $resourceConnection,
         SequenceManager                           $sequenceManager,
-        QuoteFactory                              $quoteFactory
+        QuoteFactory                              $quoteFactory,
+        ConfigurableProduct                       $configurableProduct,
+        GroupedProduct                            $groupedProduct
     )
     {
         parent::__construct($context);
@@ -136,6 +143,8 @@ class PlaceOrder extends Action
         $this->resourceConnection = $resourceConnection;
         $this->sequenceManager = $sequenceManager;
         $this->quoteFactory = $quoteFactory;
+        $this->configurableProduct = $configurableProduct;
+        $this->groupedProduct = $groupedProduct;
     }
 
     public function execute()
@@ -195,8 +204,31 @@ class PlaceOrder extends Action
                 $store = $this->storeManager->getStore();
                 $productId = $quoteItem->getProductId();
                 $product = $this->productRepository->getById($productId);
+                $parentProductId = null;
 
-                $productImageUrl = $store->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA) . 'catalog/product' . $product->getImage();
+                // Check if the product is configurable
+                if ($product->getTypeId() == \Magento\ConfigurableProduct\Model\Product\Type\Configurable::TYPE_CODE) {
+                    $parentProductId = $this->configurableProduct->getParentIdsByChild($productId);
+                } elseif ($product->getTypeId() == \Magento\GroupedProduct\Model\Product\Type\Grouped::TYPE_CODE) {
+                    $parentProductId = $this->groupedProduct->getParentIdsByChild($productId);
+                }
+
+                if ($parentProductId) {
+                    // Load the parent product by its ID with images
+                    $parentProduct = $this->productRepository->getById($parentProductId[0], false, $quote->getStoreId(), true);
+
+                    // Get the parent product image URL
+                    $productImageUrl = $parentProduct->getImageUrl();
+                } else {
+                    $productImageUrl = $store->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA) . 'catalog/product' . $product->getImage();
+                }
+
+                $imagewidth=200;
+                $imageheight=200;
+                $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+                $imageHelper  = $objectManager->get('\Magento\Catalog\Helper\Image');
+                $productImageUrl = $imageHelper->init($product, 'product_page_image_small')->setImageFile($product->getFile())->resize($imagewidth, $imageheight)->getUrl();
+
                 $productUrl = $product->getProductUrl();
 
                 $offerPrice = $quoteItem->getPrice() * 100;

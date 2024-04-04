@@ -1,12 +1,19 @@
-#cart-occ-template{
+#cart-occ-template {
 	width: 100%;
 }
-.action.primary.checkout{
+
+#product-oneclick-button {
+	margin-bottom: 10px;
+}
+
+.checkout.methods.items.checkout-methods-items {
 	display: none;
 }
-.fieldset.coupon{
+
+.fieldset.coupon {
 	display: none;
 }
+
 div.product-info-main #occ-template magic-checkout-btn {
-    display: none !important;
+	display: none !important;
 }
