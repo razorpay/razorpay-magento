@@ -123,6 +123,7 @@ define([
                 key: data.rzp_key_id,
                 name: '',
                 amount: data.totalAmount,
+                one_click_checkout: true,
                 handler: function (data) {
                     self.toggleLoader(true);
                     self.orderSuccess(data);

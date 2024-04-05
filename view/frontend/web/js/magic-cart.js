@@ -124,6 +124,7 @@ define([
                 key: data.rzp_key_id,
                 name: '',
                 amount: data.totalAmount,
+                one_click_checkout: true,
                 handler: function (data) {
 
                     console.log("data in handler", data)
