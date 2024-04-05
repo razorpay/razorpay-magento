@@ -122,7 +122,7 @@ define([
 
             var options = {
                 key: data.rzp_key_id,
-                name: data.merchant_name,
+                name: '',
                 amount: data.totalAmount,
                 handler: function (data) {
 
