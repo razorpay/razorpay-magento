@@ -92,9 +92,9 @@ class CompleteOrder extends Action
     protected $customerConsent;
     protected $_order = null;
 
-    protected const STATUS_PROCESSING = 'processing';
-    protected const COD = 'cashondelivery';
-    protected const RAZORPAY = 'razorpay';
+    const STATUS_PROCESSING = 'processing';
+    const COD = 'cashondelivery';
+    const RAZORPAY = 'razorpay';
 
     /**
      * CompleteOrder constructor.
@@ -212,7 +212,7 @@ class CompleteOrder extends Action
 
             if ($order->getStatus() === 'pending') {
                 if ($rzpPaymentData->status === 'pending' && $rzpPaymentData->method === 'cod') {
-                    $order->setStatus(\Magento\Sales\Model\Order::STATE_PENDING_PAYMENT)->setStatus($this->orderStatus);
+                    $order->setState(\Magento\Sales\Model\Order::STATE_PENDING_PAYMENT)->setStatus($this->orderStatus);
                 } else {
                     $order->setState(\Magento\Sales\Model\Order::STATE_PROCESSING)->setStatus($this->orderStatus);
                 }
@@ -260,26 +260,32 @@ class CompleteOrder extends Action
 
             $payment->setParentTransactionId($payment->getTransactionId());
 
-            if ($this->config->getPaymentAction() === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE) {
-                $payment->addTransactionCommentsToOrder(
-                    "$rzpPaymentId",
-                    $this->captureCommand->execute(
-                        $payment,
-                        $order->getGrandTotal(),
-                        $order
-                    ),
-                    ""
-                );
+            if ($rzpPaymentData->method != 'cod') {
+                if ($this->config->getPaymentAction() === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE) {
+                    $payment->addTransactionCommentsToOrder(
+                        "$rzpPaymentId",
+                        $this->captureCommand->execute(
+                            $payment,
+                            $order->getGrandTotal(),
+                            $order
+                        ),
+                        ""
+                    );
+                } else {
+                    $payment->addTransactionCommentsToOrder(
+                        "$rzpPaymentId",
+                        $this->authorizeCommand->execute(
+                            $payment,
+                            $order->getGrandTotal(),
+                            $order
+                        ),
+                        ""
+                    );
+                }
+                $this->logger->info('Payment authorized completed for id : ' . $order->getIncrementId());
+
             } else {
-                $payment->addTransactionCommentsToOrder(
-                    "$rzpPaymentId",
-                    $this->authorizeCommand->execute(
-                        $payment,
-                        $order->getGrandTotal(),
-                        $order
-                    ),
-                    ""
-                );
+                $order->addStatusHistoryComment("Razorpay Payment Id " . $rzpPaymentId)->setStatus($order->getStatus())->setIsCustomerNotified(true);
             }
 
             $transaction = $payment->addTransaction(\Magento\Sales\Model\Order\Payment\Transaction::TYPE_AUTH, null, true, "");
