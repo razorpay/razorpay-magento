@@ -92,9 +92,10 @@ class CompleteOrder extends Action
     protected $customerConsent;
     protected $_order = null;
 
-    const STATUS_PROCESSING = 'processing';
     const COD = 'cashondelivery';
     const RAZORPAY = 'razorpay';
+    const STATE_PENDING_PAYMENT = 'pending_payment';
+    const STATE_PROCESSING = 'processing';
 
     /**
      * CompleteOrder constructor.
@@ -159,7 +160,7 @@ class CompleteOrder extends Action
         $this->cartConverter = $cartConverter;
         $this->customerConsent = $customerConsent;
         $this->resultRedirectFactory = $context->getResultFactory();;
-        $this->orderStatus = static::STATUS_PROCESSING;
+        $this->orderStatus = static::STATE_PROCESSING;
         $this->authorizeCommand = new AuthorizeCommand();
         $this->captureCommand = new CaptureCommand();
     }
@@ -212,9 +213,11 @@ class CompleteOrder extends Action
 
             if ($order->getStatus() === 'pending') {
                 if ($rzpPaymentData->status === 'pending' && $rzpPaymentData->method === 'cod') {
-                    $order->setState(\Magento\Sales\Model\Order::STATE_PENDING_PAYMENT)->setStatus($this->orderStatus);
+                    $order->setState(static::STATE_PENDING_PAYMENT)
+                        ->setStatus(static::STATE_PENDING_PAYMENT);
                 } else {
-                    $order->setState(\Magento\Sales\Model\Order::STATE_PROCESSING)->setStatus($this->orderStatus);
+                    $order->setState(static::STATE_PROCESSING)
+                        ->setStatus(static::STATE_PROCESSING);
                 }
 
                 $this->logger->info('graphQL: Order Status Updated to ' . $this->orderStatus);
@@ -384,17 +387,18 @@ class CompleteOrder extends Action
             // Load the order
             $order = $this->order->load($orderId);
 
-            // Update discount amount
-            $order->setDiscountAmount($newDiscountAmount);
-            $order->setBaseDiscountAmount($newDiscountAmount);
-
-            $totalBaseGrandTotal = $order->getBaseGrandTotal();
-            $totalGrandTotal = $order->getGrandTotal();
-
-            $order->setBaseGrandTotal($totalBaseGrandTotal - $offerAmount);
-            $order->setGrandTotal($totalGrandTotal - $offerAmount);
-
-            $order->setTotalPaid($totalPaid / 100);
+            // TODO: Commenting this temp to unblock navya fashion.
+//            // Update discount amount
+//            $order->setDiscountAmount($newDiscountAmount);
+//            $order->setBaseDiscountAmount($newDiscountAmount);
+//
+//            $totalBaseGrandTotal = $order->getBaseGrandTotal();
+//            $totalGrandTotal = $order->getGrandTotal();
+//
+//            $order->setBaseGrandTotal($totalBaseGrandTotal - $offerAmount);
+//            $order->setGrandTotal($totalGrandTotal - $offerAmount);
+//
+//            $order->setTotalPaid($totalPaid / 100);*/
 
             $comment = __('Razorpay offer applied ₹%1.', $offerAmount);
 
