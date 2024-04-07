@@ -289,7 +289,8 @@ class PlaceOrder extends Action
             'app_offer' => 0,
             'notes' => [
                 'cart_mask_id' => $maskedId,
-                'cart_id' => $quoteId
+                'cart_id' => $quoteId,
+                'merchant_order_id' => (string)$quote->getReservedOrderId()
             ],
             'line_items_total' => $totalAmount,
             'line_items' => $lineItems
