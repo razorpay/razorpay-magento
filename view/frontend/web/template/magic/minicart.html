@@ -8,9 +8,9 @@
     <strong>
         <span class="text" translate="'My Cart'"></span>
         <span
-            class="qty empty"
-            text="getCartParam('summary_count')"
-            data-bind="css: { empty: !!getCartParam('summary_count') == false },
+                class="qty empty"
+                text="getCartParam('summary_count')"
+                data-bind="css: { empty: !!getCartParam('summary_count') == false },
                        attr: { title: $t('Items in Cart') }">
         </span>
     </strong>
@@ -79,15 +79,34 @@
         </div>
     </div>
     <if args="getCartParam('summary_count')">
-        <div style="margin-top:10px;" id="cart-occ-div">
-            <magic-checkout-btn id="cart-occ-template" class="" page-type="product" border-radius="4px"
-                                data-mage-init='{
-                    "Razorpay_Magento/js/magic-cart": {
-                        "from": "minicart"
-                    }
-                }'>
-            </magic-checkout-btn>
+        <div id="cart-occ-div">
+
+            <button type="button"
+
+                    id="cart-occ-template"
+
+                    data-role="proceed-to-checkout"
+
+                    title="<?= $block->escapeHtmlAttr(__('Proceed to Checkout')) ?>"
+
+                    data-mage-init='{
+                        "Razorpay_Magento/js/magic-cart":{
+                            "from": "minicart"
+                        }
+                    }'
+
+                    class="action primary checkout<?= ($block->isDisabled()) ? ' disabled' : '' ?>"
+
+            <?php if ($block->isDisabled()) : ?>
+
+            disabled="disabled"
+
+            <?php endif; ?>>
+
+            <span><?= $block->escapeHtml(__('Proceed to Checkout')) ?></span>
+            </button>
         </div>
+
     </if>
 
     <div id="minicart-widgets" class="minicart-widgets" if="regionHasElements('promotion')">
