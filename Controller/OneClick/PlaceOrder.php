@@ -198,8 +198,10 @@ class PlaceOrder extends Action
 
             $totalAmount = 0;
             $lineItems = [];
+            $item = [];
 
             foreach ($cartItems as $quoteItem) {
+                $category = [];
 
                 $store = $this->storeManager->getStore();
                 $productId = $quoteItem->getProductId();
@@ -240,7 +242,16 @@ class PlaceOrder extends Action
                     $offerPrice = ($quoteItem->getPrice() - $discountAmount) * 100;
                 }
 
-                $lineItems[] = [
+                $categoriesIds = $product->getCategoryIds(); /*will return category ids array*/
+                foreach($categoriesIds as $categoryId){
+
+                    $cat = $objectManager->create('Magento\Catalog\Model\Category')->load($categoryId);
+                    $catName = $cat->getName();
+                    $category['category'][] = $catName;
+                }
+                $item = array_merge($item, $category);
+
+                $lineItem = [
                     'type' => 'e-commerce',
                     'sku' => $quoteItem->getSku(),
                     'variant_id' => $quoteItem->getProductId(),
@@ -254,6 +265,11 @@ class PlaceOrder extends Action
                     'product_url' => $productUrl,
                 ];
 
+                $lineItems[] = $lineItem;
+
+                $item = array_merge($item, $lineItem);
+
+                $items[] = $item;
             }
             $totalAmount = $quote->getSubtotalWithDiscount() * 100;
 
@@ -290,7 +306,7 @@ class PlaceOrder extends Action
             'notes' => [
                 'cart_mask_id' => $maskedId,
                 'cart_id' => $quoteId,
-                'merchant_order_id' => (string)$quote->getReservedOrderId()
+                'merchant_order_id' => (string)$quote->getReservedOrderId() ?? 'order pending'
             ],
             'line_items_total' => $totalAmount,
             'line_items' => $lineItems
@@ -304,6 +320,7 @@ class PlaceOrder extends Action
                 'rzp_key_id' => $rzpKey,
                 'merchant_name' => $merchantName,
                 'rzp_order_id' => $razorpay_order->id,
+                'items' => $items,
                 'message' => 'Razorpay Order created successfully'
             ];
         } else {

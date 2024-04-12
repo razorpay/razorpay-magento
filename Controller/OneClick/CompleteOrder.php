@@ -372,12 +372,44 @@ class CompleteOrder extends Action
 
             $order->save();
 
+            // Get applied discounts data from the order object
+            $appliedDiscounts = $this->getAppliedDiscounts($order);
+
             $result = [
-                'status' => 'success'
+                'status' => 'success',
+                'order_id' => $order->getIncrementId(),
+                'total_amount' => $order->getGrandTotal() * 100,
+                'total_tax' => $order->getTaxAmount() * 100,
+                'shipping_fee' => $order->getShippingAmount() * 100,
+                'promotions' => $appliedDiscounts,
+                'cod_fee' => 0
             ];
 
             return $resultJson->setData($result);
 
+        }
+    }
+
+    public function getAppliedDiscounts($order)
+    {
+        try {
+            // Get applied discounts data from the order object
+            $appliedDiscounts = [];
+            foreach ($order->getAllItems() as $item) {
+                $discount = $item->getDiscountAmount();
+                if ($discount > 0) {
+                    $appliedDiscounts[] = [
+                        'item_id' => $item->getId(),
+                        'code' => $item->getName(),
+                        'discount_amount' => $discount * 100
+                    ];
+                }
+            }
+
+            return $appliedDiscounts;
+        } catch (\Exception $e) {
+            // Handle exception if order retrieval fails
+            return [];
         }
     }
 

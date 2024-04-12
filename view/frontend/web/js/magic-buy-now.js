@@ -4,9 +4,10 @@ define([
     'Magento_Ui/js/modal/alert',
     'Magento_Checkout/js/model/full-screen-loader',
     'mage/url',
+    'Razorpay_Magento/js/analytics',
     'underscore',
     'mage/cookies'
-], function ($, $t, alert, fullScreenLoader, url, _) {
+], function ($, $t, alert, fullScreenLoader, url, analytics, _) {
     "use strict";
 
     $.widget('pmclain.oneClickButton', {
@@ -104,8 +105,20 @@ define([
                 data: data,
                 type: 'POST',
                 dataType: 'json',
-                success: function (data) {
+                success: async function (data) {
                     self.toggleLoader(true);
+
+                    if (analytics.MagicMxAnalytics.purchase) {
+                        debugger
+                        try {
+                            await Promise.all(analytics.MagicMxAnalytics.purchase({
+                                ...data,
+                                merchantAnalyticsConfigs: {},
+                            }));
+                        } catch (error) {
+                            console.error(error);
+                        }
+                    }
                     var successUrl = url.build('checkout/onepage/success', {})
                     window.location.href = successUrl;
                 },
@@ -163,6 +176,22 @@ define([
             // }
 
             this.rzp = new Razorpay(options);
+
+            this.rzp.on('mx-analytics', eventData => {
+                console.log(analytics.MagicMxAnalytics);
+                console.log("mx-analytics data", eventData);
+                const enabledAnalyticsTools = {
+                    ga4: window.gtag,
+                };
+
+                analytics.MagicMxAnalytics?.[eventData.event]?.(
+                    {
+                        ...eventData,
+                    },
+                    data,
+                    enabledAnalyticsTools
+                );
+            });
             self.toggleLoader(false);
 
             this.rzp.open();
