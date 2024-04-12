@@ -109,7 +109,6 @@ define([
                     self.toggleLoader(true);
 
                     if (analytics.MagicMxAnalytics.purchase) {
-                        debugger
                         try {
                             await Promise.all(analytics.MagicMxAnalytics.purchase({
                                 ...data,
