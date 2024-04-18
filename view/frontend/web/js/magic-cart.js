@@ -137,6 +137,7 @@ define([
                 name: '',
                 amount: data.totalAmount,
                 one_click_checkout: true,
+                show_coupons: data.allow_coupon_application,
                 handler: function (data) {
 
                     console.log("data in handler", data)

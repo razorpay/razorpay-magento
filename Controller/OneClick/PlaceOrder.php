@@ -294,6 +294,7 @@ class PlaceOrder extends Action
         }
         $rzpKey = $this->config->getKeyId();
         $merchantName = $this->config->getMerchantNameOverride();
+        $allowCouponApplication = $this->config->getMerchantCouponApplication();
 
         $this->getLastOrderId($quote);
 
@@ -318,7 +319,7 @@ class PlaceOrder extends Action
             $result = [
                 'status' => 'success',
                 'rzp_key_id' => $rzpKey,
-                'merchant_name' => $merchantName,
+                'allow_coupon_application' => $allowCouponApplication == 1 ? true : false,
                 'rzp_order_id' => $razorpay_order->id,
                 'items' => $items,
                 'message' => 'Razorpay Order created successfully'

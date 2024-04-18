@@ -30,6 +30,7 @@ class Config
     const KEY_MAGIC_CHECKOUT_STATUS = 'activate_magic';
     const KEY_MAGIC_BUY_NOW_STATUS = 'activate_magic_buy_now';
     const KEY_MAGIC_MINI_CART_STATUS = 'activate_magic_mini_cart';
+    const KEY_MAGIC_ALLOW_COUPON_APPLICATION_STATUS = 'allow_coupon_apply_magic';
     /**
      * @var string
      */
@@ -139,6 +140,10 @@ class Config
     public function getMagicMinicartStatus()
     {
         return $this->getConfigData(self::KEY_MAGIC_MINI_CART_STATUS);
+    }
+    public function getMerchantCouponApplication()
+    {
+        return $this->getConfigData(self::KEY_MAGIC_ALLOW_COUPON_APPLICATION_STATUS);
     }
 
     /**

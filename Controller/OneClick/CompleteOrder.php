@@ -457,11 +457,11 @@ class CompleteOrder extends Action
         $shippingCountry = $rzpOrderData->customer_details->shipping_address->country;
         $shippingState = $rzpOrderData->customer_details->shipping_address->state;
 
-        $billingingCountry = $rzpOrderData->customer_details->billing_address->country;
-        $billingingState = $rzpOrderData->customer_details->billing_address->state;
+        $billingCountry = $rzpOrderData->customer_details->billing_address->country;
+        $billingState = $rzpOrderData->customer_details->billing_address->state;
 
         $shippingRegionCode = $this->getRegionCode($shippingCountry, $shippingState);
-        $billingRegionCode = $this->getRegionCode($billingingCountry, $billingingState);
+        $billingRegionCode = $this->getRegionCode($billingCountry, $billingState);
 
         $shipping = $this->getAddress($rzpOrderData->customer_details->shipping_address, $shippingRegionCode, $email);
         $billing = $this->getAddress($rzpOrderData->customer_details->billing_address, $billingRegionCode, $email);
