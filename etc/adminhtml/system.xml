@@ -124,7 +124,7 @@
                     </depends>
                 </field>
 
-                <field id="activate_magic_mini_cart" translate="label" type="select" sortOrder="27" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="activate_magic_mini_cart" translate="label" type="select" sortOrder="27" showInDefault="0" showInWebsite="0" showInStore="0">
                     <label>Magic Mini Cart Enabled</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <config_path>payment/razorpay/activate_magic_mini_cart</config_path>
@@ -135,6 +135,7 @@
 
                 <field id="allow_coupon_apply_magic" translate="label" type="select" sortOrder="28" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Allow Coupon Apply on Magic </label>
+                    <comment>Setup coupon widget on Magic Checkout modal</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <config_path>payment/razorpay/allow_coupon_apply_magic</config_path>
                     <depends>

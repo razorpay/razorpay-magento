@@ -52,6 +52,7 @@ define(['jquery'], function ($) {
                         discount: element.discount.toFixed(2),
                         item_brand: element.brand || element.vendor || '',
                         item_variant: element.id || '',
+                        affiliation: cartItem.affiliation,
                         ...itemCategories,
                     };
                     if (GA4.COUPON) item.coupon = GA4.COUPON;

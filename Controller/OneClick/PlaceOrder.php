@@ -251,6 +251,11 @@ class PlaceOrder extends Action
                 }
                 $item = array_merge($item, $category);
 
+                $storeName = [
+                    'affiliation' => $this->storeManager->getStore()->getName(),
+                ];
+                $item = array_merge($item, $storeName);
+
                 $lineItem = [
                     'type' => 'e-commerce',
                     'sku' => $quoteItem->getSku(),
