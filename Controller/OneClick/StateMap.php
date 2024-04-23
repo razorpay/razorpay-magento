@@ -58,7 +58,7 @@ class StateMap
             'MEGHALAYA'                => 'Meghalaya',
             'MIZORAM'                  => 'Mizoram',
             'NAGALAND'                 => 'Nagaland',
-            'ODISHA'                   => 'Orissa',
+            'ODISHA'                   => 'Odisha',
             'PONDICHERRY'              => 'Pondicherry',
             'PUNJAB'                   => 'Punjab',
             'RAJASTHAN'                => 'Rajasthan',
