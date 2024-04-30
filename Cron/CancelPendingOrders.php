@@ -196,7 +196,7 @@ class CancelPendingOrders {
     {
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
 
-        $orderLinkData = $objectManagement->get('Razorpay\Magento\Model\OrderLink')
+        $orderLinkData = $objectManager->get('Razorpay\Magento\Model\OrderLink')
                         ->getCollection()
                         ->addFilter('order_id', $entity_id)
                         ->getFirstItem();
