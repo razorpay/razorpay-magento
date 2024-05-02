@@ -105,31 +105,31 @@ define([
                 data: data,
                 type: 'POST',
                 dataType: 'json',
-                success: function(data) {
-                    self.asyncOrderSuccess(data)
+                success: function (data) {
+                    self.toggleLoader(true);
+
+                    if (analytics.MagicMxAnalytics.purchase) {
+                        analytics.MagicMxAnalytics.purchase({
+                            ...data,
+                            merchantAnalyticsConfigs: {},
+                        }).finally(() => {
+                            continueRedirection();
+                        })
+                    } else {
+                        continueRedirection();
+                    }
+
+                    function continueRedirection(){
+                        var successUrl = url.build('checkout/onepage/success', {})
+                        window.location.href = successUrl;
+                    }
+
                 },
                 error: function (error) {
                     console.log("Payment complete fail")
                     console.log(error)
                 }
             })
-        },
-
-        asyncOrderSuccess: async function (data) {
-            self.toggleLoader(true);
-
-            if (analytics.MagicMxAnalytics.purchase) {
-                try {
-                    await Promise.all(analytics.MagicMxAnalytics.purchase({
-                        ...data,
-                        merchantAnalyticsConfigs: {},
-                    }));
-                } catch (error) {
-                    console.error(error);
-                }
-            }
-            var successUrl = url.build('checkout/onepage/success', {})
-            window.location.href = successUrl;
         },
 
         renderIframe: function(data) {
