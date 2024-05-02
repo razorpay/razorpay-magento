@@ -413,7 +413,7 @@ class CompleteOrder extends Action
             $code = $e->getCode();
 
             if (strpos($e->getMessage(), static::INVENTORY_OUT_OF_STOCK) !== false && $rzpPaymentData->method != 'cod')
-                $refundData = [
+            {    $refundData = [
                     'amount' => $rzpPaymentData['amount'],
                     'receipt' => $rzpOrderData['receipt'],
                     'notes' => [
