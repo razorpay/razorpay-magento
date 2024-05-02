@@ -103,22 +103,25 @@ define([
                 data: data,
                 type: 'POST',
                 dataType: 'json',
-                success: async function (data) {
+                success: function (data) {
                     self.toggleLoader(true);
 
                     if (analytics.MagicMxAnalytics.purchase) {
-                        try {
-                            await Promise.all(analytics.MagicMxAnalytics.purchase({
-                                ...data,
-                                merchantAnalyticsConfigs: {},
-                            }));
-                        } catch (error) {
-                            console.error(error);
-                        }
+                        analytics.MagicMxAnalytics.purchase({
+                            ...data,
+                            merchantAnalyticsConfigs: {},
+                        }).finally(() => {
+                            continueRedirection();
+                        })
+                    } else {
+                        continueRedirection();
                     }
 
-                    var successUrl = url.build('checkout/onepage/success', {})
-                    window.location.href = successUrl;
+                    function continueRedirection(){
+                        var successUrl = url.build('checkout/onepage/success', {})
+                        window.location.href = successUrl;
+                    }
+
                 },
                 error: function (error) {
                     self.toggleLoader(false);
