@@ -243,7 +243,7 @@ define(['jquery'], function ($) {
             sendAnalyticsEvents('payment_failed', data);
         },
 
-        purchase(data = {}) {
+        purchase: async (data = {}) => {
             return Object.entries(enabledAnalyticsTools).map(method => {
                 const toolName = method[0];
                 const enabled = method[1];

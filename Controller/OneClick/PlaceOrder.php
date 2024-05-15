@@ -368,10 +368,7 @@ class PlaceOrder extends Action
         // Check if customer is logged in
         if ($this->customerSession->isLoggedIn()) {
             // Get active quote associated with customer session
-            $quote = $this->quoteFactory->create()->loadByCustomer($this->customerSession->getCustomerId());
-
-            // Retrieve customer email from quote
-            $customerEmail = $quote->getCustomerEmail();
+            $customerEmail = $this->customerSession->getCustomer()->getEmail();
 
             // Check if customer email is available
             if ($customerEmail) {

@@ -412,25 +412,29 @@ class CompleteOrder extends Action
 
             $code = $e->getCode();
 
-            if (strpos($e->getMessage(), static::INVENTORY_OUT_OF_STOCK) !== false && $rzpPaymentData->method != 'cod')
-            {    $refundData = [
-                    'amount' => $rzpPaymentData['amount'],
-                    'receipt' => $rzpOrderData['receipt'],
-                    'notes' => [
-                        'reason' => $e->getMessage(),
-                        'order_id' => $rzpOrderData['receipt'],
-                        'refund_from_magic' => true,
-                        'source' => 'Magento',
-                    ]
-                ];
+            if (strpos($e->getMessage(), static::INVENTORY_OUT_OF_STOCK) !== false) {
+                if ($rzpPaymentData->method != 'cod') {
+                    $refundData = [
+                        'amount' => $rzpPaymentData['amount'],
+                        'receipt' => $rzpOrderData['receipt'],
+                        'notes' => [
+                            'reason' => $e->getMessage(),
+                            'order_id' => $rzpOrderData['receipt'],
+                            'refund_from_magic' => true,
+                            'source' => 'Magento',
+                        ]
+                    ];
 
-                try {
-                    $refund = $this->rzp->payment
-                        ->fetch($rzpPaymentId)
-                        ->refund($refundData);
-                } catch (\Exception $e) {
-                    $this->logger->critical("Razorpay refund failed" . $e->getMessage());
+                    try {
+                        $refund = $this->rzp->payment
+                            ->fetch($rzpPaymentId)
+                            ->refund($refundData);
+                    } catch (\Exception $e) {
+                        $this->logger->critical("Razorpay refund failed" . $e->getMessage());
+                    }
                 }
+
+                $this->messageManager->addError(__($e->getMessage()));
             }
 
             return $resultJson->setData([
