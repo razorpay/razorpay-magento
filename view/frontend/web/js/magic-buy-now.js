@@ -132,8 +132,28 @@ define([
             })
         },
 
+        abandonedCart: function (rzp_order_id) {
+            var self = this;
+
+            var abandonedQuote = url.build('razorpay/oneclick/abandonedQuote', {})
+            $.ajax({
+                url: abandonedQuote,
+                data: {'rzp_order_id': rzp_order_id },
+                type: 'POST',
+                dataType: 'json',
+                success: function (data) {
+                    console.log(data)
+                },
+                error: function (error) {
+                    console.log("Payment complete fail")
+                    console.log(error)
+                }
+            })
+        },
+
         renderIframe: function(data) {
             var self = this;
+            var rzp_order_id = data.rzp_order_id;
 
             var options = {
                 key: data.rzp_key_id,
@@ -153,6 +173,7 @@ define([
                         // fullScreenLoader.stopLoader();
                         // self.isPaymentProcessing.reject("Payment Closed");
                         // self.isPlaceOrderActionAllowed(true);
+                        self.abandonedCart(rzp_order_id);
                         self.enableButton();
 
                     }
