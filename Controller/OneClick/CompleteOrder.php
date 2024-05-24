@@ -261,6 +261,11 @@ class CompleteOrder extends Action
                     }
                 }
 
+                if ($order->getData('customer_gstin')) {
+                    $gstin = $rzpOrderData->notes->gstin ?? '';
+                    $order->setData('customer_gstin', $gstin);
+                }
+
                 $payment = $order->getPayment();
 
                 $payment->setLastTransId($rzpPaymentId)
