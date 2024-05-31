@@ -206,7 +206,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 {   
                     $orderId            = $post['payload']['payment']['entity']['notes']['merchant_order_id'];
                     $paymentId          = $post['payload']['payment']['entity']['id'];
-                    $orderWebhookData   = $this->getOrderWebhookData($orderId);
+                    $orderWebhookData   = $this->getOrderData($orderId);
                     $amountPaid         = $post['payload']['payment']['entity']['amount'];
 
                     $this->debug->log("Razorpay Webhook processing, webhook data is present. Order Id = " . $orderId . ' Payment Id = ' . $paymentId .
@@ -244,12 +244,11 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         return json_decode($request, true);
     }
 
-    protected function getOrderWebhookData($orderId) : array
+    protected function getOrderData($orderId) : array
     {
         $collection = $this->objectManagement->get('Magento\Sales\Model\Order')
                            ->getCollection()
                            ->addFieldToSelect('entity_id')
-                           ->addFieldToSelect('rzp_webhook_notified_at')
                            ->addFilter('increment_id', $orderId)
                            ->getFirstItem();
         return $collection->getData();
