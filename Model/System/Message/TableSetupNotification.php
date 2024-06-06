@@ -42,7 +42,7 @@ class TableSetupNotification implements MessageInterface
     public function isDisplayed()
     {
         $connection = $this->resourceConnection->getConnection();
-        $table = $connection->getTableName('razorpay_sales_order');
+        $table = $this->resourceConnection->getTableName('razorpay_sales_order');
 
         $tableDescription = $connection->describeTable($table);
 
