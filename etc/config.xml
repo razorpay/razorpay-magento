@@ -21,6 +21,10 @@
                 <reset_cart_orders_timeout>30</reset_cart_orders_timeout>
                 <enable_custom_paid_order_status>0</enable_custom_paid_order_status>
                 <custom_paid_order_status>processing</custom_paid_order_status>
+                <activate_magic>0</activate_magic>
+                <activate_magic_buy_now>0</activate_magic_buy_now>
+                <activate_magic_mini_cart>1</activate_magic_mini_cart>
+                <allow_coupon_apply_magic>1</allow_coupon_apply_magic>
                 <enable_update_order_cron_v1>1</enable_update_order_cron_v1>
                 <enable_debug_mode>0</enable_debug_mode>
             </razorpay>

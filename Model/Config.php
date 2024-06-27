@@ -27,6 +27,10 @@ class Config
     const CUSTOM_PAID_ORDER_STATUS = 'custom_paid_order_status';
     const ENABLE_UPDATE_ORDER_CRON_V1 = 'enable_update_order_cron_v1';
     const ENABLED_DEBUG_MODE = 'enable_debug_mode';
+    const KEY_MAGIC_CHECKOUT_STATUS = 'activate_magic';
+    const KEY_MAGIC_BUY_NOW_STATUS = 'activate_magic_buy_now';
+    const KEY_MAGIC_MINI_CART_STATUS = 'activate_magic_mini_cart';
+    const KEY_MAGIC_ALLOW_COUPON_APPLICATION_STATUS = 'allow_coupon_apply_magic';
     /**
      * @var string
      */
@@ -121,6 +125,25 @@ class Config
     public function getNewOrderStatus()
     {
         return $this->getConfigData(self::KEY_NEW_ORDER_STATUS);
+    }
+
+    public function getMagicStatus()
+    {
+        return $this->getConfigData(self::KEY_MAGIC_CHECKOUT_STATUS);
+    }
+
+    public function getMagicBuyNowStatus()
+    {
+        return $this->getConfigData(self::KEY_MAGIC_BUY_NOW_STATUS);
+    }
+
+    public function getMagicMinicartStatus()
+    {
+        return $this->getConfigData(self::KEY_MAGIC_MINI_CART_STATUS);
+    }
+    public function getMerchantCouponApplication()
+    {
+        return $this->getConfigData(self::KEY_MAGIC_ALLOW_COUPON_APPLICATION_STATUS);
     }
 
     /**
