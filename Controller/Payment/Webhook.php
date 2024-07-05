@@ -207,7 +207,27 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                     return;
                 }
 
-                if (isset($post['payload']['payment']['entity']['notes']['merchant_order_id']) === true)
+                if (isset($post['payload']['payment']['entity']['notes']['carrier_code']) === true) {
+                    $rzpOrderId = $post['payload']['payment']['entity']['order_id'];
+                    $cartId = $post['payload']['payment']['entity']['notes']['cart_id'];
+                    $razorpayOrderData = $this->rzp->order->fetch($rzpOrderId);
+                    $paymentId = $post['payload']['payment']['entity']['id'];
+                    $amountPaid = $post['payload']['payment']['entity']['amount'];
+
+                    if ($post['event'] === 'order.paid') {
+                        sleep(1);
+                    }
+
+                    $merchantOrderId = $post['payload']['payment']['entity']['notes']['merchant_order_id'];
+
+                    $this->setOneCCWebhookData($post, $merchantOrderId, true, $paymentId, $amountPaid);
+
+                    $this->setWebhookNotifiedAt($merchantOrderId, true);
+                    $this->setPaymentId($merchantOrderId, $paymentId);
+                }
+
+                if (isset($post['payload']['payment']['entity']['notes']['merchant_order_id']) === true &&
+                    isset($post['payload']['payment']['entity']['notes']['carrier_code']) === false)
                 {   
                     $orderId            = $post['payload']['payment']['entity']['notes']['merchant_order_id'];
                     $paymentId          = $post['payload']['payment']['entity']['id'];
@@ -224,13 +244,21 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
                     $this->setWebhookData($post, $orderWebhookData['entity_id'], true, $paymentId, $amountPaid);
 
-                    $this->setWebhookNotifiedAt($orderWebhookData['entity_id']);
+                    $this->setWebhookNotifiedAt($orderWebhookData['entity_id'], false);
                 }
             }
         }
         $this->logger->info("Razorpay Webhook processing completed.");
     }
 
+    protected function setPaymentId($entity_id, $paymentId)
+    {
+        $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+            ->load($entity_id, 'order_id');
+
+        $orderLink->setRzpPaymentId($paymentId);
+        $orderLink->save();
+    }
 
     /**
      * Get Webhook post data as an array
@@ -259,12 +287,20 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         return $collection->getData();
     }
 
-    protected function setWebhookNotifiedAt($entity_id)
+    protected function setWebhookNotifiedAt($entity_id, $isMagicOrder = false)
     {
-        $order = $this->order->load($entity_id);
+        if($isMagicOrder === false)
+        {
+            $order = $this->order->load($entity_id);
 
+            $orderId = $order->getEntityId();
+        }
+        else
+        {
+            $orderId = $entity_id;
+        }
         $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
-                        ->load($order->getEntityId(), 'order_id');
+            ->load($orderId, 'order_id');
 
         $orderLink->setRzpWebhookNotifiedAt(time());
         $orderLink->save();
@@ -332,4 +368,50 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
         $this->logger->info('Webhook data saved for id:' . $order->getIncrementId() . 'event:' . $post['event']);
     }
+
+    protected function setOneCCWebhookData($post, $entityId, $webhookVerifiedStatus, $paymentId, $amount)
+    {
+        $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+            ->load($entityId, 'order_id');
+
+        $existingWebhookData = $orderLink->getRzpWebhookData();
+
+        if ($post['event'] === 'payment.authorized') {
+            $amount = $post['payload']['payment']['entity']['amount'];
+        } else if ($post['event'] === 'order.paid') {
+            $amount = $post['payload']['order']['entity']['amount_paid'];
+        }
+        $webhookData = array(
+            "webhook_verified_status" => $webhookVerifiedStatus,
+            "payment_id" => $paymentId,
+            "amount" => $amount
+        );
+
+        if (!empty($existingWebhookData)) {
+            $existingWebhookData = unserialize($existingWebhookData); // nosemgrep
+
+            if (!array_key_exists($post['event'], $existingWebhookData)) {
+                $existingWebhookData[$post['event']] = $webhookData;
+            }
+
+            $webhookDataText = serialize($existingWebhookData);
+        } else {
+            $eventArray = [$post['event'] => $webhookData];
+            $webhookDataText = serialize($eventArray);
+        }
+
+        $orderLink->setOrderId($entityId);
+        $orderLink->setRzpWebhookData($webhookDataText);
+
+        if ($post['event'] === 'order.paid' and
+            $orderLink->getRzpUpdateOrderCronStatus() == OrderCronStatus::PAYMENT_AUTHORIZED_CRON_REPEAT) {
+            $this->logger->info('Order paid received after manual capture for id: ' . $entityId. 'for magic order');
+            $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::ORDER_PAID_AFTER_MANUAL_CAPTURE);
+        }
+
+        $orderLink->save();
+
+        $this->logger->info('Webhook data saved for id:' . $entityId . 'event:' . $post['event']. 'for magic order');
+    }
+
 }

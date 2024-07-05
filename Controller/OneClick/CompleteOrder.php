@@ -24,6 +24,7 @@ use Magento\Directory\Model\ResourceModel\Region\Collection;
 use Razorpay\Magento\Controller\OneClick\StateMap;
 use Razorpay\Magento\Model\CartConverter;
 use Razorpay\Magento\Model\CustomerConsent;
+use Razorpay\Magento\Constants\OrderCronStatus;
 
 class CompleteOrder extends Action
 {
@@ -204,202 +205,10 @@ class CompleteOrder extends Action
                 $this->logger->info('graphQL: subscribed ' . $subscribeNewsLetter);
             }
 
-            $orderId = $this->cartManagement->placeOrder($cartId);
-            $order = $this->order->load($orderId);
+            $result = $this->placeMagentoOrder($cartId, $rzpPaymentData, $rzpOrderData);
 
-            $order->setEmailSent(0);
-            if ($order) {
-                // Return to failure page if payment is failed.
-                if ($rzpPaymentData->status === 'failed') {
-                    $result = [
-                        'status' => 'failed'
-                    ];
+            return $resultJson->setData($result);
 
-                    return $resultJson->setData($result);
-                }
-
-                if ($order->getStatus() === 'pending') {
-                    if ($rzpPaymentData->status === 'pending' && $rzpPaymentData->method === 'cod') {
-                        $order->setState(static::STATE_PENDING_PAYMENT)
-                            ->setStatus(static::STATE_PENDING_PAYMENT);
-                    } else {
-                        $order->setState(static::STATE_PROCESSING)
-                            ->setStatus(static::STATE_PROCESSING);
-                    }
-
-                    $this->logger->info('graphQL: Order Status Updated to ' . $this->orderStatus);
-                }
-
-                if (!empty($rzpOrderData->offers)) {
-                    $discountAmount = $order->getDiscountAmount();
-
-                    $codFee = $rzpOrderData->cod_fee;
-                    $totalPaid = $rzpPaymentData->amount;
-
-                    $rzpPromotionAmount = 0;
-
-                    foreach ($rzpOrderData->promotions as $promotion) {
-                        if (empty($promotion['code']) === false) {
-                            $rzpPromotionAmount = $promotion['value'];
-                        }
-                    }
-
-                    $offerDiff = $rzpOrderData->line_items_total + $rzpOrderData->shipping_fee + $codFee - $totalPaid - $rzpPromotionAmount;
-
-                    if ($offerDiff > 0) {
-                        $offerDiscount = ($offerDiff / 100);
-                        // abs is used here as discount amount is returned as minus from order object.
-                        $newDiscountAmount = abs($discountAmount) + $offerDiscount;
-
-                        $this->logger->info('graphQL: offerDiscount ' . $offerDiscount);
-                        $this->logger->info('graphQL: newDiscountAmount ' . $newDiscountAmount);
-                        $this->logger->info('graphQL: offerDiff ' . $offerDiff);
-                        $this->logger->info('graphQL: codFee ' . $codFee);
-                        $this->logger->info('graphQL: discountAmount ' . $discountAmount);
-
-                        $this->updateDiscountAmount($orderId, $newDiscountAmount, $offerDiscount, $totalPaid);
-                    }
-                }
-
-                if ($order->getData('customer_gstin')) {
-                    $gstin = $rzpOrderData->notes->gstin ?? '';
-                    $order->setData('customer_gstin', $gstin);
-                }
-
-                $payment = $order->getPayment();
-
-                $payment->setLastTransId($rzpPaymentId)
-                    ->setTransactionId($rzpPaymentId)
-                    ->setIsTransactionClosed(true)
-                    ->setShouldCloseParentTransaction(true);
-
-                $payment->setParentTransactionId($payment->getTransactionId());
-
-                if ($rzpPaymentData->method != 'cod') {
-                    if ($this->config->getPaymentAction() === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE) {
-                        $payment->addTransactionCommentsToOrder(
-                            "$rzpPaymentId",
-                            $this->captureCommand->execute(
-                                $payment,
-                                $order->getGrandTotal(),
-                                $order
-                            ),
-                            ""
-                        );
-                    } else {
-                        $payment->addTransactionCommentsToOrder(
-                            "$rzpPaymentId",
-                            $this->authorizeCommand->execute(
-                                $payment,
-                                $order->getGrandTotal(),
-                                $order
-                            ),
-                            ""
-                        );
-                    }
-                    $this->logger->info('Payment authorized completed for id : ' . $order->getIncrementId());
-
-                } else {
-                    $order->addStatusHistoryComment("Razorpay Payment Id " . $rzpPaymentId)->setStatus($order->getStatus())->setIsCustomerNotified(true);
-                }
-
-                $transaction = $payment->addTransaction(\Magento\Sales\Model\Order\Payment\Transaction::TYPE_AUTH, null, true, "");
-
-                $transaction->setIsClosed(true);
-
-                $transaction->save();
-
-                $this->logger->info('Payment authorized completed for id : ' . $order->getIncrementId());
-
-                if ($order->canInvoice() && $this->config->canAutoGenerateInvoice()
-                    && $rzpOrderData->status === 'paid') {
-                    $invoice = $this->invoiceService->prepareInvoice($order);
-                    $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
-                    $invoice->setTransactionId($rzpPaymentId);
-                    $invoice->register();
-                    $invoice->save();
-
-                    $this->logger->info('graphQL: Created Invoice for '
-                        . 'order_id ' . $rzpOrderId . ', '
-                        . 'rzp_payment_id ' . $rzpPaymentId);
-
-                    $transactionSave = $this->transaction
-                        ->addObject($invoice)
-                        ->addObject($invoice->getOrder());
-                    $transactionSave->save();
-
-                    $this->invoiceSender->send($invoice);
-
-                    $order->addStatusHistoryComment(
-                        __('Notified customer about invoice #%1.', $invoice->getId())
-                    )->setIsCustomerNotified(true);
-
-                    $this->logger->info('Invoice generated for id : ' . $order->getIncrementId());
-                } else if ($rzpOrderData->status === 'paid' and
-                    ($order->canInvoice() === false or
-                        $this->config->canAutoGenerateInvoice() === false)) {
-                    $this->logger->info('Invoice generation not possible for id : ' . $order->getIncrementId());
-                }
-
-                $comment = __('Razorpay order id %1.', $rzpOrderId);
-
-                $order->addStatusHistoryComment(
-                    $comment
-                )->setStatus($order->getStatus())->setIsCustomerNotified(true);
-
-                $comment = __('Razorpay magic order.');
-
-                $order->addStatusHistoryComment(
-                    $comment
-                )->setStatus($order->getStatus())->setIsCustomerNotified(true);
-
-                try {
-                    $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
-                    $this->orderSender->send($order);
-                    $this->checkoutSession->unsRazorpayMailSentOnSuccess();
-                } catch (\Magento\Framework\Exception\MailException $e) {
-                    $this->logger->critical('graphQL: '
-                        . 'Razorpay Error:' . $e->getMessage());
-
-                    throw new GraphQlInputException(__('Razorpay Error: %1.', $e->getMessage()));
-                } catch (\Exception $e) {
-                    $this->logger->critical('graphQL: '
-                        . 'Error:' . $e->getMessage());
-
-                    throw new GraphQlInputException(__('Error: %1.', $e->getMessage()));
-                }
-
-                $this
-                    ->checkoutSession
-                    ->setLastSuccessQuoteId($order->getQuoteId())
-                    ->setLastQuoteId($order->getQuoteId())
-                    ->clearHelperData();
-                if (empty($order) === false) {
-                    $this
-                        ->checkoutSession
-                        ->setLastOrderId($order->getId())
-                        ->setLastRealOrderId($order->getIncrementId())
-                        ->setLastOrderStatus($order->getStatus());
-                }
-
-                $order->save();
-
-                // Get applied discounts data from the order object
-                $appliedDiscounts = $this->getAppliedDiscounts($order);
-
-                $result = [
-                    'status' => 'success',
-                    'order_id' => $order->getIncrementId(),
-                    'total_amount' => $order->getGrandTotal() * 100,
-                    'total_tax' => $order->getTaxAmount() * 100,
-                    'shipping_fee' => $order->getShippingAmount() * 100,
-                    'promotions' => $appliedDiscounts,
-                    'cod_fee' => 0
-                ];
-
-                return $resultJson->setData($result);
-
-            }
         } catch (\Razorpay\Api\Errors\Error $e) {
             $this->logger->critical("Validate: Razorpay Error message:" . $e->getMessage());
 
@@ -448,6 +257,232 @@ class CompleteOrder extends Action
                 'message' => __('An error occurred on the server. Please try again.' . $e->getMessage()),
             ])->setHttpResponseCode(500);
         }
+    }
+
+    public function placeMagentoOrder($cartId, $rzpPaymentData, $rzpOrderData)
+    {
+        $merchantOrderId = isset($rzpOrderData->notes) ? $rzpOrderData->notes->merchant_order_id : null;
+
+        $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+            ->getCollection()
+            ->addFilter('order_id', $merchantOrderId)
+            ->getFirstItem();
+
+        $order = $this->order->loadByIncrementId($merchantOrderId);
+
+        if (!$order->getId()) {
+            $orderId = $this->cartManagement->placeOrder($cartId);
+            $order = $this->order->load($orderId);
+        }
+
+        $rzpOrderId = $rzpOrderData->id;
+        $rzpPaymentId = $rzpPaymentData->id;
+
+        $order->setEmailSent(0);
+        if ($order) {
+            // Return to failure page if payment is failed.
+            if ($rzpPaymentData->status === 'failed') {
+                $result = [
+                    'status' => 'failed'
+                ];
+
+                return $result;
+            }
+
+            if ($order->getStatus() === 'pending') {
+                if ($rzpPaymentData->status === 'pending' && $rzpPaymentData->method === 'cod') {
+                    $order->setState(static::STATE_PENDING_PAYMENT)
+                        ->setStatus(static::STATE_PENDING_PAYMENT);
+                } else {
+                    $order->setState(static::STATE_PROCESSING)
+                        ->setStatus(static::STATE_PROCESSING);
+                }
+
+                $this->logger->info('graphQL: Order Status Updated to ' . $this->orderStatus);
+            }
+
+            if (!empty($rzpOrderData->offers)) {
+                $discountAmount = $order->getDiscountAmount();
+
+                $codFee = $rzpOrderData->cod_fee;
+                $totalPaid = $rzpPaymentData->amount;
+
+                $rzpPromotionAmount = 0;
+
+                foreach ($rzpOrderData->promotions as $promotion) {
+                    if (empty($promotion['code']) === false) {
+                        $rzpPromotionAmount = $promotion['value'];
+                    }
+                }
+
+                $offerDiff = $rzpOrderData->line_items_total + $rzpOrderData->shipping_fee + $codFee - $totalPaid - $rzpPromotionAmount;
+
+                if ($offerDiff > 0) {
+                    $offerDiscount = ($offerDiff / 100);
+                    // abs is used here as discount amount is returned as minus from order object.
+                    $newDiscountAmount = abs($discountAmount) + $offerDiscount;
+
+                    $this->logger->info('graphQL: offerDiscount ' . $offerDiscount);
+                    $this->logger->info('graphQL: newDiscountAmount ' . $newDiscountAmount);
+                    $this->logger->info('graphQL: offerDiff ' . $offerDiff);
+                    $this->logger->info('graphQL: codFee ' . $codFee);
+                    $this->logger->info('graphQL: discountAmount ' . $discountAmount);
+
+                    $this->updateDiscountAmount($orderId, $newDiscountAmount, $offerDiscount, $totalPaid);
+                }
+            }
+
+            if ($order->getData('customer_gstin')) {
+                $gstin = $rzpOrderData->notes->gstin ?? '';
+                $order->setData('customer_gstin', $gstin);
+            }
+
+            $payment = $order->getPayment();
+
+            $payment->setLastTransId($rzpPaymentId)
+                ->setTransactionId($rzpPaymentId)
+                ->setIsTransactionClosed(true)
+                ->setShouldCloseParentTransaction(true);
+
+            $payment->setParentTransactionId($payment->getTransactionId());
+
+            if ($rzpPaymentData->method != 'cod') {
+                if ($this->config->getPaymentAction() === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE) {
+                    $payment->addTransactionCommentsToOrder(
+                        "$rzpPaymentId",
+                        $this->captureCommand->execute(
+                            $payment,
+                            $order->getGrandTotal(),
+                            $order
+                        ),
+                        ""
+                    );
+                } else {
+                    $payment->addTransactionCommentsToOrder(
+                        "$rzpPaymentId",
+                        $this->authorizeCommand->execute(
+                            $payment,
+                            $order->getGrandTotal(),
+                            $order
+                        ),
+                        ""
+                    );
+                }
+                $this->logger->info('Payment authorized completed for id : ' . $order->getIncrementId());
+
+            } else {
+                $order->addStatusHistoryComment("Razorpay Payment Id " . $rzpPaymentId)->setStatus($order->getStatus())->setIsCustomerNotified(true);
+            }
+
+            $transaction = $payment->addTransaction(\Magento\Sales\Model\Order\Payment\Transaction::TYPE_AUTH, null, true, "");
+
+            $transaction->setIsClosed(true);
+
+            $transaction->save();
+
+            $this->logger->info('Payment authorized completed for id : ' . $order->getIncrementId());
+
+            $orderLink->setRzpPaymentId($rzpPaymentId);
+
+            $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::PAYMENT_AUTHORIZED_COMPLETED);
+
+            if ($order->canInvoice() && $this->config->canAutoGenerateInvoice()
+                && $rzpOrderData->status === 'paid') {
+                $invoice = $this->invoiceService->prepareInvoice($order);
+                $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
+                $invoice->setTransactionId($rzpPaymentId);
+                $invoice->register();
+                $invoice->save();
+
+                $this->logger->info('graphQL: Created Invoice for '
+                    . 'order_id ' . $rzpOrderId . ', '
+                    . 'rzp_payment_id ' . $rzpPaymentId);
+
+                $transactionSave = $this->transaction
+                    ->addObject($invoice)
+                    ->addObject($invoice->getOrder());
+                $transactionSave->save();
+
+                $this->invoiceSender->send($invoice);
+
+                $order->addStatusHistoryComment(
+                    __('Notified customer about invoice #%1.', $invoice->getId())
+                )->setIsCustomerNotified(true);
+
+                $this->logger->info('Invoice generated for id : ' . $order->getIncrementId());
+                $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATED);
+            } else if ($rzpOrderData->status === 'paid' and
+                ($order->canInvoice() === false or
+                    $this->config->canAutoGenerateInvoice() === false)) {
+                $this->logger->info('Invoice generation not possible for id : ' . $order->getIncrementId());
+                $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATION_NOT_POSSIBLE);
+            }
+
+            $comment = __('Razorpay order id %1.', $rzpOrderId);
+
+            $order->addStatusHistoryComment(
+                $comment
+            )->setStatus($order->getStatus())->setIsCustomerNotified(true);
+
+            $comment = __('Razorpay magic order.');
+
+            $order->addStatusHistoryComment(
+                $comment
+            )->setStatus($order->getStatus())->setIsCustomerNotified(true);
+
+            try {
+                $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
+                $this->orderSender->send($order);
+                $this->checkoutSession->unsRazorpayMailSentOnSuccess();
+            } catch (\Magento\Framework\Exception\MailException $e) {
+                $this->logger->critical('graphQL: '
+                    . 'Razorpay Error:' . $e->getMessage());
+
+                throw new GraphQlInputException(__('Razorpay Error: %1.', $e->getMessage()));
+            } catch (\Exception $e) {
+                $this->logger->critical('graphQL: '
+                    . 'Error:' . $e->getMessage());
+
+                throw new GraphQlInputException(__('Error: %1.', $e->getMessage()));
+            }
+
+            $this
+                ->checkoutSession
+                ->setLastSuccessQuoteId($order->getQuoteId())
+                ->setLastQuoteId($order->getQuoteId())
+                ->clearHelperData();
+            if (empty($order) === false) {
+                $this
+                    ->checkoutSession
+                    ->setLastOrderId($order->getId())
+                    ->setLastRealOrderId($order->getIncrementId())
+                    ->setLastOrderStatus($order->getStatus());
+            }
+
+            $order->save();
+            $orderLink->save();
+
+            // Get applied discounts data from the order object
+            $appliedDiscounts = $this->getAppliedDiscounts($order);
+
+            $result = [
+                'status' => 'success',
+                'order_id' => $order->getIncrementId(),
+                'total_amount' => $order->getGrandTotal() * 100,
+                'total_tax' => $order->getTaxAmount() * 100,
+                'shipping_fee' => $order->getShippingAmount() * 100,
+                'promotions' => $appliedDiscounts,
+                'cod_fee' => 0
+            ];
+
+            return $result;
+        }
+
+        $result = [
+            'status' => 'failed'
+        ];
+
+        return $result;
     }
 
     public function getAppliedDiscounts($order)

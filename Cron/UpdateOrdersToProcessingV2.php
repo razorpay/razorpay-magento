@@ -1,10 +1,10 @@
 <?php
+
 namespace Razorpay\Magento\Cron;
 
-if(class_exists('Razorpay\\Api\\Api')  === false)
-{
-   // require in case of zip installation without composer
-    require_once __DIR__ . "/../../Razorpay/Razorpay.php"; 
+if (class_exists('Razorpay\\Api\\Api') === false) {
+    // require in case of zip installation without composer
+    require_once __DIR__ . "/../../Razorpay/Razorpay.php";
 }
 
 use Razorpay\Api\Api;
@@ -14,8 +14,12 @@ use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
 use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
 use \Magento\Sales\Model\Order;
 use Razorpay\Magento\Constants\OrderCronStatus;
+use Razorpay\Magento\Controller\OneClick\AbandonedQuote;
+use Razorpay\Magento\Controller\OneClick\CompleteOrder;
+use Magento\Quote\Api\CartManagementInterface;
 
-class UpdateOrdersToProcessingV2 {
+class UpdateOrdersToProcessingV2
+{
     /**
      * @var Razorpay\Api\Api
      */
@@ -68,12 +72,12 @@ class UpdateOrdersToProcessingV2 {
     /**
      * @var STATUS_PROCESSING
      */
-    protected const STATUS_PROCESSING   = 'processing';
-    protected const STATUS_PENDING      = 'pending';
-    protected const STATUS_CANCELED     = 'canceled';
-    protected const STATE_NEW           = 'new';
-    protected const PAYMENT_AUTHORIZED  = 'payment.authorized';
-    protected const ORDER_PAID          = 'order.paid';
+    protected const STATUS_PROCESSING = 'processing';
+    protected const STATUS_PENDING = 'pending';
+    protected const STATUS_CANCELED = 'canceled';
+    protected const STATE_NEW = 'new';
+    protected const PAYMENT_AUTHORIZED = 'payment.authorized';
+    protected const ORDER_PAID = 'order.paid';
 
     protected const PROCESS_ORDER_WAIT_TIME = 5 * 60;
 
@@ -86,7 +90,7 @@ class UpdateOrdersToProcessingV2 {
      * @var \Magento\Framework\Api\SortOrderBuilder
      */
     protected $sortOrderBuilder;
-    
+
     /**
      * @var \Psr\Log\LoggerInterface
      */
@@ -106,6 +110,10 @@ class UpdateOrdersToProcessingV2 {
      * @var \Razorpay\Magento\Model\Util\DebugUtils
      */
     protected $debug;
+    protected $quoteUpdate;
+    protected $cartRepositoryInterface;
+    protected $cartManagement;
+    protected $oneCCMagentoOrder;
 
     /**
      * CancelOrder constructor.
@@ -117,41 +125,48 @@ class UpdateOrdersToProcessingV2 {
      * @param \Psr\Log\LoggerInterface $logger
      */
     public function __construct(
-        \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
-        \Magento\Framework\Api\SearchCriteriaBuilder $searchCriteriaBuilder,
-        \Magento\Framework\Api\SortOrderBuilder $sortOrderBuilder,
-        \Magento\Checkout\Model\Session $checkoutSession,
-        \Magento\Sales\Api\OrderManagementInterface $orderManagement,
-        \Magento\Sales\Model\Service\InvoiceService $invoiceService,
-        \Magento\Framework\DB\Transaction $transaction,
+        \Magento\Sales\Api\OrderRepositoryInterface           $orderRepository,
+        \Magento\Framework\Api\SearchCriteriaBuilder          $searchCriteriaBuilder,
+        \Magento\Framework\Api\SortOrderBuilder               $sortOrderBuilder,
+        \Magento\Checkout\Model\Session                       $checkoutSession,
+        \Magento\Sales\Api\OrderManagementInterface           $orderManagement,
+        \Magento\Sales\Model\Service\InvoiceService           $invoiceService,
+        \Magento\Framework\DB\Transaction                     $transaction,
         \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender,
-        \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
-        \Razorpay\Magento\Model\Config $config,
-        \Psr\Log\LoggerInterface $logger,
-        \Razorpay\Magento\Model\Util\DebugUtils $debug
+        \Magento\Sales\Model\Order\Email\Sender\OrderSender   $orderSender,
+        \Razorpay\Magento\Model\Config                        $config,
+        \Psr\Log\LoggerInterface                              $logger,
+        \Razorpay\Magento\Model\Util\DebugUtils               $debug,
+        AbandonedQuote                                        $quoteUpdate,
+        \Magento\Quote\Api\CartRepositoryInterface            $cartRepositoryInterface,
+        CartManagementInterface                               $cartManagement,
+        CompleteOrder                                         $oneCCMagentoOrder
     )
     {
-        $this->config                   = $config;
-        $keyId                          = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
-        $keySecret                      = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
-        $this->api                      = new Api($keyId, $keySecret);
-        $this->orderRepository          = $orderRepository;
-        $this->searchCriteriaBuilder    = $searchCriteriaBuilder;
-        $this->sortOrderBuilder         = $sortOrderBuilder;
-        $this->transaction              = $transaction;
-        $this->checkoutSession          = $checkoutSession;
-        $this->invoiceService           = $invoiceService;
-        $this->invoiceSender            = $invoiceSender;
-        $this->orderSender              = $orderSender;
-        $this->logger                   = $logger;
-        $this->orderStatus              = static::STATUS_PROCESSING;
-        $this->debug                    = $debug;
+        $this->config = $config;
+        $keyId = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
+        $keySecret = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
+        $this->api = new Api($keyId, $keySecret);
+        $this->orderRepository = $orderRepository;
+        $this->searchCriteriaBuilder = $searchCriteriaBuilder;
+        $this->sortOrderBuilder = $sortOrderBuilder;
+        $this->transaction = $transaction;
+        $this->checkoutSession = $checkoutSession;
+        $this->invoiceService = $invoiceService;
+        $this->invoiceSender = $invoiceSender;
+        $this->orderSender = $orderSender;
+        $this->logger = $logger;
+        $this->orderStatus = static::STATUS_PROCESSING;
+        $this->debug = $debug;
+        $this->quoteUpdate = $quoteUpdate;
+        $this->cartRepositoryInterface = $cartRepositoryInterface;
+        $this->cartManagement = $cartManagement;
+        $this->oneCCMagentoOrder = $oneCCMagentoOrder;
 
         $this->enableCustomPaidOrderStatus = $this->config->isCustomPaidOrderStatusEnabled();
 
         if ($this->enableCustomPaidOrderStatus === true
-            && empty($this->config->getCustomPaidOrderStatus()) === false)
-        {
+            && empty($this->config->getCustomPaidOrderStatus()) === false) {
             $this->orderStatus = $this->config->getCustomPaidOrderStatus();
         }
 
@@ -163,96 +178,119 @@ class UpdateOrdersToProcessingV2 {
     {
         $this->logger->info("Cronjob: Update Orders To Processing Cron V2 started.");
 
-        $dateTimeCheck = time() - static::PROCESS_ORDER_WAIT_TIME; 
-        
+        $dateTimeCheck = time() - static::PROCESS_ORDER_WAIT_TIME;
+
         $objectManagement = $this->getObjectManager();
-        
+
         $orderLinkCollection = $objectManagement->get('Razorpay\Magento\Model\OrderLink')
-                                                        ->getCollection()
-                                                        ->addFieldToFilter('rzp_update_order_cron_status',["lt" => 3])
-                                                        ->addFieldToFilter('rzp_webhook_notified_at',["notnull" => true])
-                                                        ->addFieldToFilter('rzp_webhook_notified_at',["lt" => $dateTimeCheck])
-                                                        ->setOrder('entity_id')
-                                                        ->setPageSize(5);
-        
+            ->getCollection()
+            ->addFieldToFilter('rzp_update_order_cron_status', ["lt" => 3])
+            ->addFieldToFilter('rzp_webhook_notified_at', ["notnull" => true])
+            ->addFieldToFilter('rzp_webhook_notified_at', ["lt" => $dateTimeCheck])
+            ->setOrder('entity_id')
+            ->setPageSize(5);
+
         $orderLink = $orderLinkCollection->getData();
-        
-        if (count($orderLink) > 0)
-        {
-            foreach ($orderLink as $orderData)
-            {
+
+        if (count($orderLink) > 0) {
+            foreach ($orderLink as $orderData) {
                 $this->debug->log("Cronjob: Magento Order Id = " . $orderData['order_id'] . " picked for updation");
 
-                $order = $this->orderRepository->get($orderData['order_id']);
-                $singleOrderLinkCollection = $objectManagement->get('Razorpay\Magento\Model\OrderLink')
-                                                ->getCollection()
-                                                ->addFilter('order_id', $order->getEntityId())
-                                                ->getFirstItem();
-                
-                if ((empty($order) === false) and (
-                    $order->getPayment()->getMethod() === 'razorpay') and 
-                    ($order->getState() === static::STATUS_PROCESSING or 
-                    $order->getState() === static::STATE_NEW)) 
-                { 
-                    $rzpWebhookData = $orderData['rzp_webhook_data'];
-                    if (empty($rzpWebhookData) === false) // check if webhook cron has run and populated the rzp_webhook_data column
-                    {
-                        $this->debug->log("Cronjob: Webhook data present for Magento Order Id = " . $orderData['order_id']);
+                if (empty($orderData['rzp_order_id']) === true) {
+                    return;
+                }
+                $razorpayOrderData = $this->api->order->fetch($orderData['rzp_order_id']);
+                $isMagicOrder = $this->checkMagicOrder($razorpayOrderData);
 
-                        $rzpWebhookDataObj = unserialize($rzpWebhookData); // nosemgrep
-                        
-                        if (isset($rzpWebhookDataObj[static::ORDER_PAID]) === true)
-                        {
-                            $this->updateOrderStatus($order, static::ORDER_PAID, $rzpWebhookDataObj[static::ORDER_PAID], $singleOrderLinkCollection);
-                        }
+                if ($isMagicOrder) {
+                    $rzpPaymentData = $this->api->payment->fetch($orderData['rzp_payment_id']);
+                    $cartId = isset($razorpayOrderData->notes) ? $razorpayOrderData->notes->cart_id : null;
+                    $merchantOrderId = isset($razorpayOrderData->notes) ? $razorpayOrderData->notes->merchant_order_id : null;
 
-                        if (isset($rzpWebhookDataObj[static::PAYMENT_AUTHORIZED]) === true and
-                            $singleOrderLinkCollection->getRzpUpdateOrderCronStatus() < OrderCronStatus::INVOICE_GENERATED)
+                    $this->debug->log("Cronjob: Razorpay Order data = " . json_encode($cartId));
+
+                    $quote = $this->cartRepositoryInterface->get($cartId);
+                    $this->quoteUpdate->updateQuote($quote, $razorpayOrderData);
+
+                    $result = $this->oneCCMagentoOrder->placeMagentoOrder($cartId, $rzpPaymentData, $razorpayOrderData);
+                    if ($result['status'] == 'success') {
+                        $this->debug->log("Cronjob: Successfully placed Magento Order Id = " . $merchantOrderId);
+                    } else {
+                        $this->debug->log("Cronjob: Failed to place Magento Order Id = " . $merchantOrderId);
+                    }
+                } else {
+                    $order = $this->orderRepository->get($orderData['order_id']);
+                    $singleOrderLinkCollection = $objectManagement->get('Razorpay\Magento\Model\OrderLink')
+                        ->getCollection()
+                        ->addFilter('order_id', $order->getEntityId())
+                        ->getFirstItem();
+
+                    if ((empty($order) === false) and (
+                            $order->getPayment()->getMethod() === 'razorpay') and
+                        ($order->getState() === static::STATUS_PROCESSING or
+                            $order->getState() === static::STATE_NEW)) {
+                        $rzpWebhookData = $orderData['rzp_webhook_data'];
+                        if (empty($rzpWebhookData) === false) // check if webhook cron has run and populated the rzp_webhook_data column
                         {
-                            if ($order->getState() === static::STATUS_PROCESSING and
-                                $singleOrderLinkCollection->getRzpUpdateOrderCronStatus() == OrderCronStatus::PAYMENT_AUTHORIZED_COMPLETED)
-                            {
-                                $this->logger->info('Payment Authorized cron repeated for id: ' . $order->getIncrementId());
-                                $singleOrderLinkCollection->setRzpUpdateOrderCronStatus(OrderCronStatus::PAYMENT_AUTHORIZED_CRON_REPEAT);
-                                $singleOrderLinkCollection->save();
+                            $this->debug->log("Cronjob: Webhook data present for Magento Order Id = " . $orderData['order_id']);
+
+                            $rzpWebhookDataObj = unserialize($rzpWebhookData); // nosemgrep
+
+                            if (isset($rzpWebhookDataObj[static::ORDER_PAID]) === true) {
+                                $this->updateOrderStatus($order, static::ORDER_PAID, $rzpWebhookDataObj[static::ORDER_PAID], $singleOrderLinkCollection);
                             }
-                            else{
-                                $this->updateOrderStatus($order, static::PAYMENT_AUTHORIZED, $rzpWebhookDataObj[static::PAYMENT_AUTHORIZED], $singleOrderLinkCollection);
+
+                            if (isset($rzpWebhookDataObj[static::PAYMENT_AUTHORIZED]) === true and
+                                $singleOrderLinkCollection->getRzpUpdateOrderCronStatus() < OrderCronStatus::INVOICE_GENERATED) {
+                                if ($order->getState() === static::STATUS_PROCESSING and
+                                    $singleOrderLinkCollection->getRzpUpdateOrderCronStatus() == OrderCronStatus::PAYMENT_AUTHORIZED_COMPLETED) {
+                                    $this->logger->info('Payment Authorized cron repeated for id: ' . $order->getIncrementId());
+                                    $singleOrderLinkCollection->setRzpUpdateOrderCronStatus(OrderCronStatus::PAYMENT_AUTHORIZED_CRON_REPEAT);
+                                    $singleOrderLinkCollection->save();
+                                } else {
+                                    $this->updateOrderStatus($order, static::PAYMENT_AUTHORIZED, $rzpWebhookDataObj[static::PAYMENT_AUTHORIZED], $singleOrderLinkCollection);
+                                }
                             }
+                        } else {
+                            $this->logger->info('Razorpay Webhook code not triggered yet. \'rzp_webhook_data\' is empty for id:' . $order->getEntityId());
                         }
                     }
-                    else
-                    {
-                        $this->logger->info('Razorpay Webhook code not triggered yet. \'rzp_webhook_data\' is empty for id:' . $order->getEntityId());
-                    }   
                 }
             }
         }
-        
+    }
+
+    protected function checkMagicOrder($razorpayOrderData)
+    {
+        $carrierCode = $razorpayOrderData->notes->carrier_code ?? null;
+
+        if ($carrierCode) {
+            return true;
+        }
+        return false;
     }
 
     private function updateOrderStatus($order, $event, $rzpWebhookData, $orderLinkCollection)
     {
-        $this->logger->info("Cronjob: Updating to Processing for Order ID: " 
-                        . $order->getIncrementId() 
-                        . " and Event :" 
-                        . $event
-                        . " started."
-                    );
+        $this->logger->info("Cronjob: Updating to Processing for Order ID: "
+            . $order->getIncrementId()
+            . " and Event :"
+            . $event
+            . " started."
+        );
 
-        $payment        = $order->getPayment();
-        $paymentId      = $rzpWebhookData['payment_id'];
+        $payment = $order->getPayment();
+        $paymentId = $rzpWebhookData['payment_id'];
         $rzpOrderAmount = $rzpWebhookData['amount'];
 
         $payment->setLastTransId($paymentId)
-                ->setTransactionId($paymentId)
-                ->setIsTransactionClosed(true)
-                ->setShouldCloseParentTransaction(true);
+            ->setTransactionId($paymentId)
+            ->setIsTransactionClosed(true)
+            ->setShouldCloseParentTransaction(true);
 
         $payment->setParentTransactionId($payment->getTransactionId());
 
-        if ($event === static::PAYMENT_AUTHORIZED)
-        {
+        if ($event === static::PAYMENT_AUTHORIZED) {
             $payment->addTransactionCommentsToOrder(
                 "$paymentId",
                 $this->authorizeCommand->execute(
@@ -262,9 +300,7 @@ class UpdateOrdersToProcessingV2 {
                 ),
                 ""
             );
-        }
-        else if ($event === static::ORDER_PAID)
-        {
+        } else if ($event === static::ORDER_PAID) {
             $payment->addTransactionCommentsToOrder(
                 "$paymentId",
                 $this->captureCommand->execute(
@@ -286,8 +322,7 @@ class UpdateOrdersToProcessingV2 {
 
         $order->setState(static::STATUS_PROCESSING)->setStatus($this->orderStatus);
 
-        if ($event === static::PAYMENT_AUTHORIZED)
-        {
+        if ($event === static::PAYMENT_AUTHORIZED) {
             $order->addStatusHistoryComment(
                 __(
                     'Actual Amount %1 of %2, with Razorpay Offer/Fee applied.',
@@ -295,9 +330,7 @@ class UpdateOrdersToProcessingV2 {
                     $order->getBaseCurrency()->formatTxt($amountPaid)
                 )
             );
-        }
-        else if ($event === static::ORDER_PAID)
-        {
+        } else if ($event === static::ORDER_PAID) {
             $order->addStatusHistoryComment(
                 __(
                     '%1 amount of %2 online, with Razorpay Offer/Fee applied.',
@@ -308,12 +341,10 @@ class UpdateOrdersToProcessingV2 {
         }
 
         $orderLinkCollection->setRzpUpdateOrderCronStatus(OrderCronStatus::PAYMENT_AUTHORIZED_COMPLETED);
-        $this->logger->info('Payment authorized completed for id : '. $order->getIncrementId());
+        $this->logger->info('Payment authorized completed for id : ' . $order->getIncrementId());
 
-        if ($event === static::ORDER_PAID)
-        {
-            if ($order->canInvoice() && $this->config->canAutoGenerateInvoice())
-            {
+        if ($event === static::ORDER_PAID) {
+            if ($order->canInvoice() && $this->config->canAutoGenerateInvoice()) {
                 $invoice = $this->invoiceService->prepareInvoice($order);
                 $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
                 $invoice->setTransactionId($paymentId);
@@ -321,8 +352,8 @@ class UpdateOrdersToProcessingV2 {
                 $invoice->save();
 
                 $transactionSave = $this->transaction
-                                        ->addObject($invoice)
-                                        ->addObject($invoice->getOrder());
+                    ->addObject($invoice)
+                    ->addObject($invoice->getOrder());
                 $transactionSave->save();
 
                 $this->invoiceSender->send($invoice);
@@ -331,16 +362,14 @@ class UpdateOrdersToProcessingV2 {
                 $order->setState(static::STATUS_PROCESSING)->setStatus($this->orderStatus);
 
                 $order->addStatusHistoryComment(
-                            __('Notified customer about invoice #%1.', $invoice->getId())
-                        )->setIsCustomerNotified(true);
-                
+                    __('Notified customer about invoice #%1.', $invoice->getId())
+                )->setIsCustomerNotified(true);
+
                 $orderLinkCollection->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATED);
-                $this->logger->info('Invoice generated for id : '. $order->getIncrementId());
-            }
-            else
-            {
+                $this->logger->info('Invoice generated for id : ' . $order->getIncrementId());
+            } else {
                 $orderLinkCollection->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATION_NOT_POSSIBLE);
-                $this->logger->info('Invoice generation not possible for id : '. $order->getIncrementId());
+                $this->logger->info('Invoice generation not possible for id : ' . $order->getIncrementId());
             }
         }
 
@@ -350,27 +379,22 @@ class UpdateOrdersToProcessingV2 {
         $orderLinkCollection->save();
 
         //send Order email, after successfull payment
-        try
-        {
+        try {
             $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
             $this->orderSender->send($order);
             $this->checkoutSession->unsRazorpayMailSentOnSuccess();
-        }
-        catch (\Magento\Framework\Exception\MailException $e)
-        {
+        } catch (\Magento\Framework\Exception\MailException $e) {
             $this->logger->critical($e);
-        }
-        catch (\Exception $e)
-        {
+        } catch (\Exception $e) {
             $this->logger->critical($e);
         }
 
-        $this->logger->info("Cronjob: Updating to Processing for Order ID: " 
-                            . $order->getIncrementId() 
-                            . " and Event :" 
-                            . $event
-                            . " ended."
-                        );   
+        $this->logger->info("Cronjob: Updating to Processing for Order ID: "
+            . $order->getIncrementId()
+            . " and Event :"
+            . $event
+            . " ended."
+        );
     }
 
     // @codeCoverageIgnoreStart

@@ -350,6 +350,15 @@ class PlaceOrder extends Action
                 'items' => $items,
                 'message' => 'Razorpay Order created successfully'
             ];
+
+            $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                ->getCollection()
+                ->addFilter('order_id', $quote->getReservedOrderId())
+                ->getFirstItem();
+
+            $orderLink->setRzpOrderId($razorpay_order->id)
+                ->setOrderId($quote->getReservedOrderId())
+                ->save();
         } else {
             $this->logger->critical('graphQL: Razorpay Order not generated. Something went wrong');
 

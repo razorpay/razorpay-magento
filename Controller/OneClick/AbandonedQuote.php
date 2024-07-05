@@ -15,6 +15,7 @@ use Magento\Framework\App\Request\Http;
 use Magento\Directory\Model\ResourceModel\Region\CollectionFactory;
 use Magento\Directory\Model\ResourceModel\Region\Collection;
 use Razorpay\Magento\Model\CartConverter;
+use Magento\Quote\Api\CartManagementInterface;
 
 class AbandonedQuote extends Action
 {
@@ -49,9 +50,12 @@ class AbandonedQuote extends Action
     protected $checkoutSession;
     protected $stateNameMap;
     protected $cartConverter;
+    protected $cartManagement;
 
+    protected $order;
     const COD = 'cashondelivery';
     const RAZORPAY = 'razorpay';
+    const STATE_PENDING_PAYMENT = 'pending_payment';
 
     /**
      * CompleteOrder constructor.
@@ -63,17 +67,19 @@ class AbandonedQuote extends Action
      * @param \Psr\Log\LoggerInterface $logger
      */
     public function __construct(
-        Context                                               $context,
-        Http                                                  $request,
-        JsonFactory                                           $jsonFactory,
-        PaymentMethod                                         $paymentMethod,
-        \Razorpay\Magento\Model\Config                        $config,
-        \Psr\Log\LoggerInterface                              $logger,
-        \Magento\Quote\Api\CartRepositoryInterface            $cartRepositoryInterface,
-        \Magento\Checkout\Model\Session                       $checkoutSession,
-        CollectionFactory                                     $collectionFactory,
-        StateMap                                              $stateNameMap,
-        CartConverter                                         $cartConverter
+        Context                                    $context,
+        Http                                       $request,
+        JsonFactory                                $jsonFactory,
+        PaymentMethod                              $paymentMethod,
+        \Razorpay\Magento\Model\Config             $config,
+        \Psr\Log\LoggerInterface                   $logger,
+        \Magento\Quote\Api\CartRepositoryInterface $cartRepositoryInterface,
+        \Magento\Checkout\Model\Session            $checkoutSession,
+        CollectionFactory                          $collectionFactory,
+        StateMap                                   $stateNameMap,
+        CartConverter                              $cartConverter,
+        CartManagementInterface                    $cartManagement,
+        \Magento\Sales\Model\Order                 $order
     )
     {
         parent::__construct($context);
@@ -87,6 +93,8 @@ class AbandonedQuote extends Action
         $this->collectionFactory = $collectionFactory;
         $this->stateNameMap = $stateNameMap;
         $this->cartConverter = $cartConverter;
+        $this->cartManagement = $cartManagement;
+        $this->order = $order;
     }
 
     public function execute()
@@ -104,6 +112,7 @@ class AbandonedQuote extends Action
 
             $cartId = isset($rzpOrderData->notes) ? $rzpOrderData->notes->cart_id : null;
             $email = $rzpOrderData->customer_details->email ?? null;
+            $reservedOrderId = isset($rzpOrderData->notes) ? $rzpOrderData->notes->merchant_order_id : null;
 
             $quote = $this->cartRepositoryInterface->get($cartId);
 
@@ -114,10 +123,33 @@ class AbandonedQuote extends Action
             // Set customer to quote
             $customerCartId = $this->cartConverter->convertGuestCartToCustomer($cartId);
             $this->logger->info('graphQL: customerCartId ' . $customerCartId);
+            $orderPlacement = false;
+
+            try {
+                $order = $this->order->loadByIncrementId($reservedOrderId);
+
+                if (!$order->getId()) {
+                    $orderId = $this->cartManagement->placeOrder($cartId);
+                    $order = $this->order->load($orderId);
+                    $orderPlacement = true;
+                }
+
+                $order->setEmailSent(0);
+                if ($order) {
+                    $order->setState(static::STATE_PENDING_PAYMENT)
+                        ->setStatus(static::STATE_PENDING_PAYMENT);
+                }
+                $order->save();
+                $quote->setIsActive(true)->save();
+
+            } catch (\Exception $e) {
+                $this->logger->info('graphQL: magento pending order placement failed for AB cart and rzp order id: '.$rzpOrderId);
+            }
 
             return $resultJson->setData([
                 'status' => 'success',
                 'message' => 'Successfully updated the quote',
+                'orderPlacement' => $orderPlacement,
             ])->setHttpResponseCode(200);
 
         } catch (\Razorpay\Api\Errors\Error $e) {
@@ -129,7 +161,7 @@ class AbandonedQuote extends Action
             return $resultJson->setData([
                 'status' => 'error',
                 'code' => $code,
-                'message' => __('An error occurred on the server. Please try again after sometime.'),
+                'message' => __('An error occurred on the server. Please try again after sometime.' . $e->getMessage()),
             ])->setHttpResponseCode(500);
         } catch (\Exception $e) {
             $this->logger->critical("Validate: Exception Error message:" . $e->getMessage());
@@ -145,7 +177,7 @@ class AbandonedQuote extends Action
         }
     }
 
-    protected function updateQuote($quote, $rzpOrderData)
+    public function updateQuote($quote, $rzpOrderData)
     {
         $carrierCode = $rzpOrderData->notes->carrier_code ?? 'freeshipping';
         $methodCode = $rzpOrderData->notes->method_code ?? 'freeshipping';
@@ -154,7 +186,7 @@ class AbandonedQuote extends Action
 
         $quote->setCustomerEmail($email);
 
-        if(empty($rzpOrderData->customer_details->shipping_address) === false) {
+        if (empty($rzpOrderData->customer_details->shipping_address) === false) {
 
             $shippingCountry = $rzpOrderData->customer_details->shipping_address->country;
             $shippingState = $rzpOrderData->customer_details->shipping_address->state;
