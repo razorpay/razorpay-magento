@@ -273,6 +273,8 @@ class CompleteOrder extends Action
         if (!$order->getId()) {
             $orderId = $this->cartManagement->placeOrder($cartId);
             $order = $this->order->load($orderId);
+        } else {
+            $orderId = $order->getId();
         }
 
         $rzpOrderId = $rzpOrderData->id;
@@ -309,9 +311,11 @@ class CompleteOrder extends Action
 
                 $rzpPromotionAmount = 0;
 
-                foreach ($rzpOrderData->promotions as $promotion) {
-                    if (empty($promotion['code']) === false) {
-                        $rzpPromotionAmount = $promotion['value'];
+                if (empty($rzpOrderData->promotions) === false) {
+                    foreach ($rzpOrderData->promotions as $promotion) {
+                        if (empty($promotion['code']) === false) {
+                            $rzpPromotionAmount = $promotion['value'];
+                        }
                     }
                 }
 
@@ -330,11 +334,6 @@ class CompleteOrder extends Action
 
                     $this->updateDiscountAmount($orderId, $newDiscountAmount, $offerDiscount, $totalPaid);
                 }
-            }
-
-            if ($order->getData('customer_gstin')) {
-                $gstin = $rzpOrderData->notes->gstin ?? '';
-                $order->setData('customer_gstin', $gstin);
             }
 
             $payment = $order->getPayment();
@@ -429,6 +428,15 @@ class CompleteOrder extends Action
             $order->addStatusHistoryComment(
                 $comment
             )->setStatus($order->getStatus())->setIsCustomerNotified(true);
+
+            $gstin = $rzpOrderData->notes->gstin ?? '';
+            if (empty($gstin) === false) {
+                $gstinComment = __('Customer GSTIN number %1.', $gstin);
+
+                $order->addStatusHistoryComment(
+                    $gstinComment
+                )->setStatus($order->getStatus())->setIsCustomerNotified(true);
+            }
 
             try {
                 $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
