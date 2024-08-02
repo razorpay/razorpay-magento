@@ -59,7 +59,7 @@ class StateMap
             'MIZORAM'                  => 'Mizoram',
             'NAGALAND'                 => 'Nagaland',
             'ODISHA'                   => 'Odisha',
-            'PONDICHERRY'              => 'Pondicherry',
+            'PONDICHERRY'              => 'Puducherry',
             'PUNJAB'                   => 'Punjab',
             'RAJASTHAN'                => 'Rajasthan',
             'SIKKIM'                   => 'Sikkim',
