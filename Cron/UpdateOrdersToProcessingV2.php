@@ -212,7 +212,7 @@ class UpdateOrdersToProcessingV2
                     $quote = $this->cartRepositoryInterface->get($cartId);
                     $this->quoteUpdate->updateQuote($quote, $razorpayOrderData);
 
-                    $result = $this->oneCCMagentoOrder->placeMagentoOrder($cartId, $rzpPaymentData, $razorpayOrderData);
+                    $result = $this->oneCCMagentoOrder->placeMagentoOrderthroughCron($cartId, $rzpPaymentData, $razorpayOrderData);
                     if ($result['status'] == 'success') {
                         $this->debug->log("Cronjob: Successfully placed Magento Order Id = " . $merchantOrderId);
                     } else {
