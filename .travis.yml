@@ -1,0 +1,34 @@
+dist: trusty
+language: php
+php:
+- 7.2
+
+before_script:
+  - mkdir -pv code/Razorpay/Razorpay
+  - cd code/Razorpay/Razorpay && wget https://github.com/razorpay/razorpay-php/releases/download/2.5.0/razorpay-php.zip -O razorpay.zip && unzip razorpay.zip && rm razorpay.zip && cd ../../..
+
+script:
+- find . -path  -prune -o -iname '*.php' |xargs -n1 php -l
+
+before_deploy:
+- mkdir -pv code/Razorpay/Magento
+- rsync -av  --exclude='code' --exclude="release.txt" --exclude=".git" --exclude=".travis.yml"  . code/Razorpay/Magento
+- |
+  sed -i '/namespace Razorpay\\Magento\\Controller;/a\
+  \
+  // require in case of zip installation without composer \
+  require_once __DIR__ . "/../../Razorpay/Razorpay.php";' code/Razorpay/Magento/Controller/BaseController.php
+- RELEASE_VERSION=$(grep '"version":' "composer.json" | grep -o "[0-9]*\.[0-9]*\.[0-9]")  
+- cat release.txt |zip -r@ "razorpay-magento-$RELEASE_VERSION.zip"
+- rm -rf code
+
+deploy:
+  provider: releases
+  skip_cleanup: true
+  api_key:
+    secure: TnBoY/DIhhbUQhV1f10PZZQ0yNJEr3HhaOse25UBD/MhxvQZ1KeeAV46IP67Ht0JrMDSYCGqxs2cD2B65tXbpQ6KCnhuV/TXfyLlGJrfkOC/i65ADmPMDGrYjUpvU7VDu82Spo9J8MCZGawb3hNOum9M58Pxteu76+QRBU/aqfkGDlTfcRhXf615vlrVo053fxcQyonq82sMiC7HdMoQrNawuHP4UDaoHtmnVLVenosYfPVjSNx8RGPaAXbMHzz+vsKSjRpOJclTIhBdamXzUx7DBYdM/7wbo9uBrLZpXtPC7TU2+59LQhxKy/yNoOjtYwojzjucFJiaYeN9900OITv0l0IQUxzTtsd3vZORkbRWJq3DkDiZy0mjMVPBXxUjI8cejJRXXUn1EfoAVA/TJWh7fOkmEegU1EPDLbXYrd+uLNu2Mr38ahFdnQz7MG6oNUDo8d+9fT/2nuVtc0agalssHZSplYWNbZarfndJ4bPh/tExqWHzGOWGTJTLqwkvzQo20NFn2YsW8AN9gfIhMRaN1UAQfZFguRuaWur74pD7gFKlhNF09Zrr6krVxBLE5CT/rRDUq+qk3QQ14oCp299m9ornCtZVPF1CacUVcNWcuUl0gkRmvcDUebWra0fmvx5nB5b/5a0Uvd5HUYrkY+vcZ6bKTIMF7pLjQegToIA=
+  file: razorpay-magento-$RELEASE_VERSION.zip
+  on:
+    repo: razorpay/razorpay-magento
+    tags: true
+
