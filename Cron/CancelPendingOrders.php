@@ -100,12 +100,17 @@ class CancelPendingOrders {
         {
             $this->logger->info("Cronjob: Cancel Pending Order Cron started.");
             $dateTimeCheck = date('Y-m-d H:i:s', strtotime('-' . $this->pendingOrderTimeout . ' minutes'));
+            $minTimeCheck = date('Y-m-d H:i:s', strtotime('-10 days'));
             $sortOrder = $this->sortOrderBuilder->setField('entity_id')->setDirection('DESC')->create();
             $searchCriteria = $this->searchCriteriaBuilder
             ->addFilter(
                 'updated_at',
                 $dateTimeCheck,
                 'lt'
+            )->addFilter(
+                'updated_at',
+                $minTimeCheck,
+                'gt'
             )->addFilter(
                'status',
                static::STATUS_PENDING,
