@@ -75,7 +75,7 @@ class UpgradeSchema implements UpgradeSchemaInterface
             }
         }
 
-        $tableName = $setup->getTable(OrderLink::TABLE_NAME);
+        $tableName = $setup->getTable('sales_order');
         if ($setup->getConnection()->isTableExists($tableName) == true)
         {
             $setup->getConnection()->addColumn(
