@@ -189,6 +189,7 @@ class CompleteOrder extends Action
             $email = $rzpOrderData->customer_details->email ?? null;
 
             $quote = $this->cartRepositoryInterface->get($cartId);
+            $quote->setIsActive(true)->save();
 
             $this->updateQuote($quote, $rzpOrderData, $rzpPaymentData);
 

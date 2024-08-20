@@ -179,11 +179,12 @@ class AbandonedQuote extends Action
 
     public function updateQuote($quote, $rzpOrderData)
     {
+        $quote->setIsActive(true)->save();
+
         $carrierCode = $rzpOrderData->notes->carrier_code ?? 'freeshipping';
         $methodCode = $rzpOrderData->notes->method_code ?? 'freeshipping';
 
         $email = $rzpOrderData->customer_details->email ?? '';
-
         $quote->setCustomerEmail($email);
 
         if (empty($rzpOrderData->customer_details->shipping_address) === false) {

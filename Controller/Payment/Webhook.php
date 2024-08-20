@@ -143,6 +143,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         }
     }
 
+
     /**
      * Processes the incoming webhook
      */
@@ -211,6 +212,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
 
                     if ($post['event'] === 'order.paid') {
                         sleep(1);
+                        $quote = $this->objectManagement->get('Magento\Quote\Model\Quote')->load($cartId);
+                        $quote->setIsActive(false)->save();
                     }
 
                     $merchantOrderId = $post['payload']['payment']['entity']['notes']['merchant_order_id'];
