@@ -622,12 +622,15 @@ class CompleteOrder extends Action
     {
         $name = explode(' ', $rzpAddress->name);
 
+        $streetRzp = $rzpAddress->line1 . ', ' . $rzpAddress->line2;
+        $street = substr($streetRzp, 0, 255);
+
         return [
             'email' => $email, //buyer email id
             'address' => [
                 'firstname' => $name[0], //address Details
                 'lastname' => empty($name[1]) === false ? $name[1] : '.',
-                'street' => $rzpAddress->line1,
+                'street' => $street,
                 'city' => $rzpAddress->city,
                 'country_id' => strtoupper($rzpAddress->country),
                 'region' => $regionCode,
