@@ -430,6 +430,12 @@ class CompleteOrder extends Action
                 $comment
             )->setStatus($order->getStatus())->setIsCustomerNotified(true);
 
+            $commentCallback = __('Razorpay magic order placed through callback.');
+
+            $order->addStatusHistoryComment(
+                $commentCallback
+            )->setStatus($order->getStatus())->setIsCustomerNotified(false);
+
             $gstin = $rzpOrderData->notes->gstin ?? '';
             if (empty($gstin) === false) {
                 $gstinComment = __('Customer GSTIN number %1.', $gstin);
