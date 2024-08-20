@@ -271,7 +271,9 @@ class UpdateOrdersToProcessingV2
     {
         $merchantOrderId = isset($rzpOrderData->notes) ? $rzpOrderData->notes->merchant_order_id : null;
 
-        $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+        $objectManagement = $this->getObjectManager();
+
+        $orderLink = $objectManagement->get('Razorpay\Magento\Model\OrderLink')
             ->getCollection()
             ->addFilter('order_id', $merchantOrderId)
             ->getFirstItem();
@@ -436,6 +438,12 @@ class UpdateOrdersToProcessingV2
             $order->addStatusHistoryComment(
                 $comment
             )->setStatus($order->getStatus())->setIsCustomerNotified(true);
+
+            $commentCronjob = __('Razorpay magic order placed through cron job.');
+
+            $order->addStatusHistoryComment(
+                $commentCronjob
+            )->setStatus($order->getStatus())->setIsCustomerNotified(false);
 
             $gstin = $rzpOrderData->notes->gstin ?? '';
             if (empty($gstin) === false) {
