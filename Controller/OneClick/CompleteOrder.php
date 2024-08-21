@@ -415,7 +415,6 @@ class CompleteOrder extends Action
                 ($order->canInvoice() === false or
                     $this->config->canAutoGenerateInvoice() === false)) {
                 $this->logger->info('Invoice generation not possible for id : ' . $order->getIncrementId());
-                $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATION_NOT_POSSIBLE);
             }
 
             $comment = __('Razorpay order id %1.', $rzpOrderId);
