@@ -139,11 +139,40 @@ class AbandonedQuote extends Action
                     $order->setState(static::STATE_PENDING_PAYMENT)
                         ->setStatus(static::STATE_PENDING_PAYMENT);
                 }
+
+                //In case customer address not completely added to order details, we will set the address details in order comments.
+                $shippingRZPAddress = $rzpOrderData->customer_details->shipping_address;
+                $shippingStreetRzp = $shippingRZPAddress->line1 . ', ' . $shippingRZPAddress->line2;
+
+                if (strlen($shippingStreetRzp) > 255) {
+                    $shippingAddress = 'Customer Complete Shipping Address - '. $shippingRZPAddress->name. ', '.
+                        $shippingStreetRzp. ', '.
+                        $shippingRZPAddress->city. ', '.
+                        strtoupper($shippingRZPAddress->country). ' - '.
+                        $shippingRZPAddress->zipcode;
+                    $order->addStatusHistoryComment(
+                        $shippingAddress
+                    )->setStatus($order->getStatus())->setIsCustomerNotified(false);
+                }
+
+                $billingRZPAddress = $rzpOrderData->customer_details->billing_address;
+                $billingStreetRzp = $billingRZPAddress->line1 . ', ' . $billingRZPAddress->line2;
+
+                if (strlen($billingStreetRzp) > 255) {
+                    $billingAddress = 'Customer Complete Billing Address - '. $billingRZPAddress->name. ', '.
+                        $billingStreetRzp. ', '.
+                        $billingRZPAddress->city. ', '.
+                        strtoupper($billingRZPAddress->country). ' - '.
+                        $billingRZPAddress->zipcode;
+                    $order->addStatusHistoryComment(
+                        $billingAddress
+                    )->setStatus($order->getStatus())->setIsCustomerNotified(false);
+                }
                 $order->save();
                 $quote->setIsActive(true)->save();
 
             } catch (\Exception $e) {
-                $this->logger->info('graphQL: magento pending order placement failed for AB cart and rzp order id: '.$rzpOrderId);
+                $this->logger->info('graphQL: magento pending order placement failed for AB cart and rzp order id: ' . $rzpOrderId);
             }
 
             return $resultJson->setData([
@@ -243,7 +272,14 @@ class AbandonedQuote extends Action
 
     protected function getAddress($rzpAddress, $regionCode, $email)
     {
-        $name = explode(' ', $rzpAddress->name);
+        $name = $rzpAddress->name;
+        // Find the position of the first non-whitespace character
+        $firstNonWhitespacePos = strpos($name, trim($name)[0]);
+
+        // Trim the string up to the first non-whitespace character
+        $trimmedName = substr($name, $firstNonWhitespacePos);
+
+        $name = explode(' ', $trimmedName);
 
         $streetRzp = $rzpAddress->line1 . ', ' . $rzpAddress->line2;
         $street = substr($streetRzp, 0, 255);

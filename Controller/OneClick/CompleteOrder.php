@@ -99,6 +99,7 @@ class CompleteOrder extends Action
     const STATE_PROCESSING = 'processing';
     const QUOTE_LINKED_RAZORPAY_ORDER_ID = "quote_linked_razorpay_order_id";
     const INVENTORY_OUT_OF_STOCK = "Some of the products are out of stock";
+    const MAX_ATTEMPTS = "3";
 
     /**
      * CompleteOrder constructor.
@@ -269,27 +270,45 @@ class CompleteOrder extends Action
             ->addFilter('order_id', $merchantOrderId)
             ->getFirstItem();
 
-        $order = $this->order->loadByIncrementId($merchantOrderId);
-
-        if (!$order->getId()) {
-            $orderId = $this->cartManagement->placeOrder($cartId);
-            $order = $this->order->load($orderId);
-        } else {
-            $orderId = $order->getId();
-        }
+        $rzpOrderId = $rzpOrderData->id;
+        $rzpPaymentId = $rzpPaymentData->id;
 
         $rzpOrderId = $rzpOrderData->id;
         $rzpPaymentId = $rzpPaymentData->id;
+
+        //Callback will retry MAX_ATTEMPTS to place order on magento.
+        $attempts = 0;
+        while ($attempts < self::MAX_ATTEMPTS) {
+            $attempts++;
+            try {
+                $order = $this->order->loadByIncrementId($merchantOrderId);
+
+                if (!$order->getId()) {
+                    $orderId = $this->cartManagement->placeOrder($cartId);
+                    $order = $this->order->load($orderId);
+                } else {
+                    $orderId = $order->getId();
+                }
+                break;
+            } catch (\Exception $e) {
+                $this->logger->critical("Magento order placement is failed for ".$rzpOrderId." in ".$attempts." attempt and the error message is - " . $e->getMessage());
+
+                if ($attempts == self::MAX_ATTEMPTS) {
+                    $this->logger->critical("All attempts to place the Magento order have failed for rzp order id ".$rzpOrderId." & rzp payment id ".$rzpPaymentId." & magento cart id ".$cartId);
+
+                    throw new \Exception("Magento order creation failed with error message.". $e->getMessage());
+                }
+                continue;
+            }
+        }
 
         $order->setEmailSent(0);
         if ($order) {
             // Return to failure page if payment is failed.
             if ($rzpPaymentData->status === 'failed') {
-                $result = [
-                    'status' => 'failed'
-                ];
+                $this->logger->critical("Razorpay payment is failed for the order id " . $rzpOrderId);
 
-                return $result;
+                throw new \Exception("Razorpay payment is failed for the order id " . $rzpOrderId);
             }
 
             if ($order->getStatus() === 'pending') {
@@ -301,7 +320,7 @@ class CompleteOrder extends Action
                         ->setStatus(static::STATE_PROCESSING);
                 }
 
-                $this->logger->info('graphQL: Order Status Updated to ' . $this->orderStatus);
+                $this->logger->info('graphQL: Order Status Updated to ' . $this->orderStatus ." for order id ".$rzpOrderId);
             }
 
             if (!empty($rzpOrderData->offers)) {
@@ -444,6 +463,35 @@ class CompleteOrder extends Action
                 )->setStatus($order->getStatus())->setIsCustomerNotified(true);
             }
 
+            //In case customer address not completely added to order details, we will set the address details in order comments.
+            $shippingRZPAddress = $rzpOrderData->customer_details->shipping_address;
+            $shippingStreetRzp = $shippingRZPAddress->line1 . ', ' . $shippingRZPAddress->line2;
+
+            if (strlen($shippingStreetRzp) > 255) {
+                $shippingAddress = 'Customer Complete Shipping Address - '. $shippingRZPAddress->name. ', '.
+                    $shippingStreetRzp. ', '.
+                    $shippingRZPAddress->city. ', '.
+                    strtoupper($shippingRZPAddress->country). ' - '.
+                    $shippingRZPAddress->zipcode;
+                $order->addStatusHistoryComment(
+                    $shippingAddress
+                )->setStatus($order->getStatus())->setIsCustomerNotified(false);
+            }
+
+            $billingRZPAddress = $rzpOrderData->customer_details->billing_address;
+            $billingStreetRzp = $billingRZPAddress->line1 . ', ' . $billingRZPAddress->line2;
+
+            if (strlen($billingStreetRzp) > 255) {
+                $billingAddress = 'Customer Complete Billing Address - '. $billingRZPAddress->name. ', '.
+                    $billingStreetRzp. ', '.
+                    $billingRZPAddress->city. ', '.
+                    strtoupper($billingRZPAddress->country). ' - '.
+                    $billingRZPAddress->zipcode;
+                $order->addStatusHistoryComment(
+                    $billingAddress
+                )->setStatus($order->getStatus())->setIsCustomerNotified(false);
+            }
+
             try {
                 $this->checkoutSession->setRazorpayMailSentOnSuccess(true);
                 $this->orderSender->send($order);
@@ -528,18 +576,17 @@ class CompleteOrder extends Action
             // Load the order
             $order = $this->order->load($orderId);
 
-            // TODO: Commenting this temp to unblock navya fashion.
-//            // Update discount amount
-//            $order->setDiscountAmount($newDiscountAmount);
-//            $order->setBaseDiscountAmount($newDiscountAmount);
-//
-//            $totalBaseGrandTotal = $order->getBaseGrandTotal();
-//            $totalGrandTotal = $order->getGrandTotal();
-//
-//            $order->setBaseGrandTotal($totalBaseGrandTotal - $offerAmount);
-//            $order->setGrandTotal($totalGrandTotal - $offerAmount);
-//
-//            $order->setTotalPaid($totalPaid / 100);*/
+            // Update discount amount
+            $order->setDiscountAmount($newDiscountAmount);
+            $order->setBaseDiscountAmount($newDiscountAmount);
+
+            $totalBaseGrandTotal = $order->getBaseGrandTotal();
+            $totalGrandTotal = $order->getGrandTotal();
+
+            $order->setBaseGrandTotal($totalBaseGrandTotal - $offerAmount);
+            $order->setGrandTotal($totalGrandTotal - $offerAmount);
+
+            $order->setTotalPaid($totalPaid / 100);
 
             $comment = __('Razorpay offer applied ₹%1.', $offerAmount);
 
@@ -605,7 +652,6 @@ class CompleteOrder extends Action
         $quote->getPayment()->importData(['method' => $paymentMethod]);
 
         $quote->save();
-
     }
 
     protected function getRegionCode($country, $state)
@@ -625,7 +671,14 @@ class CompleteOrder extends Action
 
     protected function getAddress($rzpAddress, $regionCode, $email)
     {
-        $name = explode(' ', $rzpAddress->name);
+        $name = $rzpAddress->name;
+        // Find the position of the first non-whitespace character
+        $firstNonWhitespacePos = strpos($name, trim($name)[0]);
+
+        // Trim the string up to the first non-whitespace character
+        $trimmedName = substr($name, $firstNonWhitespacePos);
+
+        $name = explode(' ', $trimmedName);
 
         $streetRzp = $rzpAddress->line1 . ', ' . $rzpAddress->line2;
         $street = substr($streetRzp, 0, 255);
@@ -649,13 +702,9 @@ class CompleteOrder extends Action
     protected function validateSignature($request, $cartMaskId)
     {
         if (empty($request['error']) === false) {
-            $this
-                ->logger
-                ->critical("Validate: Payment Failed or error from gateway");
-            $this
-                ->messageManager
-                ->addError(__('Payment Failed'));
-            throw new \Exception("Payment Failed or error from gateway");
+            $this->logger->critical("Validate: Payment Failed or error from gateway" . $request['razorpay_order_id']);
+            $this->messageManager->addError(__('Payment Failed'));
+            throw new \Exception("Payment Failed or error from gateway for ". $request['razorpay_order_id']);
         }
         $catalogRzpKey = static::QUOTE_LINKED_RAZORPAY_ORDER_ID . '_' . $cartMaskId;
 

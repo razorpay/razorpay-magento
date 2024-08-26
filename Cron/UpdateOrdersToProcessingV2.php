@@ -278,27 +278,31 @@ class UpdateOrdersToProcessingV2
             ->addFilter('order_id', $merchantOrderId)
             ->getFirstItem();
 
-        $order = $this->order->loadByIncrementId($merchantOrderId);
-
-        if (!$order->getId()) {
-            $orderId = $this->cartManagement->placeOrder($cartId);
-            $order = $this->order->load($orderId);
-        } else {
-            $orderId = $order->getId();
-        }
-
         $rzpOrderId = $rzpOrderData->id;
         $rzpPaymentId = $rzpPaymentData->id;
+
+        try {
+            $order = $this->order->loadByIncrementId($merchantOrderId);
+
+            if (!$order->getId()) {
+                $orderId = $this->cartManagement->placeOrder($cartId);
+                $order = $this->order->load($orderId);
+            } else {
+                $orderId = $order->getId();
+            }
+        } catch (\Exception $e) {
+            $this->logger->critical("Cron failed to place the Magento order for rzp order id " . $rzpOrderId . " & rzp payment id " . $rzpPaymentId . " & magento cart id " . $cartId. " with error message - ".$e->getMessage());
+
+            throw new \Exception("Magento order creation failed with error message." . $e->getMessage());
+        }
 
         $order->setEmailSent(0);
         if ($order) {
             // Return to failure page if payment is failed.
             if ($rzpPaymentData->status === 'failed') {
-                $result = [
-                    'status' => 'failed'
-                ];
+                $this->logger->critical("Razorpay payment is failed for the order id " . $rzpOrderId);
 
-                return $result;
+                throw new \Exception("Razorpay payment is failed for the order id " . $rzpOrderId);
             }
 
             if ($order->getStatus() === 'pending') {
@@ -424,7 +428,6 @@ class UpdateOrdersToProcessingV2
                 ($order->canInvoice() === false or
                     $this->config->canAutoGenerateInvoice() === false)) {
                 $this->logger->info('Invoice generation not possible for id : ' . $order->getIncrementId());
-                $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATION_NOT_POSSIBLE);
             }
 
             $comment = __('Razorpay order id %1.', $rzpOrderId);
@@ -508,7 +511,6 @@ class UpdateOrdersToProcessingV2
 
         return $result;
     }
-
 
 
     protected function checkMagicOrder($razorpayOrderData)
