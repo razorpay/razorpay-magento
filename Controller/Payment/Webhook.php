@@ -202,6 +202,11 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                     exit;
                 }
 
+                if (isset($post['payload']['payment']['entity']['notes']['carrier_code']) === true) {
+                    $this->debug->log("Razorpay Webhook processing stopped as order is magic checkout order");
+                    return;
+                }
+
                 if (isset($post['payload']['payment']['entity']['notes']['merchant_order_id']) === true)
                 {   
                     $orderId            = $post['payload']['payment']['entity']['notes']['merchant_order_id'];
