@@ -79,34 +79,16 @@
         </div>
     </div>
     <if args="getCartParam('summary_count')">
-        <div id="cart-occ-div">
+        <div id="cart-occ-div" style="margin-top: 15px;">
 
-            <button type="button"
-
-                    id="cart-occ-template"
-
-                    data-role="proceed-to-checkout"
-
-                    title="<?= $block->escapeHtmlAttr(__('Proceed to Checkout')) ?>"
-
+            <button id="cart-occ-template" class="action primary checkout" page-type="product" border-radius="4px"
                     data-mage-init='{
-                        "Razorpay_Magento/js/magic-cart":{
-                            "from": "minicart"
-                        }
-                    }'
+                                    "Razorpay_Magento/js/magic-cart": {
+                                        "from": "minicart"
+                                    }
+                                }'>Proceed to Checkout</button>
 
-                    class="action primary checkout<?= ($block->isDisabled()) ? ' disabled' : '' ?>"
-
-            <?php if ($block->isDisabled()) : ?>
-
-            disabled="disabled"
-
-            <?php endif; ?>>
-
-            <span><?= $block->escapeHtml(__('Proceed to Checkout')) ?></span>
-            </button>
         </div>
-
     </if>
 
     <div id="minicart-widgets" class="minicart-widgets" if="regionHasElements('promotion')">
