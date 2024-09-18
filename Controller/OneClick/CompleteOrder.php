@@ -642,6 +642,10 @@ class CompleteOrder extends Action
 
         if ($rzpPaymentData->method === 'cod') {
             $paymentMethod = static::COD;
+            // Set the custom fee in the quote
+            $codFee = $rzpOrderData->cod_fee ?? 0;
+
+            $quote->setData('razorpay_cod_fee', $codFee);
         } else {
             $paymentMethod = static::RAZORPAY;
         }
