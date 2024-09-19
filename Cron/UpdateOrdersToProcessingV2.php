@@ -291,7 +291,7 @@ class UpdateOrdersToProcessingV2
                 $orderId = $order->getId();
             }
         } catch (\Exception $e) {
-            $this->logger->critical("Cron failed to place the Magento order for rzp order id " . $rzpOrderId . " & rzp payment id " . $rzpPaymentId . " & magento cart id " . $cartId. " with error message - ".$e->getMessage());
+            $this->logger->critical("Cron failed to place the Magento order for rzp order id " . $rzpOrderId . " & rzp payment id " . $rzpPaymentId . " & magento cart id " . $cartId . " with error message - " . $e->getMessage());
 
             throw new \Exception("Magento order creation failed with error message." . $e->getMessage());
         }
@@ -454,6 +454,15 @@ class UpdateOrdersToProcessingV2
 
                 $order->addStatusHistoryComment(
                     $gstinComment
+                )->setStatus($order->getStatus())->setIsCustomerNotified(true);
+            }
+
+            $codFee = $rzpOrderData->cod_fee;
+            if ($codFee > 0) {
+                $codFeeComment = __('Razorpay COD Fee %1.', $codFee / 100);
+
+                $order->addStatusHistoryComment(
+                    $codFeeComment
                 )->setStatus($order->getStatus())->setIsCustomerNotified(true);
             }
 
