@@ -463,6 +463,15 @@ class CompleteOrder extends Action
                 )->setStatus($order->getStatus())->setIsCustomerNotified(true);
             }
 
+            $codFee = $rzpOrderData->cod_fee;
+            if ($codFee > 0) {
+                $codFeeComment = __('Razorpay COD Fee %1.', $codFee / 100);
+
+                $order->addStatusHistoryComment(
+                    $codFeeComment
+                )->setStatus($order->getStatus())->setIsCustomerNotified(true);
+            }
+
             //In case customer address not completely added to order details, we will set the address details in order comments.
             $shippingRZPAddress = $rzpOrderData->customer_details->shipping_address;
             $shippingStreetRzp = $shippingRZPAddress->line1 . ', ' . $shippingRZPAddress->line2;
@@ -642,6 +651,10 @@ class CompleteOrder extends Action
 
         if ($rzpPaymentData->method === 'cod') {
             $paymentMethod = static::COD;
+            // Set the custom fee in the quote
+            $codFee = $rzpOrderData->cod_fee ?? 0;
+
+            $quote->setData('razorpay_cod_fee', $codFee);
         } else {
             $paymentMethod = static::RAZORPAY;
         }

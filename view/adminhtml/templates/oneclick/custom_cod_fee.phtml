@@ -1,0 +1,14 @@
+<?php
+$order = $block->getParentBlock()->getOrder();
+$amount = $order->getData('razorpay_cod_fee');
+?>
+<?php if ($amount): ?>
+    <tr>
+        <td class="label">
+            <?= $block->escapeHtml(__('COD Fee')) ?>
+        </td>
+        <td class="value">
+            <?= number_format($amount, 2) ?> <?= $block->escapeHtml(__('INR')) ?> <!-- Example: Formatting with 2 decimal places and appending currency -->
+        </td>
+    </tr>
+<?php endif; ?>
