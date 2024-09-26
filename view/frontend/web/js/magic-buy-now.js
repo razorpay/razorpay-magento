@@ -154,6 +154,7 @@ define([
         renderIframe: function(data) {
             var self = this;
             var rzp_order_id = data.rzp_order_id;
+            var gift_card_discount = data.gift_card_discount;
 
             var options = {
                 key: data.rzp_key_id,
@@ -182,6 +183,7 @@ define([
                 },
                 // callback_url : self.options.callbackURL,
                 prefill: {
+                    gift_card_discount: gift_card_discount,
                     name: '',
                     contact: '',
                     email: ''
