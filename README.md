@@ -216,6 +216,9 @@ To install Razorpay Magento module, follow installation steps provided at this r
 ## How to upgrade plugin using code.zip?
 Download the latest code.zip and replace all the contents of the code folder with the new code.zip content. Then follow the same steps which are there for installation through code.zip.
 
+## I am getting the following error message "Column not found: 1054 Unknown column 'main_table.rzp_webhook_notified_at' in 'field list', query was: SELECT main_table.entity_id, main_table.rzp_webhook_notified_at FROM sales_order AS main_table."
+If you encounter this error message, update the plugin to the latest version to resolve the issue.
+
 ### Support
 
 Visit [https://razorpay.com](https://razorpay.com) for support requests or email contact@razorpay.com.

@@ -1,8 +1,29 @@
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <head>
-        <script src="https://checkout.razorpay.com/v1/magic-checkout.js" src_type="url" />
     </head>
     <body>
+        <referenceBlock name="head.additional">
+            <block class="Magento\Framework\View\Element\Text" name="my_script">
+                <action method="setText">
+                    <argument translate="true" name="text" xsi:type="string">
+                        <![CDATA[
+                        <script>
+                          if (!window.Razorpay) {
+                            window.Razorpay = {};
+                          }
+                          if (typeof window.Razorpay === 'object') {
+                              if (!window.Razorpay.config) {
+                                  window.Razorpay.config = {};
+                              }
+                              window.Razorpay.config.integration = 'magic-magento';
+                          }
+                        </script>
+                       <script type="text/javascript" src="https://checkout.razorpay.com/v1/magic-checkout.js"></script>
+                      ]]>
+                    </argument>
+                </action>
+            </block>
+        </referenceBlock>
         <referenceBlock name="minicart">
             <arguments>
                 <argument name="jsLayout" xsi:type="array">
