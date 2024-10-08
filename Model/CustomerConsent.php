@@ -41,21 +41,32 @@ class CustomerConsent
     {
         try {
             $store = $this->storeManager->getStore();
-            $storeId = $store->getStoreId();
+            $storeId = $store->getId();  // get the current store ID
 
             /** @var \Magento\Newsletter\Model\Subscriber $subscriber */
             $subscriber = $this->subscriberFactory->create();
 
-            $subscriber->setStoreId($storeId)
-                   ->setCustomerId($customerId)
-                   ->setSubscriberEmail($customerEmail)
-                   ->setSubscriberStatus(\Magento\Newsletter\Model\Subscriber::STATUS_SUBSCRIBED);
+            // Check if the customer is already subscribed
+            $existingSubscriber = $subscriber->loadByCustomerId($customerId);
 
-        	$subscriber->save();
+            // If the customer is already subscribed, update the existing subscription
+            if ($existingSubscriber && $existingSubscriber->getId()) {
+                $existingSubscriber->setSubscriberEmail($customerEmail)
+                    ->setStoreId($storeId)
+                    ->setSubscriberStatus(\Magento\Newsletter\Model\Subscriber::STATUS_SUBSCRIBED);
+                $existingSubscriber->save();
+            } else {
+                // If no existing subscription, create a new one
+                $subscriber->setStoreId($storeId)
+                    ->setCustomerId($customerId)
+                    ->setSubscriberEmail($customerEmail)
+                    ->setSubscriberStatus(\Magento\Newsletter\Model\Subscriber::STATUS_SUBSCRIBED);
+                $subscriber->save();
+            }
 
             return true;
         } catch (\Exception $e) {
-            // Handle the exception
+            // Handle the exception (log it, etc.)
             return false;
         }
     }

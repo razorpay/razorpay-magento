@@ -200,11 +200,12 @@ class CompleteOrder extends Action
             $customerCartId = $this->cartConverter->convertGuestCartToCustomer($cartId);
             $this->logger->info('graphQL: customerCartId ' . $customerCartId);
 
-            $isCustomerConsentSet = false;
-            if ($isCustomerConsentSet === true) {
+            $isCustomerConsentSet = isset($rzpOrderData->notes) ? $rzpOrderData->notes->customer_consent_set : 'no';
+
+            if ($isCustomerConsentSet === "yes") {
                 // Subscribe news letter based on customer consent data
                 $subscribeNewsLetter = $this->customerConsent->subscribeCustomer($customerCartId, $email);
-                $this->logger->info('graphQL: subscribed ' . $subscribeNewsLetter);
+                $this->logger->info('graphQL: news letter subscribed? ' . $subscribeNewsLetter);
             }
 
             $result = $this->placeMagentoOrder($cartId, $rzpPaymentData, $rzpOrderData);
