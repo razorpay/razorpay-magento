@@ -2,7 +2,6 @@
     <head>
     </head>
     <body>
-
         <referenceBlock name="head.additional">
             <block class="Magento\Framework\View\Element\Text" name="my_script">
                 <action method="setText">
