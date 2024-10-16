@@ -35,7 +35,7 @@ class CustomerConsent
      *
      * @param int $customerId
      * @param strig $customerEmail
-     * @return bool
+     * @return array
      */
     public function subscribeCustomer($customerId, $customerEmail)
     {
@@ -55,6 +55,14 @@ class CustomerConsent
                     ->setStoreId($storeId)
                     ->setSubscriberStatus(\Magento\Newsletter\Model\Subscriber::STATUS_SUBSCRIBED);
                 $existingSubscriber->save();
+
+                return [
+                    "subscribed" => true,
+                    "customerId" => $customerId,
+                    "customerEmail" => $customerEmail,
+                    "storeId" => $storeId,
+                    "isExistingSubscriber" => true,
+                ];
             } else {
                 // If no existing subscription, create a new one
                 $subscriber->setStoreId($storeId)
@@ -62,12 +70,25 @@ class CustomerConsent
                     ->setSubscriberEmail($customerEmail)
                     ->setSubscriberStatus(\Magento\Newsletter\Model\Subscriber::STATUS_SUBSCRIBED);
                 $subscriber->save();
+                return [
+                    "subscribed" => true,
+                    "customerId" => $customerId,
+                    "customerEmail" => $customerEmail,
+                    "storeId" => $storeId,
+                    "isExistingSubscriber" => false,
+                ];
             }
 
             return true;
         } catch (\Exception $e) {
             // Handle the exception (log it, etc.)
-            return false;
+
+            return [
+                "subscribed" => false,
+                "customerId" => $customerId,
+                "customerEmail" => $customerEmail,
+                "errorMessage" => $e->getMessage(),
+            ];
         }
     }
 }
