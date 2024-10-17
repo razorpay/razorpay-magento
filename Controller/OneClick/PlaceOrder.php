@@ -192,6 +192,11 @@ class PlaceOrder extends Action
         $resultJson = $this->resultJsonFactory->create();
 
         try {
+            $giftCardDiscountAmount = 0;
+            //Check if the customer has applied GiftCards
+            if($quote->getMageworxGiftcardsAmount()) {
+                $giftCardDiscountAmount = abs($quote->getMageworxGiftcardsAmount());
+            }
             $maskedId = $this->maskedQuoteIdInterface->execute($quoteId);
 
             if ($maskedId === '') {
@@ -240,6 +245,7 @@ class PlaceOrder extends Action
                 $productUrl = $product->getProductUrl();
 
                 $offerPrice = $quoteItem->getPrice() * 100;
+
                 // Check if the item has applied discounts
                 if ($quoteItem->getDiscountAmount()) {
                     // Get the discount amount applied to the item
@@ -323,6 +329,20 @@ class PlaceOrder extends Action
             ];
             $orderNotes = array_merge($orderNotes, $customerEmailNotes);
         }
+        if($giftCardDiscountAmount > 0)
+        {
+            $totalAmount = $totalAmount - $giftCardDiscountAmount;
+            $giftCardDiscount = [
+                'gift_card_discount'=> $giftCardDiscountAmount,
+            ];
+            $orderNotes = array_merge($orderNotes, $giftCardDiscount);
+        }
+        $promotions = [
+            'type' => 'gift_card',
+            'code' => 'gift_card_number',
+            'value' => $giftCardDiscountAmount,
+            'description' => 'applied',
+        ];
 
         $razorpay_order = $this->rzp->order->create([
             'amount' => $totalAmount,
@@ -332,7 +352,8 @@ class PlaceOrder extends Action
             'app_offer' => 0,
             'notes' => $orderNotes,
             'line_items_total' => $totalAmount,
-            'line_items' => $lineItems
+            'line_items' => $lineItems,
+            'promotions' => $promotions,
         ]);
 
         if (null !== $razorpay_order && !empty($razorpay_order->id)) {
@@ -348,7 +369,8 @@ class PlaceOrder extends Action
                 'allow_coupon_application' => $allowCouponApplication == 1 ? true : false,
                 'rzp_order_id' => $razorpay_order->id,
                 'items' => $items,
-                'message' => 'Razorpay Order created successfully'
+                'message' => 'Razorpay Order created successfully',
+                'gift_card_discount' => $giftCardDiscount,
             ];
 
             $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
