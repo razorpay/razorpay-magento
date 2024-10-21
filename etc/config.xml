@@ -17,6 +17,8 @@
                 <webhook_triggered_at>0</webhook_triggered_at>
                 <enable_pending_orders_cron>1</enable_pending_orders_cron>
                 <pending_orders_timeout>30</pending_orders_timeout>
+                <enable_pending_orders_age>0</enable_pending_orders_age>
+                <pending_orders_age>43200</pending_orders_age>
                 <enable_reset_cart_cron>0</enable_reset_cart_cron>
                 <reset_cart_orders_timeout>30</reset_cart_orders_timeout>
                 <enable_custom_paid_order_status>0</enable_custom_paid_order_status>

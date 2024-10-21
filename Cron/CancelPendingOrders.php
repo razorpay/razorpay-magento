@@ -60,6 +60,10 @@ class CancelPendingOrders {
      */
     protected $debug;
 
+    protected $isCancelPendingOrderAgeEnabled;
+
+    protected $pendingOrderAge;
+
     /**
      * CancelOrder constructor.
      * @param \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
@@ -87,6 +91,8 @@ class CancelPendingOrders {
         $this->logger                          = $logger;
         $this->isCancelPendingOrderCronEnabled = $this->config->isCancelPendingOrderCronEnabled();
         $this->pendingOrderTimeout             = ($this->config->getPendingOrderTimeout() > 0) ? $this->config->getPendingOrderTimeout() : 30;
+        $this->isCancelPendingOrderAgeEnabled  = $this->config->isCancelPendingOrderAgeEnabled();
+        $this->pendingOrderAge                 = ($this->config->getPendingOrderAge() > 0) ? $this->config->getPendingOrderAge() : 43200;
         $this->isCancelResetCartCronEnabled    = $this->config->isCancelResetCartOrderCronEnabled();
         $this->resetCartOrderTimeout           = ($this->config->getResetCartOrderTimeout() > 0) ? $this->config->getResetCartOrderTimeout() : 30;
         $this->debug                           = $debug;
@@ -101,24 +107,50 @@ class CancelPendingOrders {
             $this->logger->info("Cronjob: Cancel Pending Order Cron started.");
             $dateTimeCheck = date('Y-m-d H:i:s', strtotime('-' . $this->pendingOrderTimeout . ' minutes'));
             $sortOrder = $this->sortOrderBuilder->setField('entity_id')->setDirection('DESC')->create();
-            $searchCriteria = $this->searchCriteriaBuilder
-            ->addFilter(
-                'updated_at',
-                $dateTimeCheck,
-                'lt'
-            )->addFilter(
-               'status',
-               static::STATUS_PENDING,
-               'eq'
-            )->setSortOrders(
-                [$sortOrder]
-            )->create();
+
+            if ($this->isCancelPendingOrderAgeEnabled === true
+                && $this->pendingOrderAge > $this->pendingOrderTimeout)
+            {
+                $this->logger->info("Cronjob: PendingOrderAge Enabled.");
+                $pendingOrderAgeCheck = date('Y-m-d H:i:s', strtotime('-' . $this->pendingOrderAge . ' minutes'));
+                $searchCriteria = $this->searchCriteriaBuilder
+                    ->addFilter(
+                        'updated_at',
+                        $dateTimeCheck,
+                        'lt'
+                    )->addFilter(
+                        'updated_at',
+                        $pendingOrderAgeCheck,
+                        'gt'
+                    )->addFilter(
+                        'status',
+                        static::STATUS_PENDING,
+                        'eq'
+                    )->setSortOrders(
+                        [$sortOrder]
+                    )->create();
+            }
+            else
+            {
+                $searchCriteria = $this->searchCriteriaBuilder
+                    ->addFilter(
+                        'updated_at',
+                        $dateTimeCheck,
+                        'lt'
+                    )->addFilter(
+                        'status',
+                        static::STATUS_PENDING,
+                        'eq'
+                    )->setSortOrders(
+                        [$sortOrder]
+                    )->create();
+            }
 
             $orders = $this->orderRepository->getList($searchCriteria);
             foreach ($orders->getItems() as $order)
             {
                 if ($order->getPayment()->getMethod() === 'razorpay') {
-                    $this->debug->log("Cronjob: Magento Order Id = " . $order->getIncrementId() . " picked for cancelation.");
+                    $this->debug->log("Cronjob: Magento Order Id = " . $order->getIncrementId() . " picked for cancellation.");
 
                     $this->cancelOrder($order);    
                 }
@@ -159,7 +191,7 @@ class CancelPendingOrders {
             foreach ($orders->getItems() as $order)
             {
                 if ($order->getPayment()->getMethod() === 'razorpay') {
-                    $this->debug->log("Cronjob: Magento Order Id = " . $order->getIncrementId() . " picked for cancelation in reset cart cron.");
+                    $this->debug->log("Cronjob: Magento Order Id = " . $order->getIncrementId() . " picked for cancellation in reset cart cron.");
 
                     $this->cancelOrder($order);
                 }
