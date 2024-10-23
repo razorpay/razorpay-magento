@@ -222,6 +222,12 @@ class CancelPendingOrders {
             }
             else
             {
+                if($this->isCancelPendingOrderAgeEnabled === true
+                    && $orderAge !== null
+                    && $orderAge <= $orderTimeout)
+                {
+                    $this->debug->log("Cronjob: Pending order age is less than or equal to timeout." . " age: " . $orderAge . ", timeout: " . $orderTimeout);
+                }
                 $searchCriteria = $this->searchCriteriaBuilder
                     ->addFilter(
                         'updated_at',
