@@ -64,11 +64,9 @@ class CancelPendingOrders {
      */
     protected $debug;
 
-    protected $isCancelPendingOrderAgeEnabled;
-
     protected $pendingOrderAge;
 
-    protected const PENDING_ORDER_AGE_DEFAULT = 43200;
+    protected const PENDING_ORDER_AGE_DEFAULT = 30;
 
     /**
      * CancelOrder constructor.
@@ -97,7 +95,6 @@ class CancelPendingOrders {
         $this->logger                          = $logger;
         $this->isCancelPendingOrderCronEnabled = $this->config->isCancelPendingOrderCronEnabled();
         $this->pendingOrderTimeout             = ($this->config->getPendingOrderTimeout() > 0) ? $this->config->getPendingOrderTimeout() : 30;
-        $this->isCancelPendingOrderAgeEnabled  = $this->config->isCancelPendingOrderAgeEnabled();
         $this->pendingOrderAge                 = ($this->config->getPendingOrderAge() > 0) ? $this->config->getPendingOrderAge() : self::PENDING_ORDER_AGE_DEFAULT;
         $this->isCancelResetCartCronEnabled    = $this->config->isCancelResetCartOrderCronEnabled();
         $this->resetCartOrderTimeout           = ($this->config->getResetCartOrderTimeout() > 0) ? $this->config->getResetCartOrderTimeout() : 30;
@@ -196,12 +193,13 @@ class CancelPendingOrders {
             $dateTimeCheck = date('Y-m-d H:i:s', strtotime('-' . $orderTimeout . ' minutes'));
             $sortOrder = $this->sortOrderBuilder->setField('entity_id')->setDirection('DESC')->create();
 
-            if ($this->isCancelPendingOrderAgeEnabled === true
-                && $orderAge !== null
-                && $orderAge > $orderTimeout)
+            if (($orderAge !== null) && ($orderAge > $orderTimeout))
             {
                 $this->debug->log("Cronjob: PendingOrderAge Enabled.");
+                $this->debug->log("Cronjob: PendingOrderAge: " . $orderAge . " PendingOrderTimeout: " . $orderTimeout);
                 $pendingOrderAgeCheck = date('Y-m-d H:i:s', strtotime('-' . $orderAge . ' minutes'));
+
+                $this->debug->log("Cronjob: PendingOrderAgeCheck: " . $pendingOrderAgeCheck . " PendingOrderTimeoutCheck: " . $dateTimeCheck);
 
                 $searchCriteria = $this->searchCriteriaBuilder
                     ->addFilter(
@@ -222,9 +220,7 @@ class CancelPendingOrders {
             }
             else
             {
-                if($this->isCancelPendingOrderAgeEnabled === true
-                    && $orderAge !== null
-                    && $orderAge <= $orderTimeout)
+                if(($orderAge !== null) && ($orderAge <= $orderTimeout))
                 {
                     $this->debug->log("Cronjob: Pending order age is less than or equal to timeout." . " age: " . $orderAge . ", timeout: " . $orderTimeout);
                 }

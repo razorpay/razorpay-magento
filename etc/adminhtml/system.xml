@@ -41,26 +41,15 @@
                     <validate>required-entry validate-digits validate-not-negative-number validate-digits-range digits-range-20-43200</validate>
                 </field>
 
-                <field id="enable_pending_orders_age" translate="label" type="select" sortOrder="6" showInDefault="1" showInWebsite="0" showInStore="0">
-                    <label>Pending Orders Age Enabled</label>
-                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                    <frontend_model>Razorpay\Magento\Model\FormFieldTrack</frontend_model>
-                    <config_path>payment/razorpay/enable_pending_orders_age</config_path>
-                    <depends>
-                        <field id="enable_pending_orders_cron">1</field>
-                    </depends>
-                </field>
-
                 <field id="pending_orders_age" translate="label" type="text" sortOrder="6" showInDefault="1" showInWebsite="0" showInStore="0">
                     <label>Pending Orders Age</label>
-                    <comment>Set age in minutes, (default: 43200 minutes). Age can be updated between range of 30 to 525600 minutes. This will enable cron for moving pending orders to Cancel status for given age. Please make sure to put age value more than timeout value in minutes.</comment>
+                    <comment>Set age in minutes, (default: 30 minutes). Age can be updated between range of 20 to 86400 minutes. This will enable cron for moving pending orders to Cancel status for given age.</comment>
                     <config_path>payment/razorpay/pending_orders_age</config_path>
                     <depends>
                         <field id="enable_pending_orders_cron">1</field>
-                        <field id="enable_pending_orders_age">1</field>
                     </depends>
                     <frontend_model>Razorpay\Magento\Model\FormFieldTrack</frontend_model>
-                    <validate>required-entry validate-digits validate-not-negative-number validate-digits-range digits-range-30-525600</validate>
+                    <validate>required-entry validate-digits validate-not-negative-number validate-digits-range digits-range-20-86400</validate>
                 </field>
 
                 <field id="enable_reset_cart_cron" translate="label" type="select" sortOrder="7" showInDefault="1" showInWebsite="0" showInStore="0">

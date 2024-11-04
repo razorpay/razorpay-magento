@@ -153,7 +153,7 @@ class FormFieldTrack extends \Magento\Config\Block\System\Config\Form\Field
                                         let checkRequiredEntryBool                          = checkRequiredEntry(elementVal)
                                         let checkIfValidDigitsBool                          = checkIfValidDigits(elementVal)
                                         let checkIfNonNegativeBool                          = checkIfNonNegative(elementVal)
-                                        let checkIfInNumberRangeBool                        = checkIfInNumberRange(elementVal, 30, 525600)
+                                        let checkIfInNumberRangeBool                        = checkIfInNumberRange(elementVal, 20, 86400)
                                         let checkIfPendingOrderAgeGreaterThanTimeoutBool    = checkIfPendingOrderAgeGreaterThanTimeout(elementVal, pendingOrderTimeoutValue)
 
                                         if (
@@ -170,7 +170,7 @@ class FormFieldTrack extends \Magento\Config\Block\System\Config\Form\Field
                                                 'required-entry'                                        : checkRequiredEntryBool,
                                                 'validate-digits'                                       : checkIfValidDigitsBool,
                                                 'validate-not-negative-number'                          : checkIfNonNegativeBool,
-                                                'digits-range-30-525600'                                : checkIfInNumberRangeBool,
+                                                'digits-range-20-86400'                                 : checkIfInNumberRangeBool,
                                                 'check-if-pending-order-age-greater-than-timeout'       : checkIfPendingOrderAgeGreaterThanTimeoutBool
                                             }
 

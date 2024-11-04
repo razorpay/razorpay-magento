@@ -20,7 +20,6 @@ class Config
     const WEBHOOK_SECRET = 'webhook_secret';
     const ENABLE_PENDING_ORDERS_CRON = 'enable_pending_orders_cron';
     const PENDING_ORDER_TIMEOUT = 'pending_orders_timeout';
-    const ENABLE_PENDING_ORDERS_AGE = 'enable_pending_orders_age';
     const PENDING_ORDER_AGE = 'pending_orders_age';
     const ENABLE_RESET_CART_CRON = 'enable_reset_cart_cron';
     const RESET_CART_ORDERS_TIMEOUT = 'reset_cart_orders_timeout';
@@ -88,11 +87,6 @@ class Config
     public function getPendingOrderTimeout()
     {
         return (int) $this->getConfigData(self::PENDING_ORDER_TIMEOUT);
-    }
-
-    public function isCancelPendingOrderAgeEnabled()
-    {
-        return (bool) (int) $this->getConfigData(self::ENABLE_PENDING_ORDERS_AGE, $this->storeId);
     }
 
     public function getPendingOrderAge()
