@@ -42,14 +42,14 @@
                 </field>
 
                 <field id="pending_orders_age" translate="label" type="text" sortOrder="6" showInDefault="1" showInWebsite="0" showInStore="0">
-                    <label>Pending Orders Age</label>
-                    <comment>Set age in minutes, (default: 30 minutes). Age can be updated between range of 20 to 86400 minutes. This will enable cron for moving pending orders to Cancel status for given age.</comment>
+                    <label>Pending Orders Maximum Age</label>
+                    <comment>Optional. Set maximum age of pending orders in minutes. Age can be updated between range of 60 to 43200 minutes. This will enable cron for moving pending orders which are under the given age to Cancel status. Please make sure to put maximum age value greater than Pending Orders Timeout value.</comment>
                     <config_path>payment/razorpay/pending_orders_age</config_path>
                     <depends>
                         <field id="enable_pending_orders_cron">1</field>
                     </depends>
                     <frontend_model>Razorpay\Magento\Model\FormFieldTrack</frontend_model>
-                    <validate>required-entry validate-digits validate-not-negative-number validate-digits-range digits-range-20-86400</validate>
+                    <validate>validate-digits validate-not-negative-number validate-digits-range digits-range-60-43200 validate-age-timeout</validate>
                 </field>
 
                 <field id="enable_reset_cart_cron" translate="label" type="select" sortOrder="7" showInDefault="1" showInWebsite="0" showInStore="0">

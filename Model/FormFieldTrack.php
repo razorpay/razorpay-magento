@@ -153,7 +153,7 @@ class FormFieldTrack extends \Magento\Config\Block\System\Config\Form\Field
                                         let checkRequiredEntryBool                          = checkRequiredEntry(elementVal)
                                         let checkIfValidDigitsBool                          = checkIfValidDigits(elementVal)
                                         let checkIfNonNegativeBool                          = checkIfNonNegative(elementVal)
-                                        let checkIfInNumberRangeBool                        = checkIfInNumberRange(elementVal, 20, 86400)
+                                        let checkIfInNumberRangeBool                        = checkIfInNumberRange(elementVal, 60, 43200)
                                         let checkIfPendingOrderAgeGreaterThanTimeoutBool    = checkIfPendingOrderAgeGreaterThanTimeout(elementVal, pendingOrderTimeoutValue)
 
                                         if (
@@ -256,6 +256,18 @@ class FormFieldTrack extends \Magento\Config\Block\System\Config\Form\Field
                                 })
                             }                 
 						});
+                        require(['jquery', 'mage/validation'], function($) {
+                $.validator.addMethod('validate-age-timeout', function(value, element) {
+                    var age = parseFloat($('#' + 'payment_us_razorpay_pending_orders_age').val());
+                    var timeout = parseFloat($('#' + 'payment_us_razorpay_pending_orders_timeout').val());
+                    console.log(age);
+                    console.log(timeout);
+                    return isNaN(age) || age > timeout;
+                }, $.mage.__('Pending Orders Age must be greater than Pending Orders Timeout.'));
+                $(\"#' . '" .$element->getHtmlId(). "' . '\").rules(\"add\", {
+                    \"validate-age-timeout\": true
+                        });
+                    });
 						//]]>
 						</script>
 						";

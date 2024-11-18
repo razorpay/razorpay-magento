@@ -66,7 +66,7 @@ class CancelPendingOrders {
 
     protected $pendingOrderAge;
 
-    protected const PENDING_ORDER_AGE_DEFAULT = 30;
+    protected const PENDING_ORDER_MAXIMUM_AGE_DEFAULT = 43200;
 
     /**
      * CancelOrder constructor.
@@ -95,7 +95,7 @@ class CancelPendingOrders {
         $this->logger                          = $logger;
         $this->isCancelPendingOrderCronEnabled = $this->config->isCancelPendingOrderCronEnabled();
         $this->pendingOrderTimeout             = ($this->config->getPendingOrderTimeout() > 0) ? $this->config->getPendingOrderTimeout() : 30;
-        $this->pendingOrderAge                 = ($this->config->getPendingOrderAge() > 0) ? $this->config->getPendingOrderAge() : self::PENDING_ORDER_AGE_DEFAULT;
+        $this->pendingOrderAge                 = (($this->config->getPendingOrderAge() > 0) && ($this->config->getPendingOrderAge() < self::PENDING_ORDER_MAXIMUM_AGE_DEFAULT)) ? $this->config->getPendingOrderAge() : self::PENDING_ORDER_MAXIMUM_AGE_DEFAULT;
         $this->isCancelResetCartCronEnabled    = $this->config->isCancelResetCartOrderCronEnabled();
         $this->resetCartOrderTimeout           = ($this->config->getResetCartOrderTimeout() > 0) ? $this->config->getResetCartOrderTimeout() : 30;
         $this->debug                           = $debug;
@@ -108,6 +108,8 @@ class CancelPendingOrders {
             && $this->pendingOrderTimeout > 0)
         {
             $this->logger->info("Cronjob: Cancel Pending Order Cron started.");
+            $this->debug->log("Cronjob: Pending Orders Timeout value: " . $this->pendingOrderTimeout);
+            $this->debug->log("Cronjob: Pending Orders Age value: " . $this->pendingOrderAge);
 
             $searchCriteria = $this->getSearchCriteria(self::PENDING_ORDER_CRON, $this->pendingOrderTimeout, $this->pendingOrderAge, null, self::STATUS_PENDING);
 
@@ -158,7 +160,7 @@ class CancelPendingOrders {
         if ($order)
         {
             if ($order->canCancel() and
-                $this->isOrderAlreadyPaid($order->getEntityId()) === false) 
+                $this->isOrderAlreadyPaid($order->getEntityId()) === false)
             {
                 $this->logger->info("Cronjob: Cancelling Order ID: " . $order->getIncrementId());
 
@@ -195,7 +197,6 @@ class CancelPendingOrders {
 
             if (($orderAge !== null) && ($orderAge > $orderTimeout))
             {
-                $this->debug->log("Cronjob: PendingOrderAge Enabled.");
                 $this->debug->log("Cronjob: PendingOrderAge: " . $orderAge . " PendingOrderTimeout: " . $orderTimeout);
                 $pendingOrderAgeCheck = date('Y-m-d H:i:s', strtotime('-' . $orderAge . ' minutes'));
 
@@ -210,25 +211,6 @@ class CancelPendingOrders {
                         'updated_at',
                         $pendingOrderAgeCheck,
                         'gt'
-                    )->addFilter(
-                        'status',
-                        $orderStatus,
-                        'eq'
-                    )->setSortOrders(
-                        [$sortOrder]
-                    )->create();
-            }
-            else
-            {
-                if(($orderAge !== null) && ($orderAge <= $orderTimeout))
-                {
-                    $this->debug->log("Cronjob: Pending order age is less than or equal to timeout." . " age: " . $orderAge . ", timeout: " . $orderTimeout);
-                }
-                $searchCriteria = $this->searchCriteriaBuilder
-                    ->addFilter(
-                        'updated_at',
-                        $dateTimeCheck,
-                        'lt'
                     )->addFilter(
                         'status',
                         $orderStatus,
