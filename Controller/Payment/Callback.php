@@ -132,7 +132,6 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
             $collection = $this->objectManagement->get('Magento\Sales\Model\Order')
                 ->getCollection()
                 ->addFieldToSelect('entity_id')
-                ->addFieldToSelect('rzp_order_id')
                 ->addFilter('increment_id', $orderId)->getFirstItem();
             
             $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
