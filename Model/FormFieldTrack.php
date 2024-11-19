@@ -264,9 +264,6 @@ class FormFieldTrack extends \Magento\Config\Block\System\Config\Form\Field
                     console.log(timeout);
                     return isNaN(age) || age > timeout;
                 }, $.mage.__('Pending Orders Age must be greater than Pending Orders Timeout.'));
-                $(\"#' . '" .$element->getHtmlId(). "' . '\").rules(\"add\", {
-                    \"validate-age-timeout\": true
-                        });
                     });
 						//]]>
 						</script>
