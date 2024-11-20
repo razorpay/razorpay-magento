@@ -108,8 +108,6 @@ class CancelPendingOrders {
             && $this->pendingOrderTimeout > 0)
         {
             $this->logger->info("Cronjob: Cancel Pending Order Cron started.");
-            $this->debug->log("Cronjob: Pending Orders Timeout value: " . $this->pendingOrderTimeout);
-            $this->debug->log("Cronjob: Pending Orders Age value: " . $this->pendingOrderAge);
 
             $searchCriteria = $this->getSearchCriteria(self::PENDING_ORDER_CRON, $this->pendingOrderTimeout, $this->pendingOrderAge, null, self::STATUS_PENDING);
 
@@ -197,10 +195,7 @@ class CancelPendingOrders {
 
             if (($orderAge !== null) && ($orderAge > $orderTimeout))
             {
-                $this->debug->log("Cronjob: PendingOrderAge: " . $orderAge . " PendingOrderTimeout: " . $orderTimeout);
                 $pendingOrderAgeCheck = date('Y-m-d H:i:s', strtotime('-' . $orderAge . ' minutes'));
-
-                $this->debug->log("Cronjob: PendingOrderAgeCheck: " . $pendingOrderAgeCheck . " PendingOrderTimeoutCheck: " . $dateTimeCheck);
 
                 $searchCriteria = $this->searchCriteriaBuilder
                     ->addFilter(
