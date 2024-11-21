@@ -134,9 +134,54 @@ class FormFieldTrack extends \Magento\Config\Block\System\Config\Form\Field
                                                 url: '". $baseUrl ."razorpay/payment/FormDataAnalytics',
                                                 type: 'POST',
                                                 dataType: 'json',
-                                                data: { 
-                                                    event: 'Form Field Validation Error', 
-                                                    properties: validationData 
+                                                data: {
+                                                    event: 'Form Field Validation Error',
+                                                    properties: validationData
+                                                }
+                                            })
+                                        }
+                                    })
+                                }
+                                else if (elementId == 'payment_us_razorpay_pending_orders_age')
+                                {
+                                    element.blur(function(){
+                                        let elementVal = String(element.val())
+                                        let pendingOrderTimeoutElement     = $('#' + 'payment_us_razorpay_pending_orders_timeout')
+                                        let pendingOrderTimeoutValue = String(pendingOrderTimeoutElement.val())
+
+                                        // Validations
+                                        let checkRequiredEntryBool                          = checkRequiredEntry(elementVal)
+                                        let checkIfValidDigitsBool                          = checkIfValidDigits(elementVal)
+                                        let checkIfNonNegativeBool                          = checkIfNonNegative(elementVal)
+                                        let checkIfInNumberRangeBool                        = checkIfInNumberRange(elementVal, 60, 43200)
+                                        let checkIfPendingOrderAgeGreaterThanTimeoutBool    = checkIfPendingOrderAgeGreaterThanTimeout(elementVal, pendingOrderTimeoutValue)
+
+                                        if (
+                                            !checkRequiredEntryBool ||
+                                            !checkIfValidDigitsBool ||
+                                            !checkIfNonNegativeBool ||
+                                            !checkIfInNumberRangeBool ||
+                                            !checkIfPendingOrderAgeGreaterThanTimeoutBool
+                                        ){
+                                            let validationData = {
+                                                'store_name'                                            : storeName,
+                                                'field_name'                                            : fieldName,
+                                                'field_type'                                            : fieldType,
+                                                'required-entry'                                        : checkRequiredEntryBool,
+                                                'validate-digits'                                       : checkIfValidDigitsBool,
+                                                'validate-not-negative-number'                          : checkIfNonNegativeBool,
+                                                'digits-range-60-43200'                                 : checkIfInNumberRangeBool,
+                                                'check-if-pending-order-age-greater-than-timeout'       : checkIfPendingOrderAgeGreaterThanTimeoutBool
+                                            }
+
+                                            // Send event
+                                            $.ajax({
+                                                url: '". $baseUrl ."razorpay/payment/FormDataAnalytics',
+                                                type: 'POST',
+                                                dataType: 'json',
+                                                data: {
+                                                    event: 'Form Field Validation Error',
+                                                    properties: validationData
                                                 }
                                             })
                                         }
@@ -156,6 +201,7 @@ class FormFieldTrack extends \Magento\Config\Block\System\Config\Form\Field
                                     'payment_us_razorpay_order_status'                  : $('#payment_us_razorpay_order_status').val(),
                                     'payment_us_razorpay_auto_invoice'                  : $('#payment_us_razorpay_auto_invoice').val(),
                                     'payment_us_razorpay_pending_orders_timeout'        : $('#payment_us_razorpay_pending_orders_timeout').val(),
+                                    'payment_us_razorpay_pending_orders_age'            : $('#payment_us_razorpay_pending_orders_age').val(),
                                 }
                                 let resultMapObject = new Map()
 
@@ -167,7 +213,8 @@ class FormFieldTrack extends \Magento\Config\Block\System\Config\Form\Field
                                         row == 'payment_us_razorpay_key_secret' ||
                                         row == 'payment_us_razorpay_order_status' ||
                                         row == 'payment_us_razorpay_auto_invoice' ||
-                                        row == 'payment_us_razorpay_pending_orders_timeout'
+                                        row == 'payment_us_razorpay_pending_orders_timeout' ||
+                                        row == 'payment_us_razorpay_pending_orders_age'
                                     )
                                     {
                                         // Check for empty fields
@@ -209,6 +256,13 @@ class FormFieldTrack extends \Magento\Config\Block\System\Config\Form\Field
                                 })
                             }                 
 						});
+                        require(['jquery', 'mage/validation'], function($) {
+                $.validator.addMethod('validate-age-timeout', function(value, element) {
+                    var age = parseFloat($('#' + 'payment_us_razorpay_pending_orders_age').val());
+                    var timeout = parseFloat($('#' + 'payment_us_razorpay_pending_orders_timeout').val());
+                    return isNaN(age) || age > timeout;
+                }, $.mage.__('Pending Orders Age must be greater than Pending Orders Timeout.'));
+                    });
 						//]]>
 						</script>
 						";
@@ -241,6 +295,14 @@ class FormFieldTrack extends \Magento\Config\Block\System\Config\Form\Field
                     let fieldNum = parseInt(field)
 
                     return (fieldNum >= x && fieldNum <=y)? true : false;
+                }
+                function checkIfPendingOrderAgeGreaterThanTimeout(pendingOrderAge, pendingOrderTimeout)
+                {
+                    let pendingOrderAgeInt = parseInt(pendingOrderAge);
+
+                    let pendingOrderTimeoutInt = parseInt(pendingOrderTimeout);
+
+                    return (pendingOrderAgeInt > pendingOrderTimeoutInt)? true : false;
                 }
             ";
     }

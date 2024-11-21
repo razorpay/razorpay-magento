@@ -32,6 +32,10 @@ class CancelPendingOrders {
      */
     protected const STATE_NEW = 'new';
 
+    protected const PENDING_ORDER_CRON = 'pending_order_cron';
+
+    protected const RESET_CART_CRON = 'reset_cart_cron';
+
     /**
      * @var \Magento\Framework\Api\SortOrderBuilder
      */
@@ -60,6 +64,10 @@ class CancelPendingOrders {
      */
     protected $debug;
 
+    protected $pendingOrderAge;
+
+    protected const PENDING_ORDER_MAXIMUM_AGE_DEFAULT = 43200;
+
     /**
      * CancelOrder constructor.
      * @param \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
@@ -87,6 +95,7 @@ class CancelPendingOrders {
         $this->logger                          = $logger;
         $this->isCancelPendingOrderCronEnabled = $this->config->isCancelPendingOrderCronEnabled();
         $this->pendingOrderTimeout             = ($this->config->getPendingOrderTimeout() > 0) ? $this->config->getPendingOrderTimeout() : 30;
+        $this->pendingOrderAge                 = (($this->config->getPendingOrderAge() > 0) && ($this->config->getPendingOrderAge() < self::PENDING_ORDER_MAXIMUM_AGE_DEFAULT)) ? $this->config->getPendingOrderAge() : self::PENDING_ORDER_MAXIMUM_AGE_DEFAULT;
         $this->isCancelResetCartCronEnabled    = $this->config->isCancelResetCartOrderCronEnabled();
         $this->resetCartOrderTimeout           = ($this->config->getResetCartOrderTimeout() > 0) ? $this->config->getResetCartOrderTimeout() : 30;
         $this->debug                           = $debug;
@@ -99,26 +108,14 @@ class CancelPendingOrders {
             && $this->pendingOrderTimeout > 0)
         {
             $this->logger->info("Cronjob: Cancel Pending Order Cron started.");
-            $dateTimeCheck = date('Y-m-d H:i:s', strtotime('-' . $this->pendingOrderTimeout . ' minutes'));
-            $sortOrder = $this->sortOrderBuilder->setField('entity_id')->setDirection('DESC')->create();
-            $searchCriteria = $this->searchCriteriaBuilder
-            ->addFilter(
-                'updated_at',
-                $dateTimeCheck,
-                'lt'
-            )->addFilter(
-               'status',
-               static::STATUS_PENDING,
-               'eq'
-            )->setSortOrders(
-                [$sortOrder]
-            )->create();
+
+            $searchCriteria = $this->getSearchCriteria(self::PENDING_ORDER_CRON, $this->pendingOrderTimeout, $this->pendingOrderAge, null, self::STATUS_PENDING);
 
             $orders = $this->orderRepository->getList($searchCriteria);
             foreach ($orders->getItems() as $order)
             {
                 if ($order->getPayment()->getMethod() === 'razorpay') {
-                    $this->debug->log("Cronjob: Magento Order Id = " . $order->getIncrementId() . " picked for cancelation.");
+                    $this->debug->log("Cronjob: Magento Order Id = " . $order->getIncrementId() . " picked for cancellation.");
 
                     $this->cancelOrder($order);    
                 }
@@ -135,31 +132,15 @@ class CancelPendingOrders {
             && $this->resetCartOrderTimeout > 0)
         {
             $this->logger->info("Cronjob: Cancel Reset Cart Order Cron started.");
-            $dateTimeCheck = date('Y-m-d H:i:s', strtotime('-' . $this->resetCartOrderTimeout . ' minutes'));
-            $sortOrder = $this->sortOrderBuilder->setField('entity_id')->setDirection('DESC')->create();
-            $searchCriteria = $this->searchCriteriaBuilder
-            ->addFilter(
-                'updated_at',
-                $dateTimeCheck,
-                'lt'
-            )->addFilter(
-               'state',
-               static::STATE_NEW,
-               'eq'
-            )->addFilter(
-               'status',
-               static::STATUS_CANCELED,
-               'eq'
-            )->setSortOrders(
-                [$sortOrder]
-            )->create();
+
+            $searchCriteria = $this->getSearchCriteria(self::RESET_CART_CRON, $this->resetCartOrderTimeout, null, self::STATE_NEW, self::STATUS_CANCELED);
 
             $orders = $this->orderRepository->getList($searchCriteria);
 
             foreach ($orders->getItems() as $order)
             {
                 if ($order->getPayment()->getMethod() === 'razorpay') {
-                    $this->debug->log("Cronjob: Magento Order Id = " . $order->getIncrementId() . " picked for cancelation in reset cart cron.");
+                    $this->debug->log("Cronjob: Magento Order Id = " . $order->getIncrementId() . " picked for cancellation in reset cart cron.");
 
                     $this->cancelOrder($order);
                 }
@@ -177,7 +158,7 @@ class CancelPendingOrders {
         if ($order)
         {
             if ($order->canCancel() and
-                $this->isOrderAlreadyPaid($order->getEntityId()) === false) 
+                $this->isOrderAlreadyPaid($order->getEntityId()) === false)
             {
                 $this->logger->info("Cronjob: Cancelling Order ID: " . $order->getIncrementId());
 
@@ -202,5 +183,61 @@ class CancelPendingOrders {
                         ->getFirstItem();
         
         return ($orderLinkData->getRzpWebhookNotifiedAt() !== null);
+    }
+
+    private function getSearchCriteria($cronName, $orderTimeout, $orderAge, $orderState, $orderStatus)
+    {
+        $searchCriteria = null;
+        if ($cronName === self::PENDING_ORDER_CRON)
+        {
+            $dateTimeCheck = date('Y-m-d H:i:s', strtotime('-' . $orderTimeout . ' minutes'));
+            $sortOrder = $this->sortOrderBuilder->setField('entity_id')->setDirection('DESC')->create();
+
+            if (($orderAge !== null) && ($orderAge > $orderTimeout))
+            {
+                $pendingOrderAgeCheck = date('Y-m-d H:i:s', strtotime('-' . $orderAge . ' minutes'));
+
+                $searchCriteria = $this->searchCriteriaBuilder
+                    ->addFilter(
+                        'updated_at',
+                        $dateTimeCheck,
+                        'lt'
+                    )->addFilter(
+                        'updated_at',
+                        $pendingOrderAgeCheck,
+                        'gt'
+                    )->addFilter(
+                        'status',
+                        $orderStatus,
+                        'eq'
+                    )->setSortOrders(
+                        [$sortOrder]
+                    )->create();
+            }
+        }
+        else if ($cronName === self::RESET_CART_CRON
+                 && $orderState !== null)
+        {
+            $dateTimeCheck = date('Y-m-d H:i:s', strtotime('-' . $orderTimeout . ' minutes'));
+            $sortOrder = $this->sortOrderBuilder->setField('entity_id')->setDirection('DESC')->create();
+
+            $searchCriteria = $this->searchCriteriaBuilder
+                ->addFilter(
+                    'updated_at',
+                    $dateTimeCheck,
+                    'lt'
+                )->addFilter(
+                    'state',
+                    $orderState,
+                    'eq'
+                )->addFilter(
+                    'status',
+                    $orderStatus,
+                    'eq'
+                )->setSortOrders(
+                    [$sortOrder]
+                )->create();
+        }
+        return $searchCriteria;
     }
 }
