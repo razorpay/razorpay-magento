@@ -170,7 +170,7 @@ class FormFieldTrack extends \Magento\Config\Block\System\Config\Form\Field
                                                 'required-entry'                                        : checkRequiredEntryBool,
                                                 'validate-digits'                                       : checkIfValidDigitsBool,
                                                 'validate-not-negative-number'                          : checkIfNonNegativeBool,
-                                                'digits-range-20-86400'                                 : checkIfInNumberRangeBool,
+                                                'digits-range-60-43200'                                 : checkIfInNumberRangeBool,
                                                 'check-if-pending-order-age-greater-than-timeout'       : checkIfPendingOrderAgeGreaterThanTimeoutBool
                                             }
 
