@@ -616,8 +616,11 @@ class CompleteOrder extends Action
         $carrierCode = $rzpOrderData->notes->carrier_code ?? 'freeshipping';
         $methodCode = $rzpOrderData->notes->method_code ?? 'freeshipping';
 
-        $email = $rzpOrderData->customer_details->email ?? '';
-
+        //This change is to support email less checkout.
+        $email = $quote->getCustomerEmail();
+        if($email == null) {
+            $email = $rzpOrderData->customer_details->email ?? '';
+        }
         $quote->setCustomerEmail($email);
 
         $shippingCountry = $rzpOrderData->customer_details->shipping_address->country;
