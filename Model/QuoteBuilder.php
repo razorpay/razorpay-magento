@@ -7,6 +7,7 @@ use Magento\Store\Model\StoreManagerInterface;
 use Magento\Customer\Model\Session;
 use Razorpay\Magento\Model\QuoteBuilder\ItemBuilderFactory;
 use Razorpay\Magento\Model\QuoteBuilder\ItemBuilder;
+use Magento\Checkout\Model\Session as CheckoutSession;
 
 class QuoteBuilder
 {
@@ -29,6 +30,7 @@ class QuoteBuilder
      * @var ItemBuilderFactory
      */
     protected $itemBuilderFactory;
+    protected $checkoutSession;
 
     /**
      * QuoteBuilder constructor.
@@ -38,15 +40,18 @@ class QuoteBuilder
      * @param ItemBuilderFactory $itemBuilderFactory
      */
     public function __construct(
-        QuoteFactory $quoteFactory,
+        QuoteFactory          $quoteFactory,
         StoreManagerInterface $storeManager,
-        Session $session,
-        ItemBuilderFactory $itemBuilderFactory
-    ) {
+        Session               $session,
+        CheckoutSession       $checkoutSession,
+        ItemBuilderFactory    $itemBuilderFactory
+    )
+    {
         $this->quoteFactory = $quoteFactory;
         $this->storeManager = $storeManager;
         $this->session = $session;
         $this->itemBuilderFactory = $itemBuilderFactory;
+        $this->checkoutSession = $checkoutSession;
     }
 
     /**
@@ -74,4 +79,39 @@ class QuoteBuilder
 
         return $quote;
     }
+
+    public function createOrUpdateQuote()
+    {
+        /** @var \Magento\Quote\Model\Quote $quote */
+        $storeId = $this->storeManager->getStore()->getId();
+
+        $quote = $this->checkoutSession->getQuote();
+
+        // Check if a cart already exists for the customer
+        if ($quote->getId()) {
+
+            // Existing quote found, load it
+            $quote->load($quote->getId());
+
+        } else {
+            $quote = $this->quoteFactory->create();
+
+            // Guest user flow
+            $quote->setStoreId($storeId);
+            $quote->setCustomerIsGuest(1);
+        }
+
+        /** @var ItemBuilder $itemBuilder */
+        $itemBuilder = $this->itemBuilderFactory->create(['quote' => $quote]);
+        $itemBuilder->addItems();
+
+        $quote->setIsActive(1);
+        $quote->setTotalsCollectedFlag(false)->collectTotals()->save();
+
+        $this->session->setQuoteId($quote->getId());
+        $this->checkoutSession->setQuoteId($quote->getId());
+
+        return $quote;
+    }
+
 }

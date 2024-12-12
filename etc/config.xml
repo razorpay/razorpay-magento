@@ -23,6 +23,7 @@
                 <custom_paid_order_status>processing</custom_paid_order_status>
                 <activate_magic>0</activate_magic>
                 <activate_magic_buy_now>0</activate_magic_buy_now>
+                <magic_buy_now_cart_push>0</magic_buy_now_cart_push>
                 <activate_magic_mini_cart>1</activate_magic_mini_cart>
                 <allow_coupon_apply_magic>1</allow_coupon_apply_magic>
                 <enable_update_order_cron_v1>1</enable_update_order_cron_v1>

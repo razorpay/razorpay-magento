@@ -181,7 +181,12 @@ class PlaceOrder extends Action
         } else {
             /** @var QuoteBuilder $quoteBuilder */
             $quoteBuilder = $this->quoteBuilderFactory->create();
-            $quote = $quoteBuilder->createQuote();
+            $buyNowCartPushAction = $this->config->getBuyNowAction();
+            if ($buyNowCartPushAction === '1') {
+                $quote = $quoteBuilder->createOrUpdateQuote();
+            } else {
+                $quote = $quoteBuilder->createQuote();
+            }
             $quoteId = $quote->getId();
             $quote = $this->quoteFactory->create()->load($quoteId);
             $totals = $quote->getTotals();
@@ -231,10 +236,10 @@ class PlaceOrder extends Action
                     $productImageUrl = $store->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA) . 'catalog/product' . $product->getImage();
                 }
 
-                $imagewidth=200;
-                $imageheight=200;
+                $imagewidth = 200;
+                $imageheight = 200;
                 $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-                $imageHelper  = $objectManager->get('\Magento\Catalog\Helper\Image');
+                $imageHelper = $objectManager->get('\Magento\Catalog\Helper\Image');
                 $productImageUrl = $imageHelper->init($product, 'product_page_image_small')->setImageFile($product->getFile())->resize($imagewidth, $imageheight)->getUrl();
 
                 $productUrl = $product->getProductUrl();
@@ -249,7 +254,7 @@ class PlaceOrder extends Action
                 }
 
                 $categoriesIds = $product->getCategoryIds(); /*will return category ids array*/
-                foreach($categoriesIds as $categoryId){
+                foreach ($categoriesIds as $categoryId) {
 
                     $cat = $objectManager->create('Magento\Catalog\Model\Category')->load($categoryId);
                     $catName = $cat->getName();
@@ -316,8 +321,7 @@ class PlaceOrder extends Action
         ];
         $customerEmail = $this->getCustomerEmailFromQuote();
 
-        if($customerEmail !== false)
-        {
+        if ($customerEmail !== false) {
             $customerEmailNotes = [
                 'website_logged_in_email' => $customerEmail
             ];
@@ -337,7 +341,7 @@ class PlaceOrder extends Action
 
         if (null !== $razorpay_order && !empty($razorpay_order->id)) {
             $this->logger->info('graphQL: Razorpay Order ID: ' . $razorpay_order->id);
-            $catalogRzpKey = static::QUOTE_LINKED_RAZORPAY_ORDER_ID.'_'.$maskedId;
+            $catalogRzpKey = static::QUOTE_LINKED_RAZORPAY_ORDER_ID . '_' . $maskedId;
             $this->logger->info('graphQL: Razorpay Order ID stored catalogKey: ' . $catalogRzpKey);
 
             $this->checkoutSession->setData($catalogRzpKey, $razorpay_order->id);
