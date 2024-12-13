@@ -166,7 +166,7 @@ define([
         one_click_checkout: true,
         show_coupons: data.allow_coupon_application,
         handler: function (data) {
-          self.showLoader(true);
+          self.toggleLoader(true);
           self.orderSuccess(data);
         },
         order_id: data.rzp_order_id,
