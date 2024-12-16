@@ -200,7 +200,7 @@ php bin/magento module:disable Razorpay_Magento
 
 To remove module directory, execute following command from Magento install directory
 ```
-rm -rf app/code/Razorapy
+rm -rf app/code/Razorpay
 ```
 
 Remove module schema from MYSQL database
