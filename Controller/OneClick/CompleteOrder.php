@@ -697,14 +697,20 @@ class CompleteOrder extends Action
 
         $name = explode(' ', $trimmedName);
 
+        // Extract the first word as the first name
+        $firstName = $name[0];
+
+        // Combine the rest of the words as the last name
+        $lastName = implode(' ', array_slice($name, 1));
+
         $streetRzp = $rzpAddress->line1 . ', ' . $rzpAddress->line2;
         $street = substr($streetRzp, 0, 255);
 
         return [
             'email' => $email, //buyer email id
             'address' => [
-                'firstname' => $name[0], //address Details
-                'lastname' => empty($name[1]) === false ? $name[1] : '.',
+                'firstname' => $firstName, //address Details
+                'lastname' => empty($lastName) === false ? $lastName : '.',
                 'street' => $street,
                 'city' => $rzpAddress->city,
                 'country_id' => strtoupper($rzpAddress->country),
