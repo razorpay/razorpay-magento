@@ -177,6 +177,11 @@ class PlaceOrder extends Action
                 $quote->save();
 
                 $connection->update($tableName, ['customer_id' => null, 'customer_is_guest' => 1], ['entity_id = ?' => $quoteId]);
+
+                $tableQuoteAddressName = $this->resourceConnection->getTableName('quote_address');
+
+                $connection->update($tableQuoteAddressName, ['customer_id' => null, 'customer_address_id' => null], ['quote_id = ?' => $quoteId]);
+
             }
         } else {
             /** @var QuoteBuilder $quoteBuilder */
