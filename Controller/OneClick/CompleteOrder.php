@@ -292,12 +292,12 @@ class CompleteOrder extends Action
                 }
                 break;
             } catch (\Exception $e) {
-                $this->logger->critical("Magento order placement is failed for ".$rzpOrderId." in ".$attempts." attempt and the error message is - " . $e->getMessage());
+                $this->logger->critical("Magento order placement is failed for " . $rzpOrderId . " in " . $attempts . " attempt and the error message is - " . $e->getMessage());
 
                 if ($attempts == self::MAX_ATTEMPTS) {
-                    $this->logger->critical("All attempts to place the Magento order have failed for rzp order id ".$rzpOrderId." & rzp payment id ".$rzpPaymentId." & magento cart id ".$cartId);
+                    $this->logger->critical("All attempts to place the Magento order have failed for rzp order id " . $rzpOrderId . " & rzp payment id " . $rzpPaymentId . " & magento cart id " . $cartId);
 
-                    throw new \Exception("Magento order creation failed with error message.". $e->getMessage());
+                    throw new \Exception("Magento order creation failed with error message." . $e->getMessage());
                 }
                 continue;
             }
@@ -321,7 +321,7 @@ class CompleteOrder extends Action
                         ->setStatus(static::STATE_PROCESSING);
                 }
 
-                $this->logger->info('graphQL: Order Status Updated to ' . $this->orderStatus ." for order id ".$rzpOrderId);
+                $this->logger->info('graphQL: Order Status Updated to ' . $this->orderStatus . " for order id " . $rzpOrderId);
             }
 
             if (!empty($rzpOrderData->offers)) {
@@ -475,13 +475,18 @@ class CompleteOrder extends Action
 
             //In case customer address not completely added to order details, we will set the address details in order comments.
             $shippingRZPAddress = $rzpOrderData->customer_details->shipping_address;
-            $shippingStreetRzp = $shippingRZPAddress->line1 . ', ' . $shippingRZPAddress->line2;
+
+            if (isset($shippingRZPAddress->line2)) {
+                $shippingStreetRzp = $shippingRZPAddress->line1 . ', ' . $shippingRZPAddress->line2;
+            } else {
+                $shippingStreetRzp = $shippingRZPAddress->line1;
+            }
 
             if (strlen($shippingStreetRzp) > 255) {
-                $shippingAddress = 'Customer Complete Shipping Address - '. $shippingRZPAddress->name. ', '.
-                    $shippingStreetRzp. ', '.
-                    $shippingRZPAddress->city. ', '.
-                    strtoupper($shippingRZPAddress->country). ' - '.
+                $shippingAddress = 'Customer Complete Shipping Address - ' . $shippingRZPAddress->name . ', ' .
+                    $shippingStreetRzp . ', ' .
+                    $shippingRZPAddress->city . ', ' .
+                    strtoupper($shippingRZPAddress->country) . ' - ' .
                     $shippingRZPAddress->zipcode;
                 $order->addStatusHistoryComment(
                     $shippingAddress
@@ -489,13 +494,17 @@ class CompleteOrder extends Action
             }
 
             $billingRZPAddress = $rzpOrderData->customer_details->billing_address;
-            $billingStreetRzp = $billingRZPAddress->line1 . ', ' . $billingRZPAddress->line2;
+            if (isset($billingRZPAddress->line2)) {
+                $billingStreetRzp = $billingRZPAddress->line1 . ', ' . $billingRZPAddress->line2;
+            } else {
+                $billingStreetRzp = $billingRZPAddress->line1;
+            }
 
             if (strlen($billingStreetRzp) > 255) {
-                $billingAddress = 'Customer Complete Billing Address - '. $billingRZPAddress->name. ', '.
-                    $billingStreetRzp. ', '.
-                    $billingRZPAddress->city. ', '.
-                    strtoupper($billingRZPAddress->country). ' - '.
+                $billingAddress = 'Customer Complete Billing Address - ' . $billingRZPAddress->name . ', ' .
+                    $billingStreetRzp . ', ' .
+                    $billingRZPAddress->city . ', ' .
+                    strtoupper($billingRZPAddress->country) . ' - ' .
                     $billingRZPAddress->zipcode;
                 $order->addStatusHistoryComment(
                     $billingAddress
@@ -618,7 +627,7 @@ class CompleteOrder extends Action
 
         //This change is to support email less checkout.
         $email = $quote->getCustomerEmail();
-        if($email == null) {
+        if ($email == null) {
             $email = $rzpOrderData->customer_details->email ?? '';
         }
         $quote->setCustomerEmail($email);
@@ -703,7 +712,12 @@ class CompleteOrder extends Action
         // Combine the rest of the words as the last name
         $lastName = implode(' ', array_slice($name, 1));
 
-        $streetRzp = $rzpAddress->line1 . ', ' . $rzpAddress->line2;
+        if (isset($rzpAddress->line2)) {
+            $streetRzp = $rzpAddress->line1 . ', ' . $rzpAddress->line2;
+        } else {
+            $streetRzp = $rzpAddress->line1;
+        }
+
         $street = substr($streetRzp, 0, 255);
 
         return [
@@ -727,7 +741,7 @@ class CompleteOrder extends Action
         if (empty($request['error']) === false) {
             $this->logger->critical("Validate: Payment Failed or error from gateway" . $request['razorpay_order_id']);
             $this->messageManager->addError(__('Payment Failed'));
-            throw new \Exception("Payment Failed or error from gateway for ". $request['razorpay_order_id']);
+            throw new \Exception("Payment Failed or error from gateway for " . $request['razorpay_order_id']);
         }
         $catalogRzpKey = static::QUOTE_LINKED_RAZORPAY_ORDER_ID . '_' . $cartMaskId;
 

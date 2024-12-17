@@ -142,7 +142,12 @@ class AbandonedQuote extends Action
 
                 //In case customer address not completely added to order details, we will set the address details in order comments.
                 $shippingRZPAddress = $rzpOrderData->customer_details->shipping_address;
-                $shippingStreetRzp = $shippingRZPAddress->line1 . ', ' . $shippingRZPAddress->line2;
+
+                if (isset($shippingRZPAddress->line2)) {
+                    $shippingStreetRzp = $shippingRZPAddress->line1 . ', ' . $shippingRZPAddress->line2;
+                } else {
+                    $shippingStreetRzp = $shippingRZPAddress->line1;
+                }
 
                 if (strlen($shippingStreetRzp) > 255) {
                     $shippingAddress = 'Customer Complete Shipping Address - '. $shippingRZPAddress->name. ', '.
@@ -156,8 +161,12 @@ class AbandonedQuote extends Action
                 }
 
                 $billingRZPAddress = $rzpOrderData->customer_details->billing_address;
-                $billingStreetRzp = $billingRZPAddress->line1 . ', ' . $billingRZPAddress->line2;
 
+                if (isset($billingRZPAddress->line2)) {
+                    $billingStreetRzp = $billingRZPAddress->line1 . ', ' . $billingRZPAddress->line2;
+                } else {
+                    $billingStreetRzp = $billingRZPAddress->line1;
+                }
                 if (strlen($billingStreetRzp) > 255) {
                     $billingAddress = 'Customer Complete Billing Address - '. $billingRZPAddress->name. ', '.
                         $billingStreetRzp. ', '.
@@ -291,7 +300,12 @@ class AbandonedQuote extends Action
         // Combine the rest of the words as the last name
         $lastName = implode(' ', array_slice($name, 1));
 
-        $streetRzp = $rzpAddress->line1 . ', ' . $rzpAddress->line2;
+        if (isset($rzpAddress->line2)) {
+            $streetRzp = $rzpAddress->line1 . ', ' . $rzpAddress->line2;
+        } else {
+            $streetRzp = $rzpAddress->line1;
+        }
+
         $street = substr($streetRzp, 0, 255);
 
         return [
