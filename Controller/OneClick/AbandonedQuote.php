@@ -140,19 +140,26 @@ class AbandonedQuote extends Action
                         ->setStatus(static::STATE_PENDING_PAYMENT);
                 }
 
-                //In case customer address not completely added to order details, we will set the address details in order comments.
-                $shippingRZPAddress = $rzpOrderData->customer_details->shipping_address;
-                $shippingStreetRzp = $shippingRZPAddress->line1 . ', ' . $shippingRZPAddress->line2;
+                $carrierCode = $rzpOrderData->notes->carrier_code ?? 'freeshipping';
+                $methodCode = $rzpOrderData->notes->method_code ?? 'freeshipping';
 
-                if (strlen($shippingStreetRzp) > 255) {
-                    $shippingAddress = 'Customer Complete Shipping Address - '. $shippingRZPAddress->name. ', '.
-                        $shippingStreetRzp. ', '.
-                        $shippingRZPAddress->city. ', '.
-                        strtoupper($shippingRZPAddress->country). ' - '.
-                        $shippingRZPAddress->zipcode;
-                    $order->addStatusHistoryComment(
-                        $shippingAddress
-                    )->setStatus($order->getStatus())->setIsCustomerNotified(false);
+                //This check is to not take any action in case carrier and method code set to NA. That means it's a virtual product order.
+                if($carrierCode != "NA" && $methodCode != "NA") {
+
+                    //In case customer address not completely added to order details, we will set the address details in order comments.
+                    $shippingRZPAddress = $rzpOrderData->customer_details->shipping_address;
+                    $shippingStreetRzp = $shippingRZPAddress->line1 . ', ' . $shippingRZPAddress->line2;
+
+                    if (strlen($shippingStreetRzp) > 255) {
+                        $shippingAddress = 'Customer Complete Shipping Address - ' . $shippingRZPAddress->name . ', ' .
+                            $shippingStreetRzp . ', ' .
+                            $shippingRZPAddress->city . ', ' .
+                            strtoupper($shippingRZPAddress->country) . ' - ' .
+                            $shippingRZPAddress->zipcode;
+                        $order->addStatusHistoryComment(
+                            $shippingAddress
+                        )->setStatus($order->getStatus())->setIsCustomerNotified(false);
+                    }
                 }
 
                 $billingRZPAddress = $rzpOrderData->customer_details->billing_address;
@@ -222,31 +229,33 @@ class AbandonedQuote extends Action
 
         if (empty($rzpOrderData->customer_details->shipping_address) === false) {
 
-            $shippingCountry = $rzpOrderData->customer_details->shipping_address->country;
-            $shippingState = $rzpOrderData->customer_details->shipping_address->state;
+            if($carrierCode != "NA" && $methodCode != "NA") {
+                $shippingCountry = $rzpOrderData->customer_details->shipping_address->country;
+                $shippingState = $rzpOrderData->customer_details->shipping_address->state;
+                $shippingRegionCode = $this->getRegionCode($shippingCountry, $shippingState);
+                $shipping = $this->getAddress($rzpOrderData->customer_details->shipping_address, $shippingRegionCode, $email);
+
+                $quote->getShippingAddress()->addData($shipping['address']);
+
+                $shippingMethod = 'NA';
+                if (empty($carrierCode) === false && empty($methodCode) === false) {
+                    $shippingMethod = $carrierCode . "_" . $methodCode;
+                }
+
+                $shippingAddress = $quote->getShippingAddress();
+                $shippingAddress->setCollectShippingRates(true)
+                    ->collectShippingRates()
+                    ->setShippingMethod($shippingMethod);
+            }
 
             $billingCountry = $rzpOrderData->customer_details->billing_address->country;
             $billingState = $rzpOrderData->customer_details->billing_address->state;
 
-            $shippingRegionCode = $this->getRegionCode($shippingCountry, $shippingState);
             $billingRegionCode = $this->getRegionCode($billingCountry, $billingState);
 
-            $shipping = $this->getAddress($rzpOrderData->customer_details->shipping_address, $shippingRegionCode, $email);
             $billing = $this->getAddress($rzpOrderData->customer_details->billing_address, $billingRegionCode, $email);
 
             $quote->getBillingAddress()->addData($billing['address']);
-            $quote->getShippingAddress()->addData($shipping['address']);
-
-            $shippingMethod = 'NA';
-            if (empty($carrierCode) === false && empty($methodCode) === false) {
-                $shippingMethod = $carrierCode . "_" . $methodCode;
-            }
-
-            $shippingAddress = $quote->getShippingAddress();
-            $shippingAddress->setCollectShippingRates(true)
-                ->collectShippingRates()
-                ->setShippingMethod($shippingMethod);
-
         }
         $paymentMethod = static::RAZORPAY;
 
