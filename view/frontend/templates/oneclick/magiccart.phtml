@@ -1,10 +1,5 @@
 <?php
 
-function getObjectManager()
-{
-    return \Magento\Framework\App\ObjectManager::getInstance();
-}
-
 $objectManager = getObjectManager();
 
 $configData = $objectManager->get(\Razorpay\Magento\Model\Config::class);

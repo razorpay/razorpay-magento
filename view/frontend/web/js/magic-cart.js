@@ -62,13 +62,15 @@ define([
 
     _bind: function () {
       var self = this;
-      console.log(self.options.buttonSelector);
       this._parent()
         .find(self.options.buttonSelector)
         .on("click touch", function () {
-          // if (self._parent().valid()) {
-          self._cartCheckout();
-          // }
+          if(window.magicConfig.isMagicEnabled == true){
+            self._cartCheckout();
+          }else{
+            var checkoutURL = url.build('checkout', {})
+            window.location.href = checkoutURL;
+          }
         });
     },
 

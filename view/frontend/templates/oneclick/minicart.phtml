@@ -1,0 +1,22 @@
+<?php
+/**
+ * Custom Minicart Template
+ */
+function getObjectManager()
+{
+    return \Magento\Framework\App\ObjectManager::getInstance();
+}
+
+$objectManager = getObjectManager();
+
+$configData = $objectManager->get(\Razorpay\Magento\Model\Config::class);
+
+$isMagicEnabled = $configData->getMagicStatus();
+
+?>
+<script type="text/javascript">
+    // Passing PHP variable to JavaScript
+    var magicConfig = {
+        isMagicEnabled: "<?php echo $isMagicEnabled ?>",  // Assuming $cartId is a PHP variable
+    };
+</script>

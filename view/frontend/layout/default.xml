@@ -24,6 +24,9 @@
                 </action>
             </block>
         </referenceBlock>
+        <referenceContainer name="header-wrapper">
+            <block class="Magento\Framework\View\Element\Template" name="magic.minicart" template="Razorpay_Magento::oneclick/minicart.phtml" />
+        </referenceContainer>
         <referenceBlock name="minicart">
             <arguments>
                 <argument name="jsLayout" xsi:type="array">
