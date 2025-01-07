@@ -324,7 +324,8 @@ class CompleteOrder extends Action
                 $this->logger->info('graphQL: Order Status Updated to ' . $this->orderStatus . " for order id " . $rzpOrderId);
             }
 
-            if (!empty($rzpOrderData->offers)) {
+            //Check if any razorpay offer is applied or not
+            if (($rzpOrderData->amount !== $rzpOrderData->amount_paid) && $rzpPaymentData->method != 'cod') {
                 $discountAmount = $order->getDiscountAmount();
 
                 $codFee = $rzpOrderData->cod_fee;
@@ -340,7 +341,7 @@ class CompleteOrder extends Action
                     }
                 }
 
-                $offerDiff = $rzpOrderData->line_items_total + $rzpOrderData->shipping_fee + $codFee - $totalPaid - $rzpPromotionAmount;
+                $offerDiff = $rzpOrderData->line_items_total + $rzpOrderData->shipping_fee - $totalPaid - $rzpPromotionAmount;
 
                 if ($offerDiff > 0) {
                     $offerDiscount = ($offerDiff / 100);
@@ -430,12 +431,13 @@ class CompleteOrder extends Action
                 )->setIsCustomerNotified(true);
 
                 $this->logger->info('Invoice generated for id : ' . $order->getIncrementId());
-                $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATED);
             } else if ($rzpOrderData->status === 'paid' and
                 ($order->canInvoice() === false or
                     $this->config->canAutoGenerateInvoice() === false)) {
                 $this->logger->info('Invoice generation not possible for id : ' . $order->getIncrementId());
             }
+
+            $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATED);
 
             $comment = __('Razorpay order id %1.', $rzpOrderId);
 
@@ -591,6 +593,7 @@ class CompleteOrder extends Action
 
     public function updateDiscountAmount($orderId, $newDiscountAmount, $offerAmount, $totalPaid)
     {
+        // TODO: Verify if total paid and order total is matching or not before updating the discount.
         try {
             // Load the order
             $order = $this->order->load($orderId);

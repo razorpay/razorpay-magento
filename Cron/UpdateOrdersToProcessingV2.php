@@ -288,6 +288,14 @@ class UpdateOrdersToProcessingV2
                 $orderId = $this->cartManagement->placeOrder($cartId);
                 $order = $this->order->load($orderId);
             } else {
+                $payment = $order->getPayment();
+                $paymentMethod = $payment->getMethod();
+
+                if(isset($paymentMethod)) {
+                    $this->logger->critical("Cron failed to place the Magento order for rzp order id " . $rzpOrderId . " & rzp payment id " . $rzpPaymentId . " & magento cart id " . $cartId . " with error message - order was already placed" );
+
+                    throw new \Exception("Magento order creation failed with error message - order was already placed");
+                }
                 $orderId = $order->getId();
             }
         } catch (\Exception $e) {
@@ -317,7 +325,8 @@ class UpdateOrdersToProcessingV2
                 $this->logger->info('graphQL: Order Status Updated to ' . $this->orderStatus);
             }
 
-            if (!empty($rzpOrderData->offers)) {
+            //Check if any razorpay offer is applied or not
+            if (($rzpOrderData->amount !== $rzpOrderData->amount_paid) && $rzpPaymentData->method != 'cod') {
                 $discountAmount = $order->getDiscountAmount();
 
                 $codFee = $rzpOrderData->cod_fee;
@@ -333,7 +342,7 @@ class UpdateOrdersToProcessingV2
                     }
                 }
 
-                $offerDiff = $rzpOrderData->line_items_total + $rzpOrderData->shipping_fee + $codFee - $totalPaid - $rzpPromotionAmount;
+                $offerDiff = $rzpOrderData->line_items_total + $rzpOrderData->shipping_fee - $totalPaid - $rzpPromotionAmount;
 
                 if ($offerDiff > 0) {
                     $offerDiscount = ($offerDiff / 100);
@@ -423,12 +432,12 @@ class UpdateOrdersToProcessingV2
                 )->setIsCustomerNotified(true);
 
                 $this->logger->info('Invoice generated for id : ' . $order->getIncrementId());
-                $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATED);
             } else if ($rzpOrderData->status === 'paid' and
                 ($order->canInvoice() === false or
                     $this->config->canAutoGenerateInvoice() === false)) {
                 $this->logger->info('Invoice generation not possible for id : ' . $order->getIncrementId());
             }
+            $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATED);
 
             $comment = __('Razorpay order id %1.', $rzpOrderId);
 
