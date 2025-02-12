@@ -2,6 +2,8 @@
 
 namespace Razorpay\Magento\Controller\Payment;
 
+use Magento\Framework\App\Action\HttpGetActionInterface;
+use Magento\Framework\App\Action\HttpPostActionInterface;
 use Razorpay\Api\Api;
 use Razorpay\Api\Errors;
 use Razorpay\Magento\Model\Config;
@@ -20,7 +22,10 @@ use Razorpay\Magento\Constants\OrderCronStatus;
  *
  * ...
  */
-class Webhook extends \Razorpay\Magento\Controller\BaseController
+class Webhook extends \Razorpay\Magento\Controller\BaseController implements
+    CsrfAwareActionInterface,
+    HttpPostActionInterface,
+    HttpGetActionInterface
 {
     /**
      * @var Razorpay\Api\Api
@@ -326,5 +331,21 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
         $orderLink->save();
 
         $this->logger->info('Webhook data saved for id:' . $order->getIncrementId() . 'event:' . $post['event']);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function createCsrfValidationException(RequestInterface $request): ?InvalidRequestException
+    {
+        return null;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function validateForCsrf(RequestInterface $request): ?bool
+    {
+        return true;
     }
 }
