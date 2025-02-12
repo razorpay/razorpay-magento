@@ -275,8 +275,8 @@ class PlaceOrder extends Action
                     'offer_price' => $offerPrice,
                     'tax_amount' => 0,
                     'quantity' => (int)$quoteItem->getQty(),
-                    'name' => $quoteItem->getName(),
-                    'description' => $quoteItem->getName(),
+                    'name' => substr($quoteItem->getName(), 0,125),
+                    'description' => substr($quoteItem->getName(), 0, 125),
                     'image_url' => $productImageUrl,
                     'product_url' => $productUrl,
                 ];

@@ -217,7 +217,7 @@ class UpdateOrdersToProcessingV2
                     $this->debug->log("Cronjob: Razorpay Order data = " . json_encode($cartId));
 
                     $quote = $this->cartRepositoryInterface->get($cartId);
-                    $this->quoteUpdate->updateQuote($quote, $razorpayOrderData);
+                    $this->quoteUpdate->updateQuote($quote, $razorpayOrderData, $rzpPaymentData);
 
                     $result = $this->placeMagentoOrderthroughCron($cartId, $rzpPaymentData, $razorpayOrderData);
                     if ($result['status'] == 'success') {
@@ -294,23 +294,54 @@ class UpdateOrdersToProcessingV2
                 if(isset($paymentMethod)) {
                     $this->logger->critical("Cron failed to place the Magento order for rzp order id " . $rzpOrderId . " & rzp payment id " . $rzpPaymentId . " & magento cart id " . $cartId . " with error message - order was already placed" );
 
-                    throw new \Exception("Magento order creation failed with error message - order was already placed");
+                    $result = [
+                        'status' => 'failed',
+                        'message' => "Cron failed to place the Magento order for rzp order id " . $rzpOrderId . " & rzp payment id " . $rzpPaymentId . " & magento cart id " . $cartId . " with error message - order was already placed",
+                    ];
+                    return $result;
                 }
                 $orderId = $order->getId();
             }
         } catch (\Exception $e) {
             $this->logger->critical("Cron failed to place the Magento order for rzp order id " . $rzpOrderId . " & rzp payment id " . $rzpPaymentId . " & magento cart id " . $cartId . " with error message - " . $e->getMessage());
-
-            throw new \Exception("Magento order creation failed with error message." . $e->getMessage());
+            $result = [
+                'status' => 'failed',
+                'message' => "Cron failed to place the Magento order for rzp order id " . $rzpOrderId . " & rzp payment id " . $rzpPaymentId . " & magento cart id " . $cartId . " with error message - " . $e->getMessage(),
+            ];
+            return $result;
         }
 
         $order->setEmailSent(0);
         if ($order) {
             // Return to failure page if payment is failed.
             if ($rzpPaymentData->status === 'failed') {
+
+                $order->setState(static::STATE_PENDING_PAYMENT)
+                    ->setStatus(static::STATE_PENDING_PAYMENT);
+                $order->save();
+
                 $this->logger->critical("Razorpay payment is failed for the order id " . $rzpOrderId);
 
-                throw new \Exception("Razorpay payment is failed for the order id " . $rzpOrderId);
+                $result = [
+                    'status' => 'failed',
+                    'message' => "Cron failed to place the Magento order for rzp order id " . $rzpOrderId . " & rzp payment id " . $rzpPaymentId . " & magento cart id " . $cartId . " with payment status - " . $rzpPaymentData->status,
+                ];
+                return $result;
+            }
+
+            if ($rzpPaymentData->status === 'refunded') {
+
+                $order->setState(static::STATUS_CANCELED)
+                    ->setStatus(static::STATUS_CANCELED);
+                $order->save();
+
+                $this->logger->critical("Razorpay payment is failed for the order id " . $rzpOrderId);
+
+                $result = [
+                    'status' => 'failed',
+                    'message' => "Cron failed to place the Magento order for rzp order id " . $rzpOrderId . " & rzp payment id " . $rzpPaymentId . " & magento cart id " . $cartId . " with payment status - " . $rzpPaymentData->status,
+                ];
+                return $result;
             }
 
             if ($order->getStatus() === 'pending') {
@@ -483,12 +514,9 @@ class UpdateOrdersToProcessingV2
                 $this->logger->critical('graphQL: '
                     . 'Razorpay Error:' . $e->getMessage());
 
-                throw new GraphQlInputException(__('Razorpay Error: %1.', $e->getMessage()));
             } catch (\Exception $e) {
                 $this->logger->critical('graphQL: '
                     . 'Error:' . $e->getMessage());
-
-                throw new GraphQlInputException(__('Error: %1.', $e->getMessage()));
             }
 
             $this

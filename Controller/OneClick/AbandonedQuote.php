@@ -215,7 +215,7 @@ class AbandonedQuote extends Action
         }
     }
 
-    public function updateQuote($quote, $rzpOrderData)
+    public function updateQuote($quote, $rzpOrderData, $rzpPaymentData = array())
     {
         $quote->setIsActive(true)->save();
 
@@ -258,6 +258,16 @@ class AbandonedQuote extends Action
 
         }
         $paymentMethod = static::RAZORPAY;
+
+        if(empty($rzpPaymentData) === false) {
+            if ($rzpPaymentData->method === 'cod') {
+                $paymentMethod = static::COD;
+                // Set the custom fee in the quote
+                $codFee = $rzpOrderData->cod_fee ?? 0;
+
+                $quote->setData('razorpay_cod_fee', $codFee);
+            }
+        }
 
         $quote->setPaymentMethod($paymentMethod);
         $quote->setInventoryProcessed(false);

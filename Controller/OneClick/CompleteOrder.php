@@ -308,8 +308,6 @@ class CompleteOrder extends Action
             // Return to failure page if payment is failed.
             if ($rzpPaymentData->status === 'failed') {
                 $this->logger->critical("Razorpay payment is failed for the order id " . $rzpOrderId);
-
-                throw new \Exception("Razorpay payment is failed for the order id " . $rzpOrderId);
             }
 
             if ($order->getStatus() === 'pending') {
