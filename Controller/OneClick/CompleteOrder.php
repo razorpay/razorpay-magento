@@ -242,6 +242,15 @@ class CompleteOrder extends Action
                         ]
                     ];
 
+                    $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                        ->getCollection()
+                        ->addFilter('order_id', $rzpOrderData['receipt'])
+                        ->getFirstItem();
+
+                    $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::ORDER_NOT_PLACED_DUE_TO_STOCK_UNAVAILABILITY);
+
+                    $orderLink->save();
+
                     try {
                         $refund = $this->rzp->payment
                             ->fetch($rzpPaymentId)
