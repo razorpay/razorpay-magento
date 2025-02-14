@@ -248,7 +248,7 @@ class PlaceOrder extends Action
                 // Check if the item has applied discounts
                 if ($quoteItem->getDiscountAmount()) {
                     // Get the discount amount applied to the item
-                    $discountAmount = abs($quoteItem->getDiscountAmount());
+                    $discountAmount = abs($quoteItem->getDiscountAmount() / (int)$quoteItem->getQty());
 
                     $offerPrice = ($quoteItem->getPrice() - $discountAmount) * 100;
                 }
