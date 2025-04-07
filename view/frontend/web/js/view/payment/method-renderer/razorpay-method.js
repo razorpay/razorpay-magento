@@ -128,14 +128,6 @@ define(
 
                 self.renderIframe(rzpResponse);
 
-                this.isPaymentProcessing = $.Deferred();
-
-                $.when(this.isPaymentProcessing).fail(
-                    function (result) {
-                        self.handleError(result);
-                    }
-                );
-
                 return;
 
             },
@@ -159,6 +151,13 @@ define(
 
             getRzpOrderId: function (orderId) {
                 var self = this;
+                
+                // Initialize a Deferred object to manage payment errors and attach a failure handler in payment flow.
+                this.isPaymentProcessing = $.Deferred();
+
+                $.when(this.isPaymentProcessing).fail(function (result) {
+                    self.handleError(result);
+                });
 
                 $.ajax({
                     type: 'POST',
@@ -187,7 +186,15 @@ define(
                      */
                     error: function (response) {
                         fullScreenLoader.stopLoader();
-                        self.isPaymentProcessing.reject(response.message);
+
+                        var errorMsg = 'Something went wrong with this order.');
+
+                        // Check if responseJSON and message exist
+                        if (response && response.responseJSON && response.responseJSON.message) {
+                            errorMsg = response.responseJSON.message;
+                        }
+
+                        self.isPaymentProcessing.reject(errorMsg + 'Please contact the store administrator and try again.');
                     }
                 });
             },
