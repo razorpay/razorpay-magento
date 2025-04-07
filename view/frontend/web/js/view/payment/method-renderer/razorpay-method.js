@@ -187,7 +187,7 @@ define(
                     error: function (response) {
                         fullScreenLoader.stopLoader();
 
-                        var errorMsg = 'Something went wrong with this order.');
+                        var errorMsg = 'Something went wrong with this order.';
 
                         // Check if responseJSON and message exist
                         if (response && response.responseJSON && response.responseJSON.message) {
