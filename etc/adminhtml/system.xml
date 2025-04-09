@@ -8,6 +8,13 @@
                     <![CDATA[First <a href="https://easy.razorpay.com/onboarding?recommended_product=payment_gateway&source=magento" target="_blank">signup</a> for a Razorpay account or 
                             <a href="https://dashboard.razorpay.com/signin?screen=sign_in&source=magento" target="_blank">login</a> if you have an existing account.]]>
                 </comment>
+
+                <field id="module_version_note" translate="label" type="note" sortOrder="0"
+                    showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Razorpay Module Info</label>
+                    <frontend_model>Razorpay\Magento\Block\Adminhtml\System\Config\ModuleVersionInfo</frontend_model>
+                </field>
+
                 <field id="active" translate="label" type="select" sortOrder="2" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Enabled</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
