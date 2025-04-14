@@ -28,6 +28,7 @@ use Magento\Customer\Model\Session as CustomerSession;
 use Magento\SalesSequence\Model\Manager as SequenceManager;
 use Magento\ConfigurableProduct\Model\Product\Type\Configurable as ConfigurableProduct;
 use Magento\GroupedProduct\Model\Product\Type\Grouped as GroupedProduct;
+use Magento\Customer\Model\Group;
 
 class PlaceOrder extends Action
 {
@@ -169,19 +170,18 @@ class PlaceOrder extends Action
             if ($customerId) {
                 $this->logger->info('graphQL: customer: ' . json_encode($customerId));
 
-                $connection = $this->resourceConnection->getConnection();
-                $tableName = $this->resourceConnection->getTableName('quote');
-
+                $quote = $this->quoteFactory->create()->load($quoteId);
                 $quote->setCustomerId(null);
+                $quote->setCustomerIsGuest(true);
+                $quote->setCustomerGroupId(Group::NOT_LOGGED_IN_ID);
 
-                $quote->save();
+                // Clear customer-related data from all addresses
+                foreach ($quote->getAllAddresses() as $address) {
+                    $address->setCustomerId(null);
+                    $address->setCustomerAddressId(null);
+                }
 
-                $connection->update($tableName, ['customer_id' => null, 'customer_is_guest' => 1], ['entity_id = ?' => $quoteId]);
-
-                $tableQuoteAddressName = $this->resourceConnection->getTableName('quote_address');
-
-                $connection->update($tableQuoteAddressName, ['customer_id' => null, 'customer_address_id' => null], ['quote_id = ?' => $quoteId]);
-
+                $quote->collectTotals()->save();
             }
         } else {
             /** @var QuoteBuilder $quoteBuilder */
