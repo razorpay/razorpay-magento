@@ -561,9 +561,9 @@ class UpdateOrdersToProcessingV2
 
     protected function checkMagicOrder($razorpayOrderData)
     {
-        $carrierCode = $razorpayOrderData->notes->carrier_code ?? null;
+        $cartMaskId = $razorpayOrderData->notes->cart_mask_id ?? null;
 
-        if ($carrierCode) {
+        if ($cartMaskId) {
             return true;
         }
         return false;

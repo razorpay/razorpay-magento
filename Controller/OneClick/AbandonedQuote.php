@@ -120,12 +120,13 @@ class AbandonedQuote extends Action
 
             $quoteId = $rzpOrderData->notes->cart_mask_id;
 
-            // Set customer to quote
-            $customerCartId = $this->cartConverter->convertGuestCartToCustomer($cartId);
-            $this->logger->info('graphQL: customerCartId ' . $customerCartId);
             $orderPlacement = false;
 
             try {
+                // Set customer to quote
+                $customerCartId = $this->cartConverter->convertGuestCartToCustomer($cartId);
+                $this->logger->info('graphQL: customerCartId ' . $customerCartId);
+
                 $order = $this->order->loadByIncrementId($reservedOrderId);
 
                 if (!$order->getId()) {
@@ -182,6 +183,11 @@ class AbandonedQuote extends Action
 
             } catch (\Exception $e) {
                 $this->logger->info('graphQL: magento pending order placement failed for AB cart and rzp order id: ' . $rzpOrderId);
+                return $resultJson->setData([
+                    'status' => 'Failed',
+                    'code' => 'BAD_REQUEST',
+                    'message' => __('Quote update failed for the reason : ' . $e->getMessage()),
+                ])->setHttpResponseCode(422);
             }
 
             return $resultJson->setData([
@@ -199,8 +205,8 @@ class AbandonedQuote extends Action
             return $resultJson->setData([
                 'status' => 'error',
                 'code' => $code,
-                'message' => __('An error occurred on the server. Please try again after sometime.' . $e->getMessage()),
-            ])->setHttpResponseCode(500);
+                'message' => __('Quote update failed for the reason : ' . $e->getMessage()),
+            ])->setHttpResponseCode(422);
         } catch (\Exception $e) {
             $this->logger->critical("Validate: Exception Error message:" . $e->getMessage());
             $this->messageManager->addError(__('Payment Failed.'));
@@ -208,10 +214,10 @@ class AbandonedQuote extends Action
             $code = $e->getCode();
 
             return $resultJson->setData([
-                'status' => 'error',
+                'status' => 'failed',
                 'code' => $code,
-                'message' => __('An error occurred on the server. Please try again.'),
-            ])->setHttpResponseCode(500);
+                'message' => __('Quote update failed for the reason : '.$e->getMessage()),
+            ])->setHttpResponseCode(422);
         }
     }
 
@@ -219,8 +225,8 @@ class AbandonedQuote extends Action
     {
         $quote->setIsActive(true)->save();
 
-        $carrierCode = $rzpOrderData->notes->carrier_code ?? 'freeshipping';
-        $methodCode = $rzpOrderData->notes->method_code ?? 'freeshipping';
+        $carrierCode = $rzpOrderData->notes->carrier_code ?? null;
+        $methodCode = $rzpOrderData->notes->method_code ?? null;
 
         //This change is to support email less checkout.
         $email = $quote->getCustomerEmail();
@@ -229,8 +235,8 @@ class AbandonedQuote extends Action
         }
         $quote->setCustomerEmail($email);
 
-        if (empty($rzpOrderData->customer_details->shipping_address) === false) {
-
+        if (empty($rzpOrderData->customer_details->shipping_address) === false)
+        {
             $shippingCountry = $rzpOrderData->customer_details->shipping_address->country;
             $shippingState = $rzpOrderData->customer_details->shipping_address->state;
 
@@ -246,6 +252,34 @@ class AbandonedQuote extends Action
             $quote->getBillingAddress()->addData($billing['address']);
             $quote->getShippingAddress()->addData($shipping['address']);
 
+            // If shipping method is not provided, find the least expensive one
+            if ((empty($carrierCode) || empty($methodCode))) {
+                $shippingAddress = $quote->getShippingAddress();
+
+                // Force shipping rate collection
+                $shippingAddress
+                    ->setCollectShippingRates(true)  // <-- THIS IS CRITICAL
+                    ->collectShippingRates();        // Collects rates
+
+                $shippingRates = $shippingAddress->getAllShippingRates();
+
+                if (empty($shippingRates)) {
+                    // Log error for debugging
+                    $this->logger->critical("No shipping rates found. Address: " . json_encode($shippingAddress->getData()));
+                }
+
+                $lowestRate = null;
+                foreach ($shippingRates as $rate) {
+                    if ($lowestRate === null || $rate->getPrice() < $lowestRate->getPrice()) {
+                        $lowestRate = $rate;
+                    }
+                }
+
+                if ($lowestRate) {
+                    $carrierCode = $lowestRate->getCarrier();
+                    $methodCode = $lowestRate->getMethod();
+                }
+            }
             $shippingMethod = 'NA';
             if (empty($carrierCode) === false && empty($methodCode) === false) {
                 $shippingMethod = $carrierCode . "_" . $methodCode;

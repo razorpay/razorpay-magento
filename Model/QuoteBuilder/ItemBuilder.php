@@ -42,6 +42,7 @@ class ItemBuilder
      */
     protected $requestInfoFilter;
 
+    protected $logger;
     /**
      * ItemBuilder constructor.
      * @param Http $request
@@ -52,12 +53,13 @@ class ItemBuilder
      * @param RequestInfoFilterInterface $requestInfoFilter
      */
     public function __construct(
-        Http $request,
-        Quote $quote,
-        ResolverInterface $resolver,
+        Http                       $request,
+        Quote                      $quote,
+        ResolverInterface          $resolver,
         ProductRepositoryInterface $productRepository,
-        StoreManagerInterface $storeManager,
-        RequestInfoFilterInterface $requestInfoFilter
+        StoreManagerInterface      $storeManager,
+        RequestInfoFilterInterface $requestInfoFilter,
+        \Psr\Log\LoggerInterface   $logger
     ) {
         $this->request = $request;
         $this->quote = $quote;
@@ -65,6 +67,7 @@ class ItemBuilder
         $this->productRepository = $productRepository;
         $this->storeManager = $storeManager;
         $this->requestInfoFilter = $requestInfoFilter;
+        $this->logger = $logger;
     }
 
     /**
@@ -85,7 +88,8 @@ class ItemBuilder
                 __('We found an invalid request for adding product to quote.')
             );
         }
-        
+        $this->logger->info('Magic Buy Now request params:' . json_encode($params));
+
         $requestInfo = $this->getProductRequest($params);
 
         $this->quote->addProduct($product, $requestInfo);
@@ -97,7 +101,10 @@ class ItemBuilder
     protected function initProduct()
     {
         $productId = (int)$this->request->getParam('product');
+
         if ($productId) {
+            $this->logger->info('Magic Buy Now request product id:' . json_encode($productId));
+
             $storeId = $this->storeManager->getStore()->getId();
             try {
                 return $this->productRepository->getById($productId, false, $storeId);

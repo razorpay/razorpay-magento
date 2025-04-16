@@ -203,7 +203,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                     exit;
                 }
 
-                if (isset($post['payload']['payment']['entity']['notes']['carrier_code']) === true) {
+                if (isset($post['payload']['payment']['entity']['notes']['cart_mask_id']) === true) {
                     $rzpOrderId = $post['payload']['payment']['entity']['order_id'];
                     $cartId = $post['payload']['payment']['entity']['notes']['cart_id'];
                     $razorpayOrderData = $this->rzp->order->fetch($rzpOrderId);
@@ -225,7 +225,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController
                 }
 
                 if (isset($post['payload']['payment']['entity']['notes']['merchant_order_id']) === true &&
-                    isset($post['payload']['payment']['entity']['notes']['carrier_code']) === false)
+                    isset($post['payload']['payment']['entity']['notes']['cart_mask_id']) === false)
                 {   
                     $orderId            = $post['payload']['payment']['entity']['notes']['merchant_order_id'];
                     $paymentId          = $post['payload']['payment']['entity']['id'];

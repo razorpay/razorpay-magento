@@ -632,8 +632,8 @@ class CompleteOrder extends Action
 
     protected function updateQuote($quote, $rzpOrderData, $rzpPaymentData)
     {
-        $carrierCode = $rzpOrderData->notes->carrier_code ?? 'freeshipping';
-        $methodCode = $rzpOrderData->notes->method_code ?? 'freeshipping';
+        $carrierCode = $rzpOrderData->notes->carrier_code ?? null;
+        $methodCode = $rzpOrderData->notes->method_code ?? null;
 
         //This change is to support email less checkout.
         $email = $quote->getCustomerEmail();
@@ -657,10 +657,37 @@ class CompleteOrder extends Action
         $quote->getBillingAddress()->addData($billing['address']);
         $quote->getShippingAddress()->addData($shipping['address']);
 
-        $shippingMethod = 'NA';
-        if (empty($carrierCode) === false && empty($methodCode) === false) {
-            $shippingMethod = $carrierCode . "_" . $methodCode;
+        // If shipping method is not provided, find the least expensive one
+        if (empty($carrierCode) || empty($methodCode)) {
+            $shippingAddress = $quote->getShippingAddress();
+
+            // Force shipping rate collection
+            $shippingAddress
+                ->setCollectShippingRates(true)  // <-- THIS IS CRITICAL
+                ->collectShippingRates();        // Collects rates
+
+            $shippingRates = $shippingAddress->getAllShippingRates();
+
+            if (empty($shippingRates)) {
+                // Log error for debugging
+                $this->logger->critical("No shipping rates found. Address: " . json_encode($shippingAddress->getData()));
+                throw new \Exception("No shipping methods available for the given address.");
+            }
+
+            $lowestRate = null;
+            foreach ($shippingRates as $rate) {
+                if ($lowestRate === null || $rate->getPrice() < $lowestRate->getPrice()) {
+                    $lowestRate = $rate;
+                }
+            }
+
+            if ($lowestRate) {
+                $carrierCode = $lowestRate->getCarrier();
+                $methodCode = $lowestRate->getMethod();
+            }
         }
+
+        $shippingMethod = ($carrierCode && $methodCode) ? $carrierCode . "_" . $methodCode : 'NA';
 
         $shippingAddress = $quote->getShippingAddress();
         $shippingAddress->setCollectShippingRates(true)
