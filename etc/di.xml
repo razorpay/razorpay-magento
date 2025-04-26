@@ -75,4 +75,27 @@
 	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
 	    </arguments>
 	</type>
+	<!-- Add custom total for quote -->
+	<type name="Magento\Quote\Model\Quote\Address\Total\Collector">
+		<arguments>
+			<argument name="totals" xsi:type="array">
+				<item name="razorpay_cod_fee" xsi:type="array">
+					<item name="class" xsi:type="string">Razorpay\Magento\Model\Total\CustomCodFee</item>
+					<item name="sort_order" xsi:type="number">250</item>
+				</item>
+			</argument>
+		</arguments>
+	</type>
+
+	<!-- Add custom total for order -->
+	<type name="Magento\Sales\Model\Order\Total\Invoice\Collector">
+		<arguments>
+			<argument name="collectors" xsi:type="array">
+				<item name="razorpay_cod_fee" xsi:type="array">
+					<item name="class" xsi:type="string">Razorpay\Magento\Model\Total\CustomCodFee</item>
+					<item name="sort_order" xsi:type="number">250</item>
+				</item>
+			</argument>
+		</arguments>
+	</type>
 </config>

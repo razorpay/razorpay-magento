@@ -1,0 +1,370 @@
+<?php
+
+namespace Razorpay\Magento\Controller\OneClick;
+
+use Magento\Framework\App\Action\Action;
+use Magento\Framework\App\Action\Context;
+use Magento\Framework\Controller\Result\JsonFactory;
+use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Pricing\Helper\Data;
+use Razorpay\Magento\Controller\OneClick\StateMap;
+use Razorpay\Magento\Model\PaymentMethod;
+use Razorpay\Magento\Model\Config;
+use Razorpay\Api\Api;
+use Magento\Framework\App\Request\Http;
+use Magento\Directory\Model\ResourceModel\Region\CollectionFactory;
+use Magento\Directory\Model\ResourceModel\Region\Collection;
+use Razorpay\Magento\Model\CartConverter;
+use Magento\Quote\Api\CartManagementInterface;
+
+class AbandonedQuote extends Action
+{
+    /**
+     * @var Http
+     */
+    protected $request;
+
+    /**
+     * @var JsonFactory
+     */
+    protected $resultJsonFactory;
+
+    protected $collectionFactory;
+
+    /**
+     * @var Data
+     */
+    protected $priceHelper;
+
+    protected $config;
+
+    /**
+     * @var \Psr\Log\LoggerInterface
+     */
+    protected $logger;
+
+    protected $rzp;
+
+    protected $cartRepositoryInterface;
+
+    protected $checkoutSession;
+    protected $stateNameMap;
+    protected $cartConverter;
+    protected $cartManagement;
+
+    protected $order;
+    const COD = 'cashondelivery';
+    const RAZORPAY = 'razorpay';
+    const STATE_PENDING_PAYMENT = 'pending_payment';
+
+    /**
+     * CompleteOrder constructor.
+     * @param Http $request
+     * @param Context $context
+     * @param JsonFactory $jsonFactory
+     * @param Data $priceHelper
+     * @param PaymentMethod $paymentMethod
+     * @param \Psr\Log\LoggerInterface $logger
+     */
+    public function __construct(
+        Context                                    $context,
+        Http                                       $request,
+        JsonFactory                                $jsonFactory,
+        PaymentMethod                              $paymentMethod,
+        \Razorpay\Magento\Model\Config             $config,
+        \Psr\Log\LoggerInterface                   $logger,
+        \Magento\Quote\Api\CartRepositoryInterface $cartRepositoryInterface,
+        \Magento\Checkout\Model\Session            $checkoutSession,
+        CollectionFactory                          $collectionFactory,
+        StateMap                                   $stateNameMap,
+        CartConverter                              $cartConverter,
+        CartManagementInterface                    $cartManagement,
+        \Magento\Sales\Model\Order                 $order
+    )
+    {
+        parent::__construct($context);
+        $this->request = $request;
+        $this->resultJsonFactory = $jsonFactory;
+        $this->config = $config;
+        $this->rzp = $paymentMethod->setAndGetRzpApiInstance();
+        $this->logger = $logger;
+        $this->cartRepositoryInterface = $cartRepositoryInterface;
+        $this->checkoutSession = $checkoutSession;
+        $this->collectionFactory = $collectionFactory;
+        $this->stateNameMap = $stateNameMap;
+        $this->cartConverter = $cartConverter;
+        $this->cartManagement = $cartManagement;
+        $this->order = $order;
+    }
+
+    public function execute()
+    {
+        $params = $this->request->getParams();
+
+        $resultJson = $this->resultJsonFactory->create();
+
+        $rzpOrderId = $params['rzp_order_id'];
+
+        try {
+            $rzpOrderData = $this->rzp->order->fetch($rzpOrderId);
+
+            $cartMaskId = isset($rzpOrderData->notes) ? $rzpOrderData->notes->cart_mask_id : null;
+
+            $cartId = isset($rzpOrderData->notes) ? $rzpOrderData->notes->cart_id : null;
+            $email = $rzpOrderData->customer_details->email ?? null;
+            $reservedOrderId = isset($rzpOrderData->notes) ? $rzpOrderData->notes->merchant_order_id : null;
+
+            $quote = $this->cartRepositoryInterface->get($cartId);
+
+            $this->updateQuote($quote, $rzpOrderData);
+
+            $quoteId = $rzpOrderData->notes->cart_mask_id;
+
+            $orderPlacement = false;
+
+            try {
+                // Set customer to quote
+                $customerCartId = $this->cartConverter->convertGuestCartToCustomer($cartId);
+                $this->logger->info('graphQL: customerCartId ' . $customerCartId);
+
+                $order = $this->order->loadByIncrementId($reservedOrderId);
+
+                if (!$order->getId()) {
+                    $orderId = $this->cartManagement->placeOrder($cartId);
+                    $order = $this->order->load($orderId);
+                    $orderPlacement = true;
+                }
+
+                $order->setEmailSent(0);
+                if ($order) {
+                    $order->setState(static::STATE_PENDING_PAYMENT)
+                        ->setStatus(static::STATE_PENDING_PAYMENT);
+                }
+
+                //In case customer address not completely added to order details, we will set the address details in order comments.
+                $shippingRZPAddress = $rzpOrderData->customer_details->shipping_address;
+
+                if (isset($shippingRZPAddress->line2)) {
+                    $shippingStreetRzp = $shippingRZPAddress->line1 . ', ' . $shippingRZPAddress->line2;
+                } else {
+                    $shippingStreetRzp = $shippingRZPAddress->line1;
+                }
+
+                if (strlen($shippingStreetRzp) > 255) {
+                    $shippingAddress = 'Customer Complete Shipping Address - '. $shippingRZPAddress->name. ', '.
+                        $shippingStreetRzp. ', '.
+                        $shippingRZPAddress->city. ', '.
+                        strtoupper($shippingRZPAddress->country). ' - '.
+                        $shippingRZPAddress->zipcode;
+                    $order->addStatusHistoryComment(
+                        $shippingAddress
+                    )->setStatus($order->getStatus())->setIsCustomerNotified(false);
+                }
+
+                $billingRZPAddress = $rzpOrderData->customer_details->billing_address;
+
+                if (isset($billingRZPAddress->line2)) {
+                    $billingStreetRzp = $billingRZPAddress->line1 . ', ' . $billingRZPAddress->line2;
+                } else {
+                    $billingStreetRzp = $billingRZPAddress->line1;
+                }
+                if (strlen($billingStreetRzp) > 255) {
+                    $billingAddress = 'Customer Complete Billing Address - '. $billingRZPAddress->name. ', '.
+                        $billingStreetRzp. ', '.
+                        $billingRZPAddress->city. ', '.
+                        strtoupper($billingRZPAddress->country). ' - '.
+                        $billingRZPAddress->zipcode;
+                    $order->addStatusHistoryComment(
+                        $billingAddress
+                    )->setStatus($order->getStatus())->setIsCustomerNotified(false);
+                }
+                $order->save();
+                $quote->setIsActive(true)->save();
+
+            } catch (\Exception $e) {
+                $this->logger->info('graphQL: magento pending order placement failed for AB cart and rzp order id: ' . $rzpOrderId);
+                return $resultJson->setData([
+                    'status' => 'Failed',
+                    'code' => 'BAD_REQUEST',
+                    'message' => __('Quote update failed for the reason : ' . $e->getMessage()),
+                ])->setHttpResponseCode(422);
+            }
+
+            return $resultJson->setData([
+                'status' => 'success',
+                'message' => 'Successfully updated the quote',
+                'orderPlacement' => $orderPlacement,
+            ])->setHttpResponseCode(200);
+
+        } catch (\Razorpay\Api\Errors\Error $e) {
+            $this->logger->critical("Validate: Razorpay Error message:" . $e->getMessage());
+
+            $code = $e->getCode();
+            $this->messageManager->addError(__('Payment Failed.'));
+
+            return $resultJson->setData([
+                'status' => 'error',
+                'code' => $code,
+                'message' => __('Quote update failed for the reason : ' . $e->getMessage()),
+            ])->setHttpResponseCode(422);
+        } catch (\Exception $e) {
+            $this->logger->critical("Validate: Exception Error message:" . $e->getMessage());
+            $this->messageManager->addError(__('Payment Failed.'));
+
+            $code = $e->getCode();
+
+            return $resultJson->setData([
+                'status' => 'failed',
+                'code' => $code,
+                'message' => __('Quote update failed for the reason : '.$e->getMessage()),
+            ])->setHttpResponseCode(422);
+        }
+    }
+
+    public function updateQuote($quote, $rzpOrderData, $rzpPaymentData = array())
+    {
+        $quote->setIsActive(true)->save();
+
+        $carrierCode = $rzpOrderData->notes->carrier_code ?? null;
+        $methodCode = $rzpOrderData->notes->method_code ?? null;
+
+        //This change is to support email less checkout.
+        $email = $quote->getCustomerEmail();
+        if($email == null) {
+            $email = $rzpOrderData->customer_details->email ?? '';
+        }
+        $quote->setCustomerEmail($email);
+
+        if (empty($rzpOrderData->customer_details->shipping_address) === false)
+        {
+            $shippingCountry = $rzpOrderData->customer_details->shipping_address->country;
+            $shippingState = $rzpOrderData->customer_details->shipping_address->state;
+
+            $billingCountry = $rzpOrderData->customer_details->billing_address->country;
+            $billingState = $rzpOrderData->customer_details->billing_address->state;
+
+            $shippingRegionCode = $this->getRegionCode($shippingCountry, $shippingState);
+            $billingRegionCode = $this->getRegionCode($billingCountry, $billingState);
+
+            $shipping = $this->getAddress($rzpOrderData->customer_details->shipping_address, $shippingRegionCode, $email);
+            $billing = $this->getAddress($rzpOrderData->customer_details->billing_address, $billingRegionCode, $email);
+
+            $quote->getBillingAddress()->addData($billing['address']);
+            $quote->getShippingAddress()->addData($shipping['address']);
+
+            // If shipping method is not provided, find the least expensive one
+            if ((empty($carrierCode) || empty($methodCode))) {
+                $shippingAddress = $quote->getShippingAddress();
+
+                // Force shipping rate collection
+                $shippingAddress
+                    ->setCollectShippingRates(true)  // <-- THIS IS CRITICAL
+                    ->collectShippingRates();        // Collects rates
+
+                $shippingRates = $shippingAddress->getAllShippingRates();
+
+                if (empty($shippingRates)) {
+                    // Log error for debugging
+                    $this->logger->critical("No shipping rates found. Address: " . json_encode($shippingAddress->getData()));
+                }
+
+                $lowestRate = null;
+                foreach ($shippingRates as $rate) {
+                    if ($lowestRate === null || $rate->getPrice() < $lowestRate->getPrice()) {
+                        $lowestRate = $rate;
+                    }
+                }
+
+                if ($lowestRate) {
+                    $carrierCode = $lowestRate->getCarrier();
+                    $methodCode = $lowestRate->getMethod();
+                }
+            }
+            $shippingMethod = 'NA';
+            if (empty($carrierCode) === false && empty($methodCode) === false) {
+                $shippingMethod = $carrierCode . "_" . $methodCode;
+            }
+
+            $shippingAddress = $quote->getShippingAddress();
+            $shippingAddress->setCollectShippingRates(true)
+                ->collectShippingRates()
+                ->setShippingMethod($shippingMethod);
+
+        }
+        $paymentMethod = static::RAZORPAY;
+
+        if(empty($rzpPaymentData) === false) {
+            if ($rzpPaymentData->method === 'cod') {
+                $paymentMethod = static::COD;
+                // Set the custom fee in the quote
+                $codFee = $rzpOrderData->cod_fee ?? 0;
+
+                $quote->setData('razorpay_cod_fee', $codFee);
+            }
+        }
+
+        $quote->setPaymentMethod($paymentMethod);
+        $quote->setInventoryProcessed(false);
+        // Set Sales Order Payment
+        $quote->getPayment()->importData(['method' => $paymentMethod]);
+
+        $quote->save();
+
+    }
+
+    protected function getRegionCode($country, $state)
+    {
+        $magentoStateName = $this->stateNameMap->getMagentoStateName($country, $state);
+
+        $this->logger->info('graphQL: Magento state name:' . $magentoStateName);
+
+        $regionCode = $this->collectionFactory->create()
+            ->addRegionNameFilter($magentoStateName)
+            ->getFirstItem()
+            ->toArray();
+
+        return $regionCode['code'] ?? 'NA';
+
+    }
+
+    protected function getAddress($rzpAddress, $regionCode, $email)
+    {
+        $name = $rzpAddress->name;
+        // Find the position of the first non-whitespace character
+        $firstNonWhitespacePos = strpos($name, trim($name)[0]);
+
+        // Trim the string up to the first non-whitespace character
+        $trimmedName = substr($name, $firstNonWhitespacePos);
+
+        $name = explode(' ', $trimmedName);
+
+        // Extract the first word as the first name
+        $firstName = $name[0];
+
+        // Combine the rest of the words as the last name
+        $lastName = implode(' ', array_slice($name, 1));
+
+        if (isset($rzpAddress->line2)) {
+            $streetRzp = $rzpAddress->line1 . ', ' . $rzpAddress->line2;
+        } else {
+            $streetRzp = $rzpAddress->line1;
+        }
+
+        $street = substr($streetRzp, 0, 255);
+
+        return [
+            'email' => $email, //buyer email id
+            'address' => [
+                'firstname' => $firstName, //address Details
+                'lastname' => empty($lastName) === false ? $lastName : '.',
+                'street' => $street,
+                'city' => $rzpAddress->city,
+                'country_id' => strtoupper($rzpAddress->country),
+                'region' => $regionCode,
+                'postcode' => $rzpAddress->zipcode,
+                'telephone' => $rzpAddress->contact,
+                'save_in_address_book' => 1
+            ]
+        ];
+    }
+}

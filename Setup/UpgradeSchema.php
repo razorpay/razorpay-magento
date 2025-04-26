@@ -118,6 +118,32 @@ class UpgradeSchema implements UpgradeSchemaInterface
                     'comment'  => 'RZP Update Order Processing Cron # of times executed'
                 ]
             );
+
+            $setup->getConnection()->addColumn(
+                $tableName,
+                'razorpay_cod_fee',
+                [
+                    'nullable' => true,
+                    'default'  => 0,
+                    'type' => \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
+                    'comment'  => 'RZP custom cod fee'
+                ]
+            );
+        }
+
+        $tableNameForQuote = $setup->getTable('quote');
+        if ($setup->getConnection()->isTableExists($tableNameForQuote) == true)
+        {
+            $setup->getConnection()->addColumn(
+                $tableName,
+                'razorpay_cod_fee',
+                [
+                    'nullable' => true,
+                    'default'  => 0,
+                    'type' => \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
+                    'comment'  => 'RZP custom cod fee'
+                ]
+            );
         }
 
         $table = $setup->getConnection()->newTable($setup->getTable(OrderLink::TABLE_NAME));
