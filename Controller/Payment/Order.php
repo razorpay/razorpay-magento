@@ -225,7 +225,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             $response->setData($responseContent);
             $response->setHttpResponseCode(400);
 
-            $this->logger->critical("Razorpay Order: Payment already made for order :" . $receipt_id,);
+            $this->logger->critical("Razorpay Order: Payment already made for order :" . $receipt_id);
             return $response;
         }
 
