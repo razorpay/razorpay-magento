@@ -102,7 +102,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             if (!filter_var($domain_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE))
             {
                 // @codeCoverageIgnoreStart
-                $this->logger->info("Can't enable/disable webhook on $domain or private ip($domain_ip).");
+                $this->logger->info("Can't enable/disable webhook on $domain or private ip($domain_ip)");
                 // @codeCoverageIgnoreEnd
             }
             else if(($webhookTriggeredAt + (24*60*60)) < time())
