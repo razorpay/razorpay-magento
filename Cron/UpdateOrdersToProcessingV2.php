@@ -193,7 +193,7 @@ class UpdateOrdersToProcessingV2
             ->getCollection()
             ->addFieldToFilter('rzp_update_order_cron_status', ["lt" => 3])
             ->addFieldToFilter('rzp_webhook_notified_at', ["notnull" => true])
-            ->addFieldToFilter('rzp_webhook_notified_at', ["lt" => $dateTimeCheck])
+            // ->addFieldToFilter('rzp_webhook_notified_at', ["lt" => $dateTimeCheck])
             ->setOrder('entity_id')
             ->setPageSize(5);
 
@@ -446,6 +446,18 @@ class UpdateOrdersToProcessingV2
                 $invoice->setTransactionId($rzpPaymentId);
                 $invoice->register();
                 $invoice->save();
+
+                if ($order->getDiscountAmount() != $invoice->getDiscountAmount()) {
+                    $invoice->setDiscountAmount($order->getDiscountAmount());
+                    $invoice->setBaseDiscountAmount($order->getBaseDiscountAmount());
+                    $invoice->setDiscountDescription($order->getDiscountDescription());
+                    $invoice->setGrandTotal($order->getGrandTotal());
+                    $invoice->setBaseGrandTotal($order->getBaseGrandTotal());
+                    $invoice->setTotalPaid($totalPaid / 100);
+                    $invoice->setBaseTotalPaid($totalPaid / 100);
+                    $order->setTotalPaid($totalPaid / 100);
+                    $order->setBaseTotalPaid($totalPaid / 100);
+                }
 
                 $this->logger->info('graphQL: Created Invoice for '
                     . 'order_id ' . $rzpOrderId . ', '

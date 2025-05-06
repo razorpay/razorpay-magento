@@ -422,6 +422,18 @@ class CompleteOrder extends Action
                 $invoice->register();
                 $invoice->save();
 
+                if ($order->getDiscountAmount() != $invoice->getDiscountAmount()) {
+                    $invoice->setDiscountAmount($order->getDiscountAmount());
+                    $invoice->setBaseDiscountAmount($order->getBaseDiscountAmount());
+                    $invoice->setDiscountDescription($order->getDiscountDescription());
+                    $invoice->setGrandTotal($order->getGrandTotal());
+                    $invoice->setBaseGrandTotal($order->getBaseGrandTotal());
+                    $invoice->setTotalPaid($totalPaid / 100);
+                    $invoice->setBaseTotalPaid($totalPaid / 100);
+                    $order->setTotalPaid($totalPaid / 100);
+                    $order->setBaseTotalPaid($totalPaid / 100);
+                }
+
                 $this->logger->info('graphQL: Created Invoice for '
                     . 'order_id ' . $rzpOrderId . ', '
                     . 'rzp_payment_id ' . $rzpPaymentId);
@@ -606,8 +618,9 @@ class CompleteOrder extends Action
             $order = $this->order->load($orderId);
 
             // Update discount amount
-            $order->setDiscountAmount($newDiscountAmount);
-            $order->setBaseDiscountAmount($newDiscountAmount);
+            $order->setDiscountAmount(-abs($newDiscountAmount));
+            $order->setBaseDiscountAmount(-abs($newDiscountAmount));
+            $order->setDiscountDescription($order->getDiscountDescription() . ' - ' . __('Razorpay offer applied ₹%1.', $offerAmount));
 
             $totalBaseGrandTotal = $order->getBaseGrandTotal();
             $totalGrandTotal = $order->getGrandTotal();
@@ -616,6 +629,7 @@ class CompleteOrder extends Action
             $order->setGrandTotal($totalGrandTotal - $offerAmount);
 
             $order->setTotalPaid($totalPaid / 100);
+            $order->setBaseTotalPaid($totalPaid / 100);
 
             $comment = __('Razorpay offer applied ₹%1.', $offerAmount);
 
