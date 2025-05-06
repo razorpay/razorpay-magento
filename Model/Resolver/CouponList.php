@@ -64,14 +64,27 @@ class CouponList implements ResolverInterface
 
         foreach ($ruleCollection as $rule) {
             $couponCollection = $this->couponModel->getCollection()
-                ->addFieldToFilter('rule_id', $rule->getId());
-
-            foreach ($couponCollection as $coupon) {
-                $appliedCoupons[] = [
-                    'title' => $this->getCouponCodeByRuleId($rule->getId()),
-                    'discountAmount' => $this->calculateDiscountAmount($rule),
-                    'description' => $rule->getDescription() ?: '',
-                ];
+            ->addFieldToFilter('rule_id', $rule->getId());
+            
+            if ($rule->getUseAutoGeneration()) {
+                foreach ($couponCollection as $coupon) {
+                    if ($coupon->getTimesUsed() < $rule->getUsesPerCoupon()) {
+                        $appliedCoupons[] = [
+                            'title' => $coupon->getCode(),
+                            'discountAmount' => $this->calculateDiscountAmount($rule),
+                            'description' => $rule->getDescription() ?: '',
+                        ];
+                        break;
+                    }
+                }
+            } else {
+                foreach ($couponCollection as $coupon) {
+                    $appliedCoupons[] = [
+                        'title' => $this->getCouponCodeByRuleId($rule->getId()),
+                        'discountAmount' => $this->calculateDiscountAmount($rule),
+                        'description' => $rule->getDescription() ?: '',
+                    ];
+                }
             }
         }
 
