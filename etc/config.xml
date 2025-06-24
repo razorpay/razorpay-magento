@@ -28,6 +28,7 @@
                 <allow_coupon_apply_magic>1</allow_coupon_apply_magic>
                 <enable_update_order_cron_v1>1</enable_update_order_cron_v1>
                 <enable_debug_mode>0</enable_debug_mode>
+                <allow_ips>52.66.140.48,52.66.140.61,13.235.207.57,13.232.63.19,13.234.135.6,13.234.83.3,13.235.208.84,13.235.96.132,15.206.46.184,18.99.160.48/29</allow_ips>
             </razorpay>
         </payment>
     </default>

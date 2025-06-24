@@ -32,6 +32,10 @@ class Config
     const KEY_MAGIC_BUY_NOW_STATUS = 'activate_magic_buy_now';
     const KEY_MAGIC_MINI_CART_STATUS = 'activate_magic_mini_cart';
     const KEY_MAGIC_ALLOW_COUPON_APPLICATION_STATUS = 'allow_coupon_apply_magic';
+    const INTEGRATION_TOKEN_ACCESS = 'integration_access_token';
+    const INTEGRATION_TOKEN_SECRET = 'integration_access_token_secret';
+    const ALLOW_IPS = 'allow_ips';
+
     /**
      * @var string
      */
@@ -150,6 +154,21 @@ class Config
     public function getMerchantCouponApplication()
     {
         return $this->getConfigData(self::KEY_MAGIC_ALLOW_COUPON_APPLICATION_STATUS);
+    }
+    public function getIntegrationAccessToken()
+    {
+        return $this->getConfigData(self::INTEGRATION_TOKEN_ACCESS);
+    }
+
+    public function getIntegrationAccessTokenSecret()
+    {
+        return $this->getConfigData(self::INTEGRATION_TOKEN_SECRET);
+    }
+
+    public function getAllowedIps()
+    {
+        $ips = $this->getConfigData(self::ALLOW_IPS);
+        return array_map('trim', explode(',', $ips));
     }
 
     /**

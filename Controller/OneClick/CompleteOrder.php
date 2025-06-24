@@ -200,7 +200,7 @@ class CompleteOrder extends Action
             $customerCartId = $this->cartConverter->convertGuestCartToCustomer($cartId);
             $this->logger->info('graphQL: customerCartId ' . $customerCartId);
 
-            $isCustomerConsentSet = isset($rzpOrderData->notes) ? $rzpOrderData->notes->customer_consent : false;
+            $isCustomerConsentSet = isset($rzpOrderData->notes) && isset($rzpOrderData->notes->customer_consent) ? $rzpOrderData->notes->customer_consent : false;
 
             if ($isCustomerConsentSet) {
                 // Subscribe news letter based on customer consent data
