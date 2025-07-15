@@ -5,6 +5,7 @@ namespace Razorpay\Magento\Controller\Payment;
 use Razorpay\Api\Api;
 use Razorpay\Magento\Model\PaymentMethod;
 use Magento\Framework\Controller\ResultFactory;
+use Razorpay\Magento\Model\TrackPluginInstrumentation;
 
 class Order extends \Razorpay\Magento\Controller\BaseController
 {
@@ -46,6 +47,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
     protected const THREE_DECIMAL_CURRENCIES = ["KWD", "OMR", "BHD"];
 
+    protected $trackPluginInstrumentation;
+
     /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
@@ -62,7 +65,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Razorpay\Magento\Model\Config $config,
         \Magento\Catalog\Model\Session $catalogSession,
         \Magento\Store\Model\StoreManagerInterface $storeManager,
-        \Psr\Log\LoggerInterface $logger
+        \Psr\Log\LoggerInterface $logger,
+        TrackPluginInstrumentation $trackPluginInstrumentation
     ) 
     {
         parent::__construct(
@@ -88,6 +92,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
         $this->webhooks->entity = 'collection';
         $this->webhooks->items  = [];
+        $this->trackPluginInstrumentation = $trackPluginInstrumentation;
     }
 
     public function execute()
@@ -103,6 +108,15 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             {
                 // @codeCoverageIgnoreStart
                 $this->logger->info("Can't enable/disable webhook on $domain or private ip($domain_ip).");
+
+                $properties = [
+                    'error_message' => "Can't enable/disable webhook on $domain or private ip($domain_ip).",
+                    'file_path' => 'controller/Payment/Order.php',
+                    'exception_type' => null,
+                    'notes' => 'Webhook creation failed'
+                ];
+
+                $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.create.webhook.failed', $properties);
                 // @codeCoverageIgnoreEnd
             }
             else if(($webhookTriggeredAt + (24*60*60)) < time())
@@ -187,12 +201,28 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                     // @codeCoverageIgnoreStart
                     $this->logger->info($e->getMessage());
                     // @codeCoverageIgnoreEnd
+
+                    $properties = [
+                        'error_message' => $e->getMessage(),
+                        'file_path' => 'controller/Payment/Order.php',
+                        'exception_type' => get_class($e),
+                        'notes' => 'Webhook creation failed',
+                    ];
+                    $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.create.webhook.failed', $properties);
                 }
                 catch(\Exception $e)
                 {
                     // @codeCoverageIgnoreStart
                     $this->logger->info($e->getMessage());
                     // @codeCoverageIgnoreEnd
+
+                    $properties = [
+                        'error_message' => $e->getMessage(),
+                        'file_path' => 'controller/Payment/Order.php',
+                        'exception_type' => get_class($e),
+                        'notes' => 'Webhook creation failed',
+                    ];
+                    $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.create.webhook.failed', $properties);
                 }
             }
         }
@@ -226,6 +256,15 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             $response->setHttpResponseCode(400);
 
             $this->logger->critical("Razorpay Order: Payment already made for order :" . $receipt_id,);
+
+            $properties = [
+                'error_message' => 'Payment already made for order :' . $receipt_id ?? 'No receipt id found',
+                'file_path' => 'controller/Payment/Order.php',
+                'exception_type' => null,
+                'notes' => 'Mage Order: ' . $receipt_id . ' order creation failed'
+            ];
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.create.order.failed', $properties);
+
             return $response;
         }
 
@@ -275,6 +314,15 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 $response->setData($responseContent);
                 $response->setHttpResponseCode($code);
 
+                $properties = [
+                    'error_message' => 'currency is not supported at the moment.',
+                    'file_path' => 'controller/Payment/Order.php',
+                    'exception_type' => null,
+                    'notes' => 'Mage Order: order creation failed',
+                ];
+
+                $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.create.order.failed', $properties);
+
                 return $response;
             }
 
@@ -282,7 +330,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 (empty($rzpOrderId) === true))
             {
                 $order = $this->rzp->order->create([
-                    'amount' => $amount,
+                    // 'amount' => $amount,
                     'receipt' => $receipt_id,
                     'currency' => $mazeOrder->getOrderCurrencyCode(),
                     'payment_capture' => $payment_capture,
@@ -344,6 +392,15 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 'parameters' => []
             ];
 
+            $properties = [
+                'error_message' => $e->getMessage(),
+                'file_path' => 'controller/Payment/Order.php',
+                'exception_type' => get_class($e),
+                'notes' => 'Mage Order: order creation failed'
+            ];
+
+            $return_data = $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.create.order.failed', $properties);
+
             // @codeCoverageIgnoreStart
             $this->logger->critical("Razorpay Order: Mage Order($receipt_id), Error message from api:" . $e->getMessage());
             // @codeCoverageIgnoreEnd
@@ -354,6 +411,15 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 'message'   => $e->getMessage(),
                 'parameters' => []
             ];
+
+            $properties = [
+                'error_message' => $e->getMessage(),
+                'file_path' => 'controller/Payment/Order.php',
+                'exception_type' => get_class($e),
+                'notes' => 'Mage Order: order creation failed'
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.create.order.failed', $properties);
 
             // @codeCoverageIgnoreStart
             $this->logger->critical("Razorpay Order: Mage Order($receipt_id), Error message:" . $e->getMessage());
@@ -415,12 +481,30 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             // @codeCoverageIgnoreStart
             $this->logger->info($e->getMessage());
             // @codeCoverageIgnoreEnd
+
+            $properties = [
+                'error_message' => $e->getMessage(),
+                'file_path' => 'controller/Payment/Order.php',
+                'exception_type' => get_class($e),
+                'notes' => 'Webhook fetch failed'
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.get.webhook.failed', $properties);
         }
         catch(\Exception $e)
         {
             // @codeCoverageIgnoreStart
             $this->logger->info($e->getMessage());
             // @codeCoverageIgnoreEnd
+
+            $properties = [
+                'error_message' => $e->getMessage(),
+                'file_path' => 'controller/Payment/Order.php',
+                'exception_type' => get_class($e),
+                'notes' => 'Webhook fetch failed'
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.get.webhook.failed', $properties);
         }
 
         return ['id' => null,'active_events'=>null];
@@ -485,6 +569,15 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             // @codeCoverageIgnoreStart
             $this->logger->critical('Razorpay Order: Magento Error : ' . $e->getMessage());
             // @codeCoverageIgnoreEnd
+
+            $properties = [
+                'error_message' => $e->getMessage(),
+                'file_path' => 'controller/Payment/Order.php',
+                'exception_type' => get_class($e),
+                'notes' => 'Merchant preferences fetch failed'
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.get.preferences.failed', $properties);
         }
 
         return $preferences;
