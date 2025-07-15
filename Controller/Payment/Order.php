@@ -330,7 +330,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 (empty($rzpOrderId) === true))
             {
                 $order = $this->rzp->order->create([
-                    // 'amount' => $amount,
+                    'amount' => $amount,
                     'receipt' => $receipt_id,
                     'currency' => $mazeOrder->getOrderCurrencyCode(),
                     'payment_capture' => $payment_capture,

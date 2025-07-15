@@ -100,12 +100,6 @@ class AfterConfigSaveObserver implements ObserverInterface
 
         $domain_ip = gethostbyname($domain);
 
-        $this->logger->info(print_r($domain_ip, true));
-        $this->logger->info(print_r($domain, true));
-        $this->logger->info(print_r($razorpayParams['enable_webhook'], true));
-        $this->logger->info(print_r($razorpayParams['webhook_events']['value'], true));
-        $this->logger->info(print_r($razorpayParams['supported_webhook_events']['value'], true));
-
         if(isset($razorpayParams['enable_webhook']) === true)
         {
             if (!filter_var($domain_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE))
