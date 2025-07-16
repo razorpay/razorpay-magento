@@ -8,6 +8,7 @@ use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
 use Magento\Framework\Controller\ResultFactory;
 use Razorpay\Magento\Model\PaymentMethod;
 use Razorpay\Magento\Constants\OrderCronStatus;
+use Razorpay\Magento\Model\TrackPluginInstrumentation;
 
 /**
  * CancelPendingOrders controller to cancel Magento order
@@ -87,6 +88,11 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
     protected $razorpayOrderID;
 
     /**
+     * @var \Razorpay\Magento\Model\TrackPluginInstrumentation
+     */
+    protected $trackPluginInstrumentation;
+
+    /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession
@@ -95,7 +101,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
      * @param \Magento\Sales\Api\Data\OrderInterface $order
      * @param \Magento\Catalog\Model\Session $catalogSession
      */
-    public function __construct(\Magento\Framework\App\Action\Context $context, \Magento\Customer\Model\Session $customerSession, \Magento\Checkout\Model\Session $checkoutSession, \Razorpay\Magento\Model\Config $config, \Psr\Log\LoggerInterface $logger, OrderRepositoryInterface $orderRepository, \Magento\Framework\DB\Transaction $transaction, \Magento\Sales\Model\Service\InvoiceService $invoiceService, \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender, \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender, \Magento\Catalog\Model\Session $catalogSession, \Magento\Sales\Api\Data\OrderInterface $order
+    public function __construct(\Magento\Framework\App\Action\Context $context, \Magento\Customer\Model\Session $customerSession, \Magento\Checkout\Model\Session $checkoutSession, \Razorpay\Magento\Model\Config $config, \Psr\Log\LoggerInterface $logger, OrderRepositoryInterface $orderRepository, \Magento\Framework\DB\Transaction $transaction, \Magento\Sales\Model\Service\InvoiceService $invoiceService, \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender, \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender, \Magento\Catalog\Model\Session $catalogSession, \Magento\Sales\Api\Data\OrderInterface $order, TrackPluginInstrumentation $trackPluginInstrumentation
 )
     {
         parent::__construct($context, $customerSession, $checkoutSession, $config);
@@ -115,6 +121,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
 
         $this->captureCommand = new CaptureCommand();
         $this->authorizeCommand = new AuthorizeCommand();
+        $this->trackPluginInstrumentation = $trackPluginInstrumentation;
     }
     
     public function execute()
@@ -150,11 +157,29 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
             // @codeCoverageIgnoreStart
             $this->logger->critical("Callback Error: " . $e->getMessage());
             // @codeCoverageIgnoreEnd
+
+            $properties = [
+                'error_message' => $e->getMessage(),
+                'file_path' => 'controller/Payment/Callback.php',
+                'exception_type' => get_class($e),
+                'notes' => 'Callback Error: Unable to load order'
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.callback.load.order.failed', $properties);
         }
 
         if (empty($orderId) === true)
         {
             $this->messageManager->addError(__('Razorpay front-end callback: Payment Failed, As no active cart ID found.'));
+
+            $properties = [
+                'error_message' => 'Razorpay front-end callback: Payment Failed, As no active cart ID found.',
+                'file_path' => 'controller/Payment/Callback.php',
+                'exception_type' => null,
+                'notes' => 'No active cart ID found'
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.callback.load.order.failed', $properties);
 
             return $this->_redirect('checkout/cart');
         }
@@ -272,12 +297,32 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                     // @codeCoverageIgnoreStart
                     $this->logger->critical("Validate: MailException Error message:" . $exception->getMessage());
                     // @codeCoverageIgnoreEnd
+
+                    $properties = [
+                        'error_message' => $exception->getMessage(),
+                        'file_path' => 'controller/Payment/Callback.php',
+                        'exception_type' => get_class($exception),
+                        'notes' => 'Razorpay front-end callback: Unable to send order email for order',
+                    ];
+
+                    $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.callback.send.email.failed', $properties);
+
+                    
                 }
                 catch(\Exception $e)
                 {
                     // @codeCoverageIgnoreStart
                     $this->logger->critical("Validate: Exception Error message:" . $e->getMessage());
                     // @codeCoverageIgnoreEnd
+
+                    $properties = [
+                        'error_message' => $e->getMessage(),
+                        'file_path' => 'controller/Payment/Callback.php',
+                        'exception_type' => get_class($e),
+                        'notes' => 'Razorpay front-end callback: Unable to send order email for order',
+                    ];
+
+                    $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.callback.send.email.failed', $properties);
                 }
 
                 $this->checkoutSession
@@ -303,6 +348,15 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                 $responseContent['message'] = $e->getMessage();
 
                 $code = $e->getCode();
+
+                $properties = [
+                    'error_message' => $e->getMessage(),
+                    'file_path' => 'controller/Payment/Callback.php',
+                    'exception_type' => get_class($e),
+                    'notes' => 'Razorpay front-end callback: Unable to process payment for order',
+                ];
+
+                $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.callback.payment.process.failed', $properties);
             }
             catch(\Exception $e)
             {
@@ -312,6 +366,15 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                 $responseContent['message'] = $e->getMessage();
 
                 $code = $e->getCode();
+
+                $properties = [
+                    'error_message' => $e->getMessage(),
+                    'file_path' => 'controller/Payment/Callback.php',
+                    'exception_type' => get_class($e),
+                    'notes' => 'Razorpay front-end callback: Unable to process payment for order',
+                ];
+
+                $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.callback.payment.process.failed', $properties);
             }
         }
         else
@@ -330,6 +393,15 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
 
             $this->messageManager->addError(__('Payment Failed.'));
 
+            $properties = [
+                'error_message' => 'Razorpay front-end callback: Payment Failed, as no razorpay_payment_id found in response.',
+                'file_path' => 'controller/Payment/Callback.php',
+                'exception_type' => null,
+                'notes' => 'Unable to process payment for order',
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.callback.payment.process.failed', $properties);
+
             return $this->_redirect('checkout/cart');
 
         }
@@ -341,6 +413,15 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
         {
             $this->logger->critical("Validate: Payment Failed or error from gateway");
             $this->messageManager->addError(__('Payment Failed'));
+
+            $properties = [
+                'error_message' => 'Callback: signature validation failed',
+                'file_path' => 'controller/Payment/Callback.php',
+                'exception_type' => null,
+                'notes' => 'Razorpay front-end callback: Unable to validate payment signature for order',
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.callback.validate.signature.failed', $properties);
 
             throw new \Exception("Payment Failed or error from gateway");
         }

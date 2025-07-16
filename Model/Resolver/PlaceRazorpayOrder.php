@@ -11,6 +11,7 @@ use Magento\QuoteGraphQl\Model\Cart\GetCartForUser;
 use Magento\Quote\Api\CartManagementInterface;
 use Razorpay\Magento\Model\PaymentMethod;
 use Razorpay\Magento\Model\Config;
+use Razorpay\Magento\Model\TrackPluginInstrumentation;
 
 class PlaceRazorpayOrder implements ResolverInterface
 {
@@ -52,6 +53,12 @@ class PlaceRazorpayOrder implements ResolverInterface
      * @var \Razorpay\Magento\Model\Config
      */
     protected $config;
+
+    /**
+     * @var \Razorpay\Magento\Model\TrackPluginInstrumentation
+     */
+    protected $trackPluginInstrumentation;
+
     /**
      * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
      * @param GetCartForUser $getCartForUser
@@ -68,7 +75,8 @@ class PlaceRazorpayOrder implements ResolverInterface
         PaymentMethod $paymentMethod,
         \Magento\Sales\Api\Data\OrderInterface $order,
         \Psr\Log\LoggerInterface $logger,
-        \Razorpay\Magento\Model\Config $config
+        \Razorpay\Magento\Model\Config $config,
+        TrackPluginInstrumentation $trackPluginInstrumentation
     )
     {
         $this->scopeConfig    = $scopeConfig;
@@ -79,6 +87,7 @@ class PlaceRazorpayOrder implements ResolverInterface
         $this->order          = $order;
         $this->logger         = $logger;
         $this->config          = $config;
+        $this->trackPluginInstrumentation = $trackPluginInstrumentation;
     }
 
     /**
@@ -92,6 +101,15 @@ class PlaceRazorpayOrder implements ResolverInterface
         {
             $this->logger->critical('graphQL: Input Exception: Required parameter "order_id" is missing');
 
+            $properties = [
+                "error_message" => "Required parameter 'order_id' is missing",
+                "file_path" => "model/Resolver/PlaceRazorpayOrder.php",
+                "exception_type" => null,
+                "notes" => "graphql: validation failed for order_id",
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.graphql.placeorder.validation.failed', $properties);
+            
             throw new GraphQlInputException(__('Required parameter "order_id" is missing'));
         }
 
@@ -99,11 +117,29 @@ class PlaceRazorpayOrder implements ResolverInterface
         {
             $this->logger->critical('graphQL: Input Exception: Required parameter "referrer" is missing');
 
+            $properties = [
+                "error_message" => "Required parameter 'referrer' is missing",
+                "file_path" => "model/Resolver/PlaceRazorpayOrder.php",
+                "exception_type" => null,
+                "notes" => "graphql: validation failed for referrer",
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.graphql.placeorder.validation.failed', $properties);
+
             throw new GraphQlInputException(__('Required parameter "referrer" is missing'));
         }
 
         if (!preg_match("/\b(?:(?:https?|ftp):\/\/|www\.)[-a-z0-9+&@#\/%?=~_|!:,.;]*[-a-z0-9+&@#\/%=~_|]/i", $args['referrer'])) {
             $this->logger->critical('graphQL: Input Exception: "referrer" is invalid');
+
+            $properties = [
+                "error_message" => "Parameter 'referrer' is invalid",
+                "file_path" => "model/Resolver/PlaceRazorpayOrder.php",
+                "exception_type" => null,
+                "notes" => "graphql: validation failed for referrer",
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.graphql.placeorder.validation.failed', $properties);
 
             throw new GraphQlInputException(__('Parameter "referrer" is invalid'));
         }
@@ -127,6 +163,15 @@ class PlaceRazorpayOrder implements ResolverInterface
                 || null === $order_base_discount_amount)
             {
                 $this->logger->critical('graphQL: Unable to fetch order data for Order ID: ' . $order_id);
+
+                $properties = [
+                    "error_message" => "Unable to fetch order data for Order ID: " . $order_id,
+                    "file_path" => "model/Resolver/PlaceRazorpayOrder.php",
+                    "exception_type" => null,
+                    "notes" => "graphql: Unable to fetch order data for Order ID: " . $order_id,
+                ];
+
+                $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.graphql.placeorder.failed', $properties);
 
                 return [
                     'success' => false,
@@ -206,6 +251,15 @@ class PlaceRazorpayOrder implements ResolverInterface
         {
             $this->logger->critical('graphQL: Razorpay API Error: ' . $e->getMessage());
 
+            $properties = [
+                "error_message" => $e->getMessage(),
+                "file_path" => "model/Resolver/PlaceRazorpayOrder.php",
+                "exception_type" => get_class($e),
+                "notes" => "graphql: Razorpay API failed to create order",
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.graphql.placeorder.failed', $properties);
+
             return [
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -213,6 +267,15 @@ class PlaceRazorpayOrder implements ResolverInterface
         } catch (\Exception $e)
         {
             $this->logger->critical('graphQL: Exception: ' . $e->getMessage());
+
+            $properties = [
+                "error_message" => $e->getMessage(),
+                "file_path" => "model/Resolver/PlaceRazorpayOrder.php",
+                "exception_type" => get_class($e),
+                "notes" => "graphql: Exception: " . $e->getMessage(),
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.graphql.placeorder.failed', $properties);
 
             return [
                 'success' => false,

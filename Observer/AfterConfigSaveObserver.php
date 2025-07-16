@@ -106,6 +106,15 @@ class AfterConfigSaveObserver implements ObserverInterface
             {
 
                 $this->logger->info("Can't enable/disable webhook on $domain or private ip($domain_ip).");
+
+                $properties = [
+                    "error_message" => "Can't enable/disable webhook on $domain or private ip($domain_ip).",
+                    "file_path" => "observer/AfterConfigSaveObserver.php",
+                    "exception_type" => null,
+                    "notes" => "observer: after config save failed to create webhook",
+                ];
+
+                $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.observer.afterconfigsave.failed', $properties);
                 return;
             }
 
@@ -175,10 +184,28 @@ class AfterConfigSaveObserver implements ObserverInterface
             catch(\Razorpay\Api\Errors\Error $e)
             {
                 $this->logger->info($e->getMessage());
+
+                $properties = [
+                    "error_message" => $e->getMessage(),
+                    "file_path" => "observer/AfterConfigSaveObserver.php",
+                    "exception_type" => get_class($e),
+                    "notes" => "observer: after config save failed to create webhook",
+                ];
+
+                $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.observer.afterconfigsave.failed', $properties);
             }
             catch(\Exception $e)
             {
                 $this->logger->info($e->getMessage());
+
+                $properties = [
+                    "error_message" => $e->getMessage(),
+                    "file_path" => "observer/AfterConfigSaveObserver.php",
+                    "exception_type" => get_class($e),
+                    "notes" => "observer: after config save failed to create webhook",
+                ];
+
+                $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.observer.afterconfigsave.failed', $properties);
             }
         }
 

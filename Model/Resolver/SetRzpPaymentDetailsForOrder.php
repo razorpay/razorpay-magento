@@ -13,6 +13,7 @@ use Razorpay\Magento\Model\Config;
 use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
 use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
 use Razorpay\Magento\Constants\OrderCronStatus;
+use Razorpay\Magento\Model\TrackPluginInstrumentation;
 
 /**
  * Mutation resolver for setting payment method for shopping cart
@@ -90,6 +91,11 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
     protected $captureCommand;
 
     /**
+     * @var \Razorpay\Magento\Model\TrackPluginInstrumentation
+     */
+    protected $trackPluginInstrumentation;
+
+    /**
      * @param PaymentMethod $paymentMethod
      * @param \Magento\Sales\Api\Data\OrderInterface $order
      * @param \Razorpay\Magento\Model\Config $config
@@ -111,7 +117,8 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
         \Magento\Checkout\Model\Session $checkoutSession,
         \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender,
         \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
-        \Psr\Log\LoggerInterface $logger
+        \Psr\Log\LoggerInterface $logger,
+        TrackPluginInstrumentation $trackPluginInstrumentation
     )
     {
         $this->rzp             = $paymentMethod->setAndGetRzpApiInstance();
@@ -125,7 +132,7 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
         $this->orderSender     = $orderSender;
         $this->logger          = $logger;
         $this->orderStatus     = static::STATUS_PROCESSING;
-
+        $this->trackPluginInstrumentation = $trackPluginInstrumentation;
         $this->enableCustomPaidOrderStatus = $this->config->isCustomPaidOrderStatusEnabled();
 
         if ($this->enableCustomPaidOrderStatus === true
@@ -149,6 +156,14 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
         {
             $this->logger->critical('graphQL: Input Exception: Required parameter "order_id" is missing.');
 
+            $properties = [
+                "error_message" => "Required parameter 'order_id' is missing",
+                "file_path" => "model/Resolver/SetRzpPaymentDetailsForOrder.php",
+                "exception_type" => null,
+                "notes" => "graphql: validation failed for order_id",
+            ];
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.graphql.setrzpdetails.validation.failed', $properties);
+
             throw new GraphQlInputException(__('Required parameter "order_id" is missing.'));
         }
 
@@ -158,6 +173,14 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
         {
             $this->logger->critical('graphQL: Input Exception: Required parameter "rzp_payment_id" is missing.');
 
+            $properties = [
+                "error_message" => "Required parameter 'rzp_payment_id' is missing",
+                "file_path" => "model/Resolver/SetRzpPaymentDetailsForOrder.php",
+                "exception_type" => null,
+                "notes" => "graphql: validation failed for rzp_payment_id",
+            ];
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.graphql.setrzpdetails.validation.failed', $properties);
+
             throw new GraphQlInputException(__('Required parameter "rzp_payment_id" is missing.'));
         }
 
@@ -166,6 +189,14 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
         if (empty($args['input']['rzp_signature']))
         {
             $this->logger->critical('graphQL: Input Exception: Required parameter "rzp_signature" is missing.');
+
+            $properties = [
+                "error_message" => "Required parameter 'rzp_signature' is missing",
+                "file_path" => "model/Resolver/SetRzpPaymentDetailsForOrder.php",
+                "exception_type" => null,
+                "notes" => "graphql: validation failed for rzp_signature",
+            ];
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.graphql.setrzpdetails.validation.failed', $properties);
 
             throw new GraphQlInputException(__('Required parameter "rzp_signature" is missing.'));
         }
@@ -210,6 +241,14 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
             $this->logger->critical('graphQL: '
             . ' Error: ' . $e->getMessage());
 
+            $properties = [
+                "error_message" => $e->getMessage(),
+                "file_path" => "model/Resolver/SetRzpPaymentDetailsForOrder.php",
+                "exception_type" => get_class($e),
+                "notes" => "graphql: unable to Razorpay Order ID",
+            ];
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.graphql.setrzpdetails.failed', $properties);
+
             throw new GraphQlInputException(__('Error: %1.', $e->getMessage()));
         }
 
@@ -246,6 +285,14 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
             if ($receipt !== $order_id)
             {
                 $this->logger->critical('graphQL: Not a valid Razorpay orderID');
+
+                $properties = [
+                    "error_message" => "Not a valid Razorpay orderID",
+                    "file_path" => "model/Resolver/SetRzpPaymentDetailsForOrder.php",
+                    "exception_type" => null,
+                    "notes" => "graphql: Not a valid Razorpay orderID",
+                ];
+                $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.graphql.setrzpdetails.failed', $properties);
 
                 throw new GraphQlInputException(__('Not a valid Razorpay orderID'));
             }
@@ -361,12 +408,28 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
                     $this->logger->critical('graphQL: '
                     . 'Razorpay Error:' . $e->getMessage());
 
+                    $properties = [
+                        "error_message" => $e->getMessage(),
+                        "file_path" => "model/Resolver/SetRzpPaymentDetailsForOrder.php",
+                        "exception_type" => get_class($e),
+                        "notes" => "graphql: sent order email failed",
+                    ];
+                    $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.graphql.send.orderemail.failed', $properties);
+
                     throw new GraphQlInputException(__('Razorpay Error: %1.', $e->getMessage()));
                 }
                 catch (\Exception $e)
                 {
                     $this->logger->critical('graphQL: '
                     . 'Error:' . $e->getMessage());
+
+                    $properties = [
+                        "error_message" => $e->getMessage(),
+                        "file_path" => "model/Resolver/SetRzpPaymentDetailsForOrder.php",
+                        "exception_type" => get_class($e),
+                        "notes" => "graphql: sent order email failed",
+                    ];
+                    $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.graphql.send.orderemail.failed', $properties);
 
                     throw new GraphQlInputException(__('Error: %1.', $e->getMessage()));
                 }
@@ -381,11 +444,27 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
             $this->logger->critical('graphQL: '
             . 'Razorpay Error:' . $e->getMessage());
 
+            $properties = [
+                "error_message" => $e->getMessage(),
+                "file_path" => "model/Resolver/SetRzpPaymentDetailsForOrder.php",
+                "exception_type" => get_class($e),
+                "notes" => "graphql: set razorpay payment details failed",
+            ];
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.graphql.setrzpdetails.failed', $properties);
+
             throw new GraphQlInputException(__('Razorpay Error: %1.', $e->getMessage()));
         } catch (\Exception $e)
         {
             $this->logger->critical('graphQL: '
             . 'Error:' . $e->getMessage());
+
+            $properties = [
+                "error_message" => $e->getMessage(),
+                "file_path" => "model/Resolver/SetRzpPaymentDetailsForOrder.php",
+                "exception_type" => get_class($e),
+                "notes" => "graphql: set razorpay payment details failed",
+            ];
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.graphql.setrzpdetails.failed', $properties);
 
             throw new GraphQlInputException(__('Error: %1.', $e->getMessage()));
         }
