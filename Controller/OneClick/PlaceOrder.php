@@ -210,6 +210,12 @@ class PlaceOrder extends Action
             $totalAmount = 0;
             $lineItems = [];
             $item = [];
+            $localCurrency = true;
+
+            if($this->storeManager->getStore()->getCurrentCurrencyCode() != $this->storeManager->getStore()->getBaseCurrencyCode())
+            {
+                $localCurrency = false;
+            }
 
             foreach ($cartItems as $quoteItem) {
                 $category = [];
@@ -245,12 +251,28 @@ class PlaceOrder extends Action
                 $productUrl = $product->getProductUrl();
 
                 $offerPrice = $quoteItem->getPrice() * 100;
+                $productPrice = $quoteItem->getPrice() * 100;
+
+                if(!$localCurrency)
+                {
+                    $productPrice = round($quoteItem->getConvertedPrice(), 2) * 100;
+                    $offerPrice = round($quoteItem->getConvertedPrice(), 2) * 100;
+                }
+
                 // Check if the item has applied discounts
                 if ($quoteItem->getDiscountAmount()) {
                     // Get the discount amount applied to the item
                     $discountAmount = abs($quoteItem->getDiscountAmount() / (int)$quoteItem->getQty());
 
-                    $offerPrice = ($quoteItem->getPrice() - $discountAmount) * 100;
+                    if(!$localCurrency)
+                    {
+                        $convertedDiscountAmount = round($quoteItem->getConvertedPrice(), 2);
+                        $offerPrice = ($convertedDiscountAmount - $discountAmount) * 100;
+                    }
+                    else
+                    {
+                        $offerPrice = ($quoteItem->getPrice() - $discountAmount) * 100;
+                    }
                 }
 
                 $categoriesIds = $product->getCategoryIds(); /*will return category ids array*/
@@ -271,7 +293,7 @@ class PlaceOrder extends Action
                     'type' => 'e-commerce',
                     'sku' => $quoteItem->getSku(),
                     'variant_id' => $quoteItem->getProductId(),
-                    'price' => $quoteItem->getPrice() * 100,
+                    'price' => $productPrice,
                     'offer_price' => $offerPrice,
                     'tax_amount' => 0,
                     'quantity' => (int)$quoteItem->getQty(),
@@ -332,7 +354,7 @@ class PlaceOrder extends Action
         $razorpay_order = $this->rzp->order->create([
             'amount' => $totalAmount,
             'receipt' => (string)$quote->getReservedOrderId() ?? 'order pending',
-            'currency' => $this->storeManager->getStore()->getBaseCurrencyCode(),
+            'currency' => $this->storeManager->getStore()->getCurrentCurrencyCode(),
             'payment_capture' => $paymentCapture,
             'app_offer' => 0,
             'notes' => $orderNotes,
