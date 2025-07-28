@@ -1,0 +1,6 @@
+/* Razorpay Admin Menu Icon */
+.admin__menu .item-razorpay > a:before {
+    content: url('../images/razorpay-logo.svg') !important;
+    height: 3.2rem !important;
+    margin: 0 auto !important;
+} 

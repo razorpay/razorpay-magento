@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Razorpay. All rights reserved.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Acl/etc/acl.xsd">
+    <acl>
+        <resources>
+            <resource id="Magento_Backend::admin">
+                <resource id="Razorpay_Magento::razorpay" title="Razorpay" translate="title" sortOrder="70">
+                    <resource id="Razorpay_Magento::failed_orders" title="Failed Orders Log" translate="title" sortOrder="10" />
+                    <resource id="Razorpay_Magento::configuration" title="Configuration" translate="title" sortOrder="20" />
+                </resource>
+            </resource>
+        </resources>
+    </acl>
+</config> 

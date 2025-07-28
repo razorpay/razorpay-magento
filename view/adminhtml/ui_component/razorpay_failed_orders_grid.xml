@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright © Razorpay. All rights reserved.
+ */
+-->
+<listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">razorpay_failed_orders_grid.razorpay_failed_orders_grid_data_source</item>
+        </item>
+    </argument>
+    <settings>
+        <buttons>
+            <button name="refresh" class="Magento\Ui\Component\Control\Button">
+                <url path="*/*/"/>
+                <class>refresh</class>
+                <label translate="true">Refresh</label>
+            </button>
+        </buttons>
+        <spinner>razorpay_failed_orders_grid_columns</spinner>
+        <deps>
+            <dep>razorpay_failed_orders_grid.razorpay_failed_orders_grid_data_source</dep>
+        </deps>
+    </settings>
+    <dataSource name="razorpay_failed_orders_grid_data_source" component="Magento_Ui/js/grid/provider">
+        <settings>
+            <storageConfig>
+                <param name="indexField" xsi:type="string">id</param>
+            </storageConfig>
+            <updateUrl path="mui/index/render"/>
+        </settings>
+        <aclResource>Razorpay_Magento::failed_orders</aclResource>
+        <dataProvider class="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider" name="razorpay_failed_orders_grid_data_source">
+            <settings>
+                <requestFieldName>id</requestFieldName>
+                <primaryFieldName>id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <listingToolbar name="listing_top">
+        <settings>
+            <sticky>true</sticky>
+        </settings>
+        <bookmark name="bookmarks"/>
+        <columnsControls name="columns_controls"/>
+        <filterSearch name="fulltext"/>
+        <filters name="listing_filters">
+            <settings>
+                <templates>
+                    <filters>
+                        <select>
+                            <param name="template" xsi:type="string">ui/grid/filters/elements/ui-select</param>
+                            <param name="component" xsi:type="string">Magento_Ui/js/form/element/ui-select</param>
+                        </select>
+                    </filters>
+                </templates>
+            </settings>
+        </filters>
+        <paging name="listing_paging"/>
+    </listingToolbar>
+    <columns name="razorpay_failed_orders_grid_columns">
+        <selectionsColumn name="ids" sortOrder="0">
+            <settings>
+                <indexField>id</indexField>
+            </settings>
+        </selectionsColumn>
+        <column name="id" sortOrder="10">
+            <settings>
+                <filter>textRange</filter>
+                <label translate="true">ID</label>
+                <sorting>desc</sorting>
+            </settings>
+        </column>
+        <column name="receipt" sortOrder="20">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Receipt</label>
+            </settings>
+        </column>
+        <column name="reason" sortOrder="30">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Failure Reason</label>
+            </settings>
+        </column>
+        <column name="error_message" sortOrder="40">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Error Message</label>
+            </settings>
+        </column>
+        <column name="rzp_paid_amount" sortOrder="50">
+            <settings>
+                <filter>textRange</filter>
+                <label translate="true">Paid Amount</label>
+            </settings>
+        </column>
+        <column name="created_at" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date" sortOrder="60">
+            <settings>
+                <filter>dateRange</filter>
+                <dataType>date</dataType>
+                <label translate="true">Created At</label>
+            </settings>
+        </column>
+    </columns>
+</listing> 

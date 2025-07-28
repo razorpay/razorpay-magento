@@ -92,7 +92,8 @@ class CompleteOrder extends Action
     protected $cartConverter;
     protected $customerConsent;
     protected $_order = null;
-
+    protected $failedOrderLogFactory;
+    protected $rzpHelper;
     const COD = 'cashondelivery';
     const RAZORPAY = 'razorpay';
     const STATE_PENDING_PAYMENT = 'pending_payment';
@@ -136,7 +137,9 @@ class CompleteOrder extends Action
         CollectionFactory                                     $collectionFactory,
         StateMap                                              $stateNameMap,
         CartConverter                                         $cartConverter,
-        CustomerConsent                                       $customerConsent
+        CustomerConsent                                       $customerConsent,
+        \Razorpay\Magento\Model\FailedOrderLogFactory         $failedOrderLogFactory,
+        \Razorpay\Magento\Helper\Data                         $rzpHelper
     )
     {
         parent::__construct($context);
@@ -167,7 +170,9 @@ class CompleteOrder extends Action
         $this->orderStatus = static::STATE_PROCESSING;
         $this->authorizeCommand = new AuthorizeCommand();
         $this->captureCommand = new CaptureCommand();
-    }
+        $this->failedOrderLogFactory = $failedOrderLogFactory;
+        $this->rzpHelper = $rzpHelper;
+        }
 
     public function execute()
     {
@@ -200,7 +205,7 @@ class CompleteOrder extends Action
             $customerCartId = $this->cartConverter->convertGuestCartToCustomer($cartId);
             $this->logger->info('graphQL: customerCartId ' . $customerCartId);
 
-            $isCustomerConsentSet = isset($rzpOrderData->notes) ? $rzpOrderData->notes->customer_consent : false;
+            $isCustomerConsentSet = isset($rzpOrderData->notes) && isset($rzpOrderData->notes->customer_consent) ? $rzpOrderData->notes->customer_consent : false;
 
             if ($isCustomerConsentSet) {
                 // Subscribe news letter based on customer consent data
@@ -230,37 +235,58 @@ class CompleteOrder extends Action
             $code = $e->getCode();
 
             if (strpos($e->getMessage(), static::INVENTORY_OUT_OF_STOCK) !== false) {
-                if ($rzpPaymentData->method != 'cod') {
-                    $refundData = [
-                        'amount' => $rzpPaymentData['amount'],
-                        'receipt' => $rzpOrderData['receipt'],
-                        'notes' => [
-                            'reason' => $e->getMessage(),
-                            'order_id' => $rzpOrderData['receipt'],
-                            'refund_from_magic' => true,
-                            'source' => 'Magento',
-                        ]
-                    ];
+                try{
+                    if ($rzpPaymentData->method != 'cod') {
+                        $refundData = [
+                            'amount' => $rzpPaymentData['amount'],
+                            'receipt' => $rzpOrderData['receipt'],
+                            'notes' => [
+                                'reason' => $e->getMessage(),
+                                'order_id' => $rzpOrderData['receipt'],
+                                'refund_from_magic' => true,
+                                'source' => 'Magento',
+                            ]
+                        ];
 
-                    $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
-                        ->getCollection()
-                        ->addFilter('order_id', $rzpOrderData['receipt'])
-                        ->getFirstItem();
+                        if (isset($rzpOrderData['notes']['cart_mask_id'])) {
+                            $cartDetails = $this->rzpHelper->getCartDetailsByMaskedId($rzpOrderData['notes']['cart_mask_id']);
+                        }
 
-                    $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::ORDER_NOT_PLACED_DUE_TO_STOCK_UNAVAILABILITY);
+                        $failedLog = $this->failedOrderLogFactory->create();
+                       
+                        $failedLog->setData([
+                            'receipt' => $rzpOrderData['receipt'] ?? null,
+                            'rzp_order_data' => print_r($rzpOrderData, true),
+                            'reason' => 'INVENTORY_OUT_OF_STOCK',
+                            'error_message' => $e->getMessage(),
+                            'rzp_paid_amount' => $rzpPaymentData['amount'] ?? null,
+                            'cart_details' => isset($cartDetails) ? print_r($cartDetails, true) : null,
+                        ]);
+                        $failedLog->save();
 
-                    $orderLink->save();
 
-                    try {
-                        $refund = $this->rzp->payment
-                            ->fetch($rzpPaymentId)
-                            ->refund($refundData);
-                    } catch (\Exception $e) {
-                        $this->logger->critical("Razorpay refund failed" . $e->getMessage());
+                        $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                            ->getCollection()
+                            ->addFilter('order_id', $rzpOrderData['receipt'])
+                            ->getFirstItem();
+
+                        $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::ORDER_NOT_PLACED_DUE_TO_STOCK_UNAVAILABILITY);
+
+                        $orderLink->save();
+
+                        try {
+                            $refund = $this->rzp->payment
+                                ->fetch($rzpPaymentId)
+                                ->refund($refundData);
+                        } catch (\Exception $e) {
+                            $this->logger->critical("Razorpay refund failed" . $e->getMessage());
+                        }
                     }
-                }
 
-                $this->messageManager->addError(__($e->getMessage()));
+                    $this->messageManager->addError(__($e->getMessage()));
+                } catch (\Exception $e) {
+                    $this->logger->critical("Razorpay refund failed" . $e->getMessage());
+                }
             }
 
             return $resultJson->setData([
@@ -798,5 +824,4 @@ class CompleteOrder extends Action
             ->utility
             ->verifyPaymentSignature($attributes);
     }
-
 }

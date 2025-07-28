@@ -210,6 +210,64 @@ class UpgradeSchema implements UpgradeSchemaInterface
 
         $setup->getConnection()->createTable($table);
 
+        // Create new table: razorpay_failed_order_log
+        if (!$setup->getConnection()->isTableExists($setup->getTable('razorpay_failed_order_log'))) {
+            $table = $setup->getConnection()->newTable(
+                $setup->getTable('razorpay_failed_order_log')
+            )->addColumn(
+                'id',
+                Table::TYPE_INTEGER,
+                null,
+                ['identity' => true, 'unsigned' => true, 'nullable' => false, 'primary' => true],
+                'ID'
+            )->addColumn(
+                'receipt',
+                Table::TYPE_TEXT,
+                255,
+                ['nullable' => true],
+                'Receipt'
+            )->addColumn(
+                'rzp_order_data',
+                Table::TYPE_TEXT,
+                '2M',
+                ['nullable' => true],
+                'Razorpay Order Data (JSON)'
+            )->addColumn(
+                'reason',
+                Table::TYPE_TEXT,
+                255,
+                ['nullable' => true],
+                'Failure Reason'
+            )->addColumn(
+                'error_message',
+                Table::TYPE_TEXT,
+                1024,
+                ['nullable' => true],
+                'Error Message'
+            )->addColumn(
+                'rzp_paid_amount',
+                Table::TYPE_TEXT,
+                255,
+                ['nullable' => true],
+                'Razorpay Paid Amount'
+            )->addColumn(
+                'cart_details',
+                Table::TYPE_TEXT,
+                '2M',
+                ['nullable' => true],
+                'Cart Details (JSON)'
+            )->addColumn(
+                'created_at',
+                Table::TYPE_TIMESTAMP,
+                null,
+                ['nullable' => false, 'default' => Table::TIMESTAMP_INIT],
+                'Created At'
+            );
+
+            $setup->getConnection()->createTable($table);
+        }
+
+
         $setup->endSetup();
     }
 

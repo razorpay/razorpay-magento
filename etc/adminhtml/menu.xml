@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Razorpay. All rights reserved.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+    <menu>
+        <add id="Razorpay_Magento::razorpay" title="Razorpay" translate="title" module="Razorpay_Magento" sortOrder="70" dependsOnModule="Razorpay_Magento" resource="Razorpay_Magento::razorpay"/>
+        <add id="Razorpay_Magento::failed_orders" title="Failed Orders Log" translate="title" module="Razorpay_Magento" sortOrder="10" parent="Razorpay_Magento::razorpay" action="razorpay/failedorders" resource="Razorpay_Magento::failed_orders"/>
+        <add id="Razorpay_Magento::configuration" title="Configuration" translate="title" module="Razorpay_Magento" sortOrder="20" parent="Razorpay_Magento::razorpay" action="adminhtml/system_config/edit/section/payment" resource="Razorpay_Magento::configuration"/>
+    </menu>
+</config> 

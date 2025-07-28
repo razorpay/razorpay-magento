@@ -17,6 +17,7 @@ use Razorpay\Magento\Constants\OrderCronStatus;
 use Razorpay\Magento\Controller\OneClick\AbandonedQuote;
 use Razorpay\Magento\Controller\OneClick\CompleteOrder;
 use Magento\Quote\Api\CartManagementInterface;
+use Razorpay\Magento\Model\PaymentMethod;
 
 class UpdateOrdersToProcessingV2
 {
@@ -71,6 +72,10 @@ class UpdateOrdersToProcessingV2
 
     protected $orderStatus;
 
+    protected $failedOrderLogFactory;
+
+    protected $rzpHelper;
+
     /**
      * @var STATUS_PROCESSING
      */
@@ -83,6 +88,7 @@ class UpdateOrdersToProcessingV2
     protected const STATE_NEW = 'new';
     protected const PAYMENT_AUTHORIZED = 'payment.authorized';
     protected const ORDER_PAID = 'order.paid';
+    const INVENTORY_OUT_OF_STOCK = "Some of the products are out of stock";
 
     protected const PROCESS_ORDER_WAIT_TIME = 5 * 60;
 
@@ -119,6 +125,7 @@ class UpdateOrdersToProcessingV2
     protected $cartRepositoryInterface;
     protected $cartManagement;
     protected $oneCCMagentoOrder;
+    protected $rzp;
 
     /**
      * CancelOrder constructor.
@@ -146,7 +153,10 @@ class UpdateOrdersToProcessingV2
         \Magento\Quote\Api\CartRepositoryInterface            $cartRepositoryInterface,
         CartManagementInterface                               $cartManagement,
         CompleteOrder                                         $oneCCMagentoOrder,
-        \Magento\Sales\Model\Order                            $order
+        \Magento\Sales\Model\Order                            $order,
+        PaymentMethod                                         $paymentMethod,
+        \Razorpay\Magento\Model\FailedOrderLogFactory         $failedOrderLogFactory,
+        \Razorpay\Magento\Helper\Data                         $rzpHelper
     )
     {
         $this->config = $config;
@@ -169,6 +179,7 @@ class UpdateOrdersToProcessingV2
         $this->cartManagement = $cartManagement;
         $this->oneCCMagentoOrder = $oneCCMagentoOrder;
         $this->order = $order;
+        $this->rzp = $paymentMethod->setAndGetRzpApiInstance();
 
         $this->enableCustomPaidOrderStatus = $this->config->isCustomPaidOrderStatusEnabled();
 
@@ -179,6 +190,8 @@ class UpdateOrdersToProcessingV2
 
         $this->authorizeCommand = new AuthorizeCommand();
         $this->captureCommand = new CaptureCommand();
+        $this->failedOrderLogFactory = $failedOrderLogFactory;
+        $this->rzpHelper = $rzpHelper;
     }
 
     public function execute()
@@ -214,8 +227,8 @@ class UpdateOrdersToProcessingV2
                     $cartId = isset($razorpayOrderData->notes) ? $razorpayOrderData->notes->cart_id : null;
                     $merchantOrderId = isset($razorpayOrderData->notes) ? $razorpayOrderData->notes->merchant_order_id : null;
 
-                    $this->debug->log("Cronjob: Razorpay Order data = " . json_encode($cartId));
-
+                    $this->debug->log("Cronjob: Razorpay Order data = " . json_encode($cartId)); 
+                    
                     $quote = $this->cartRepositoryInterface->get($cartId);
                     $this->quoteUpdate->updateQuote($quote, $razorpayOrderData, $rzpPaymentData);
 
@@ -223,6 +236,61 @@ class UpdateOrdersToProcessingV2
                     if ($result['status'] == 'success') {
                         $this->debug->log("Cronjob: Successfully placed Magento Order Id = " . $merchantOrderId);
                     } else {
+                        if (isset($result['error']) && strpos($result['error'], static::INVENTORY_OUT_OF_STOCK) !== false) {
+                            try{
+                                if ($rzpPaymentData->method != 'cod') {
+                                    $refundData = [
+                                        'amount' => $rzpPaymentData['amount'],
+                                        'receipt' => $razorpayOrderData['receipt'],
+                                        'notes' => [
+                                            'reason' => static::INVENTORY_OUT_OF_STOCK,
+                                            'order_id' => $razorpayOrderData['receipt'],
+                                            'refund_from_magic' => true,
+                                            'source' => 'Magento',
+                                        ]
+                                    ];
+                
+                                    if (isset($razorpayOrderData['notes']['cart_mask_id'])) {
+                                        $cartDetails = $this->rzpHelper->getCartDetailsByMaskedId($razorpayOrderData['notes']['cart_mask_id']);
+                                    }
+                
+                                    $failedLog = $this->failedOrderLogFactory->create();
+
+                                    $failedLog->setData([
+                                        'receipt' => $razorpayOrderData['receipt'] ?? null,
+                                        'rzp_order_data' => print_r($razorpayOrderData, true),
+                                        'reason' => 'INVENTORY_OUT_OF_STOCK',
+                                        'error_message' => $result['message'] ?? null,
+                                        'rzp_paid_amount' => $rzpPaymentData['amount'] ?? null,
+                                        'cart_details' => isset($cartDetails) ? print_r($cartDetails, true) : null,
+                                    ]);
+                                    $failedLog->save();
+                
+                
+                                    $orderLink = $this->getObjectManager()->get('Razorpay\Magento\Model\OrderLink')
+                                        ->getCollection()
+                                        ->addFilter('order_id', $razorpayOrderData['receipt'])
+                                        ->getFirstItem();
+                
+                                    $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::ORDER_NOT_PLACED_DUE_TO_STOCK_UNAVAILABILITY);
+                
+                                    $orderLink->save();
+
+                                    $rzpPaymentId = $rzpPaymentData->id;
+                
+                                    try {
+                                        $refund = $this->rzp->payment
+                                            ->fetch($rzpPaymentId)
+                                            ->refund($refundData);
+                                    } catch (\Exception $e) {
+                                        $this->logger->critical("Razorpay refund failed" . $e->getMessage());
+                                    }
+                                    $this->debug->log("Cronjob: Failed to place Magento Order Id = " . $merchantOrderId . " due to stock unavailability");
+                                }
+                            } catch (\Exception $e) {
+                                $this->logger->critical("Razorpay refund failed" . $e->getMessage());
+                            }
+                        }
                         $this->debug->log("Cronjob: Failed to place Magento Order Id = " . $merchantOrderId);
                     }
                 } else {
@@ -285,6 +353,8 @@ class UpdateOrdersToProcessingV2
             $order = $this->order->loadByIncrementId($merchantOrderId);
 
             if (!$order->getId()) {
+                //checks if all products are in stock
+                $this->oneCCMagentoOrder->checkProductsStock($cartId);
                 $orderId = $this->cartManagement->placeOrder($cartId);
                 $order = $this->order->load($orderId);
             } else {
@@ -297,6 +367,7 @@ class UpdateOrdersToProcessingV2
                     $result = [
                         'status' => 'failed',
                         'message' => "Cron failed to place the Magento order for rzp order id " . $rzpOrderId . " & rzp payment id " . $rzpPaymentId . " & magento cart id " . $cartId . " with error message - order was already placed",
+                        'error' => 'order was already placed'
                     ];
                     return $result;
                 }
@@ -307,6 +378,7 @@ class UpdateOrdersToProcessingV2
             $result = [
                 'status' => 'failed',
                 'message' => "Cron failed to place the Magento order for rzp order id " . $rzpOrderId . " & rzp payment id " . $rzpPaymentId . " & magento cart id " . $cartId . " with error message - " . $e->getMessage(),
+                'error' => $e->getMessage()
             ];
             return $result;
         }

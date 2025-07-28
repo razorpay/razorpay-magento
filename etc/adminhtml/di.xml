@@ -12,4 +12,20 @@
            </argument>
        </arguments>
    </type>
+
+   <!-- Failed Orders Grid Data Source -->
+   <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
+       <arguments>
+           <argument name="collections" xsi:type="array">
+               <item name="razorpay_failed_orders_grid_data_source" xsi:type="string">Razorpay\Magento\Model\ResourceModel\FailedOrderLog\Grid\Collection</item>
+           </argument>
+       </arguments>
+   </type>
+   
+   <virtualType name="Razorpay\Magento\Model\ResourceModel\FailedOrderLog\Grid\Collection" type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
+       <arguments>
+           <argument name="mainTable" xsi:type="string">razorpay_failed_order_log</argument>
+           <argument name="resourceModel" xsi:type="string">Razorpay\Magento\Model\ResourceModel\FailedOrderLog</argument>
+       </arguments>
+   </virtualType>
 </config>
