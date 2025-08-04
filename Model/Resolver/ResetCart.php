@@ -10,6 +10,7 @@ use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Sales\Api\OrderRepositoryInterface;
+use Razorpay\Magento\Model\TrackPluginInstrumentation;
 
 /**
  * Mutation resolver for resetting cart
@@ -34,6 +35,11 @@ class ResetCart implements ResolverInterface
     protected $orderRepository;
 
     /**
+     * @var \Razorpay\Magento\Model\TrackPluginInstrumentation
+     */
+    protected $trackPluginInstrumentation;
+
+    /**
      * @param \Psr\Log\LoggerInterface $logger
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param OrderRepositoryInterface $orderRepository
@@ -41,13 +47,15 @@ class ResetCart implements ResolverInterface
     public function __construct(
         \Psr\Log\LoggerInterface $logger,
         SearchCriteriaBuilder $searchCriteriaBuilder,
-        OrderRepositoryInterface $orderRepository
+        OrderRepositoryInterface $orderRepository,
+        TrackPluginInstrumentation $trackPluginInstrumentation
     )
     {
         $this->logger = $logger;
         $this->objectManager = \Magento\Framework\App\ObjectManager::getInstance();
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
         $this->orderRepository = $orderRepository;
+        $this->trackPluginInstrumentation = $trackPluginInstrumentation;
     }
 
     /**
@@ -60,6 +68,15 @@ class ResetCart implements ResolverInterface
         if (empty($args['order_id']) === true)
         {
             $this->logger->critical('graphQL: Input Exception: Required parameter "order_id" is missing');
+
+            $properties = [
+                "error_message" => "Required parameter 'order_id' is missing",
+                "file_path" => "model/Resolver/ResetCart.php",
+                "exception_type" => null,
+                "notes" => "graphql: validation failed for order_id",
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.graphql.resetcart.validation.failed', $properties);
 
             throw new GraphQlInputException(__('Required parameter "order_id" is missing'));
         }
@@ -80,9 +97,18 @@ class ResetCart implements ResolverInterface
                $order_id = $order->getId();
             }
         } 
-        catch (Exception $exception) 
+        catch (\Exception $exception) 
         {
             $this->logger->critical($exception->getMessage());
+
+            $properties = [
+                "error_message" => $exception->getMessage(),
+                "file_path" => "model/Resolver/ResetCart.php",
+                "exception_type" => get_class($exception),
+                "notes" => "graphql: order not found for order_id: " . $incrementId,
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.graphql.resetcart.failed', $properties);
             
             return [
                 'success'               => false,
@@ -117,6 +143,15 @@ class ResetCart implements ResolverInterface
             {
                 $this->logger->critical('graphQL: Order ID: ' . $order_id . ' cannot be canceled.');
 
+                $properties = [
+                    "error_message" => "Order ID: " . $order_id . " cannot be canceled.",
+                    "file_path" => "model/Resolver/ResetCart.php",
+                    "exception_type" => null,
+                    "notes" => "graphql: order cannot be canceled",
+                ];
+
+                $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.graphql.resetcart.failed', $properties);
+
                 $responseContent = [
                     'success'           => false,
                 ];
@@ -125,6 +160,15 @@ class ResetCart implements ResolverInterface
         catch(\Exception $e)
         {
             $this->logger->critical('graphQL: Exception: ' . $e->getMessage());
+
+            $properties = [
+                "error_message" => $e->getMessage(),
+                "file_path" => "model/Resolver/ResetCart.php",
+                "exception_type" => get_class($e),
+                "notes" => "graphql: reset cart failed",
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.graphql.resetcart.failed', $properties);
 
             $responseContent = [
                 'success'               => false,

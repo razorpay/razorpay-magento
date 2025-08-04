@@ -16,6 +16,7 @@ use Magento\Framework\Controller\ResultFactory;
 use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
 use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
 use Razorpay\Magento\Constants\OrderCronStatus;
+use Razorpay\Magento\Model\TrackPluginInstrumentation;
 
 /**
  * Webhook controller to handle Razorpay order webhook
@@ -95,6 +96,11 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController implements
     protected $debug;
 
     /**
+     * @var \Razorpay\Magento\Model\TrackPluginInstrumentation
+     */
+    protected $trackPluginInstrumentation;
+
+    /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession
@@ -117,7 +123,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController implements
         \Magento\Framework\DB\Transaction $transaction,
         \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender,
         \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
-        \Razorpay\Magento\Model\Util\DebugUtils $debug
+        \Razorpay\Magento\Model\Util\DebugUtils $debug,
+        TrackPluginInstrumentation $trackPluginInstrumentation
     ) {
         parent::__construct(
             $context,
@@ -138,7 +145,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController implements
         $this->orderSender        = $orderSender;
         $this->orderStatus        = static::STATUS_PROCESSING;
         $this->debug              = $debug;
-
+        $this->trackPluginInstrumentation = $trackPluginInstrumentation;
         $this->enableCustomPaidOrderStatus = $this->config->isCustomPaidOrderStatusEnabled();
 
         if ($this->enableCustomPaidOrderStatus === true
@@ -163,6 +170,16 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController implements
         if (json_last_error() !== 0)
         {
             $this->debug->log("Razorpay Webhook processing stopped due to last json error.");
+
+            $properties = [
+                "error_message" => "JSON decode error",
+                "file_path" => "controller/Payment/Webhook.php",
+                "exception_type" => null,
+                "notes" => "Razorpay Webhook processing stopped due to last json error.",
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.webhook.process.failed', $properties);
+
             return;
         }
 
@@ -205,6 +222,16 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController implements
                         ]
                     );
                     header('Status: 400 Signature Verification failed', true, 400); // nosemgrep
+
+                    $properties = [
+                        "error_message" => $e->getMessage(),
+                        "file_path" => "controller/Payment/Webhook.php",
+                        "exception_type" => get_class($e),
+                        "notes" => "Webhook signature verification failed."
+                    ];
+
+                    $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.webhook.signature.failed', $properties);
+                    
                     exit;
                 }
 
@@ -319,57 +346,75 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController implements
     */
     protected function setWebhookData($post, $entityId, $webhookVerifiedStatus, $paymentId, $amount)
     {
-        $order                  = $this->order->load($entityId);
-
-        $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
-                        ->load($order->getEntityId(), 'order_id');
-
-        $existingWebhookData    = $orderLink->getRzpWebhookData();
-
-        if ($post['event'] === 'payment.authorized')
+        try
         {
-            $amount = $post['payload']['payment']['entity']['amount'];
-        }
-        else if ($post['event'] === 'order.paid')
-        {
-            $amount = $post['payload']['order']['entity']['amount_paid'];
-        }
-        $webhookData = array(
+            $order = $this->order->load($entityId);
+
+            $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                            ->load($order->getEntityId(), 'order_id');
+
+            $existingWebhookData    = $orderLink->getRzpWebhookData();
+
+            if ($post['event'] === 'payment.authorized')
+            {
+                $amount = $post['payload']['payment']['entity']['amount'];
+            }
+            else if ($post['event'] === 'order.paid')
+            {
+                $amount = $post['payload']['order']['entity']['amount_paid'];
+            }
+            $webhookData = array(
             "webhook_verified_status"   => $webhookVerifiedStatus,
             "payment_id"                => $paymentId,
             "amount"                    => $amount 
-        );
+            );
 
-        if (!empty($existingWebhookData))
-        {
-            $existingWebhookData = unserialize($existingWebhookData); // nosemgrep
-            
-            if (!array_key_exists($post['event'], $existingWebhookData))
+            if (!empty($existingWebhookData))
             {
-                $existingWebhookData[$post['event']] = $webhookData;
-            }
+                $existingWebhookData = unserialize($existingWebhookData); // nosemgrep
 
-            $webhookDataText = serialize($existingWebhookData);
-        }
-        else
-        {
+                if (!array_key_exists($post['event'], $existingWebhookData))
+                {
+                    $existingWebhookData[$post['event']] = $webhookData;
+                }
+
+                $webhookDataText = serialize($existingWebhookData);
+            }
+            else
+            {
             $eventArray         = [$post['event'] => $webhookData];
             $webhookDataText    = serialize($eventArray);
-        }
-        
-        $orderLink->setOrderId($order->getEntityId());
-        $orderLink->setRzpWebhookData($webhookDataText);
-        
-        if ($post['event'] === 'order.paid' and
-            $orderLink->getRzpUpdateOrderCronStatus() == OrderCronStatus::PAYMENT_AUTHORIZED_CRON_REPEAT)
-        {
-            $this->logger->info('Order paid received after manual capture for id: ' . $order->getIncrementId());
-            $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::ORDER_PAID_AFTER_MANUAL_CAPTURE);
-        }
+            }
 
-        $orderLink->save();
+            $orderLink->setOrderId($order->getEntityId());
+            $orderLink->setRzpWebhookData($webhookDataText);
+
+            if ($post['event'] === 'order.paid' and
+                $orderLink->getRzpUpdateOrderCronStatus() == OrderCronStatus::PAYMENT_AUTHORIZED_CRON_REPEAT)
+            {
+                $this->logger->info('Order paid received after manual capture for id: ' . $order->getIncrementId());
+                $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::ORDER_PAID_AFTER_MANUAL_CAPTURE);
+            }
+
+            $orderLink->save();
 
         $this->logger->info('Webhook data saved for id:' . $order->getIncrementId() . 'event:' . $post['event']);
+        }
+        catch (\Exception $e)
+        {
+            // @codeCoverageIgnoreStart
+            $this->logger->error('Error while setting webhook data: ' . $e->getMessage());
+            // @codeCoverageIgnoreEnd
+
+            $properties = [
+                "error_message" => $e->getMessage(),
+                "file_path" => "controller/Payment/Webhook.php",
+                "exception_type" => get_class($e),
+                "notes" => "Error while setting webhook data for order",
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.webhook.setdata.failed', $properties);
+        }
     }
 
     protected function setOneCCWebhookData($post, $entityId, $webhookVerifiedStatus, $paymentId, $amount)

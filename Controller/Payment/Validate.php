@@ -15,7 +15,7 @@ use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
 use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
 use Psr\Log\LoggerInterface as Logger;
 use Razorpay\Magento\Constants\OrderCronStatus;
-
+use Razorpay\Magento\Model\TrackPluginInstrumentation;
 
 class Validate extends \Razorpay\Magento\Controller\BaseController implements CsrfAwareActionInterface
 {
@@ -87,6 +87,11 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
     protected $captureCommand;
 
     /**
+     * @var \Razorpay\Magento\Model\TrackPluginInstrumentation
+     */
+    protected $trackPluginInstrumentation;
+
+    /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession
@@ -106,7 +111,8 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
         \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender,
         OrderRepositoryInterface $orderRepository,
         \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
-        Logger $logger
+        Logger $logger,
+        TrackPluginInstrumentation $trackPluginInstrumentation
     ) 
     {
         parent::__construct(
@@ -142,6 +148,7 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
 
         $this->authorizeCommand = new AuthorizeCommand();
         $this->captureCommand = new CaptureCommand();
+        $this->trackPluginInstrumentation = $trackPluginInstrumentation;
     }
 
     // @codeCoverageIgnoreStart
@@ -315,10 +322,29 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
             catch (\Magento\Framework\Exception\MailException $exception)
             {
                 $this->logger->critical("Validate: MailException Error message:" . $exception->getMessage());
+
+                $properties = [
+                    "error_message" => $exception->getMessage(),
+                    "file_path" => "controller/Payment/Validate.php",
+                    "exception_type" => get_class($exception),
+                    "notes" => "Error while sending order email after payment success"
+                ];
+
+                $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.handler.sent.email.failed', $properties);
+
             }
             catch (\Exception $e)
             {
                 $this->logger->critical("Validate: Exception Error message:" . $e->getMessage());
+
+                $properties = [
+                    "error_message" => $e->getMessage(),
+                    "file_path" => "controller/Payment/Validate.php",
+                    "exception_type" => get_class($e),
+                    "notes" => "Error while sending order email after payment success"
+                ];
+
+                $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.handler.sent.email.failed', $properties);
             }
             // @codeCoverageIgnoreEnd
 
@@ -342,6 +368,15 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
             $responseContent['message'] = $e->getMessage();
 
             $code = $e->getCode();
+
+            $properties = [
+                "error_message" => $e->getMessage(),
+                "file_path" => "controller/Payment/Validate.php",
+                "exception_type" => get_class($e),
+                "notes" => "Error while validating order failed."
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.validate.handler.failed', $properties);
         }
         catch(\Exception $e)
         {
@@ -349,6 +384,15 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
             $responseContent['message'] = $e->getMessage();
 
             $code = $e->getCode();
+
+            $properties = [
+                "error_message" => $e->getMessage(),
+                "file_path" => "controller/Payment/Validate.php",
+                "exception_type" => get_class($e),
+                "notes" => "Error while validating order failed."
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.validate.handler.failed', $properties);
         }
         // @codeCoverageIgnoreEnd
 
@@ -370,6 +414,16 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
         {
             $this->logger->critical("Validate: Payment Failed or error from gateway");
             $this->messageManager->addError(__('Payment Failed'));
+
+            $properties = [
+                "error_message" => "Payment Failed or error from gateway",
+                "file_path" => "controller/Payment/Validate.php",
+                "exception_type" => null,
+                "notes" => "validateSignature failed"
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.handler.validate.signature.failed', $properties);
+            
             throw new \Exception("Payment Failed or error from gateway");
         }
         // @codeCoverageIgnoreEnd
