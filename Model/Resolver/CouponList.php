@@ -12,6 +12,7 @@ use Magento\SalesRule\Model\ResourceModel\Rule\CollectionFactory as RuleCollecti
 use Magento\SalesRule\Model\Coupon;
 use Magento\SalesRule\Model\RuleFactory;
 use Magento\SalesRule\Model\Rule;
+use Razorpay\Magento\Model\TrackPluginInstrumentation;
 
 class CouponList implements ResolverInterface
 {
@@ -27,14 +28,18 @@ class CouponList implements ResolverInterface
      */
     private $couponModel;
 
+    private $trackPluginInstrumentation;
+
     public function __construct(
         RuleCollectionFactory $ruleCollectionFactory,
         Coupon $couponModel,
-        RuleFactory $ruleFactory
+        RuleFactory $ruleFactory,
+        TrackPluginInstrumentation $trackPluginInstrumentation
     ) {
         $this->ruleCollectionFactory = $ruleCollectionFactory;
         $this->couponModel = $couponModel;
         $this->ruleFactory = $ruleFactory;
+        $this->trackPluginInstrumentation = $trackPluginInstrumentation;
     }
 
     /**
@@ -48,34 +53,44 @@ class CouponList implements ResolverInterface
         array $args = null
     ) {
         $appliedCoupons = [];
+        try{
 
-        $ruleCollection = $this->ruleCollectionFactory->create();
+            $ruleCollection = $this->ruleCollectionFactory->create();
 
-        $currentDate = (new \DateTime())->format(\Magento\Framework\Stdlib\DateTime::DATETIME_PHP_FORMAT);
+            $currentDate = (new \DateTime())->format(\Magento\Framework\Stdlib\DateTime::DATETIME_PHP_FORMAT);
 
-        // Add filters to include only active and non-expired rules
-        $ruleCollection->addFieldToFilter('is_active', 1);
+            // Add filters to include only active and non-expired rules
+            $ruleCollection->addFieldToFilter('is_active', 1);
 
-        $ruleCollection->addFieldToFilter('to_date', [['gteq' => $currentDate], ['null' => true]]);
+            $ruleCollection->addFieldToFilter('to_date', [['gteq' => $currentDate], ['null' => true]]);
 
-        $ruleCollection->addFieldToFilter('conditions_serialized', ['nlike' => '%"shipping_method"%']);
+            $ruleCollection->addFieldToFilter('conditions_serialized', ['nlike' => '%"shipping_method"%']);
 
-        $ruleCollection->addFieldToFilter('conditions_serialized', ['nlike' => '%"payment_method"%']);
+            $ruleCollection->addFieldToFilter('conditions_serialized', ['nlike' => '%"payment_method"%']);
 
-        foreach ($ruleCollection as $rule) {
-            $couponCollection = $this->couponModel->getCollection()
-                ->addFieldToFilter('rule_id', $rule->getId());
+            foreach ($ruleCollection as $rule) {
+                $couponCollection = $this->couponModel->getCollection()
+                    ->addFieldToFilter('rule_id', $rule->getId());
 
-            foreach ($couponCollection as $coupon) {
-                $appliedCoupons[] = [
-                    'title' => $this->getCouponCodeByRuleId($rule->getId()),
-                    'discountAmount' => $this->calculateDiscountAmount($rule),
-                    'description' => $rule->getDescription() ?: '',
-                ];
+                foreach ($couponCollection as $coupon) {
+                    $appliedCoupons[] = [
+                        'title' => $this->getCouponCodeByRuleId($rule->getId()),
+                        'discountAmount' => $this->calculateDiscountAmount($rule),
+                        'description' => $rule->getDescription() ?: '',
+                    ];
+                }
             }
-        }
 
-        return $appliedCoupons;
+            return $appliedCoupons;
+        } catch (\Exception $e) {
+            $properties = [
+                'error_message' => $e->getMessage(),
+                'file_path' => 'model/Resolver/CouponList.php',
+                'exception_type' => get_class($e),
+                'notes' => 'graphq: get coupon list failed'
+            ];
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.1cc.graphql.coupon.list.failed', $properties);
+        }
     }
 
     /**

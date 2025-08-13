@@ -2,11 +2,20 @@
 
 namespace Razorpay\Magento\Controller\OneClick;
 
+use Razorpay\Magento\Model\TrackPluginInstrumentation;
 /**
  * State name mapping
  */
 class StateMap
 {
+    protected $trackPluginInstrumentation;
+
+    public function __construct(
+        TrackPluginInstrumentation $trackPluginInstrumentation
+    ) {
+        $this->trackPluginInstrumentation = $trackPluginInstrumentation;
+    }
+
     function getMagentoStateName($country, $stateName)
     {
         switch ($country) {
@@ -72,6 +81,16 @@ class StateMap
         ];
 
         $trimmedStateName = str_replace(' ', '', $stateName);
+
+        //if state name is not in the map, then want to add a alert in the track plugin instrumentation
+        if (!isset($stateCodeMap[$trimmedStateName])) {
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.1cc.state.map.failed', [
+                'error_message' => 'state name not in the map for state name: ' . $stateName,
+                'file_path' => 'controller/OneClick/StateMap.php',
+                'exception_type' => null,
+                'notes' => 'state name not found in the mapping file'
+            ]);
+        }
 
         $magentoStateName = $stateCodeMap[$trimmedStateName] ?? $stateName;
 

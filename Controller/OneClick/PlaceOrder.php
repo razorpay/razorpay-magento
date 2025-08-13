@@ -28,6 +28,7 @@ use Magento\Customer\Model\Session as CustomerSession;
 use Magento\SalesSequence\Model\Manager as SequenceManager;
 use Magento\ConfigurableProduct\Model\Product\Type\Configurable as ConfigurableProduct;
 use Magento\GroupedProduct\Model\Product\Type\Grouped as GroupedProduct;
+use Razorpay\Magento\Model\TrackPluginInstrumentation;
 
 class PlaceOrder extends Action
 {
@@ -92,6 +93,8 @@ class PlaceOrder extends Action
     protected $groupedProduct;
     protected $customerSession;
 
+    protected $trackPluginInstrumentation;
+
     const QUOTE_LINKED_RAZORPAY_ORDER_ID = "quote_linked_razorpay_order_id";
 
     /**
@@ -127,7 +130,8 @@ class PlaceOrder extends Action
         QuoteFactory                              $quoteFactory,
         ConfigurableProduct                       $configurableProduct,
         GroupedProduct                            $groupedProduct,
-        CustomerSession                           $customerSession
+        CustomerSession                           $customerSession,
+        TrackPluginInstrumentation                $trackPluginInstrumentation
     )
     {
         parent::__construct($context);
@@ -151,6 +155,7 @@ class PlaceOrder extends Action
         $this->configurableProduct = $configurableProduct;
         $this->groupedProduct = $groupedProduct;
         $this->customerSession = $customerSession;
+        $this->trackPluginInstrumentation = $trackPluginInstrumentation;
     }
 
     public function execute()
@@ -290,11 +295,25 @@ class PlaceOrder extends Action
             $totalAmount = $quote->getSubtotalWithDiscount() * 100;
 
         } catch (LocalizedException $e) {
+            $properties = [
+                'error_message' => $e->getMessage(),
+                'file_path' => 'controller/OneClick/PlaceOrder.php',
+                'exception_type' => get_class($e),
+                'notes' => 'place order failed'
+            ];
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.1cc.create.order.failed', $properties);
             return $resultJson->setData([
                 'status' => 'error',
                 'message' => __($e->getMessage()),
             ]);
         } catch (\Exception $e) {
+            $properties = [
+                'error_message' => $e->getMessage(),
+                'file_path' => 'controller/OneClick/PlaceOrder.php',
+                'exception_type' => get_class($e),
+                'notes' => 'place order failed'
+            ];
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.1cc.create.order.failed', $properties);
             return $resultJson->setData([
                 'status' => 'error',
                 'message' => __('An error occurred on the server. Please try again.'),
@@ -303,44 +322,74 @@ class PlaceOrder extends Action
 
         $storeScope = \Magento\Store\Model\ScopeInterface::SCOPE_STORE;
 
-        $paymentAction = $this->config->getPaymentAction();
-        $paymentCapture = 1;
-        if ($paymentAction === 'authorize') {
-            $paymentCapture = 0;
-        }
-        $rzpKey = $this->config->getKeyId();
-        $merchantName = $this->config->getMerchantNameOverride();
-        $allowCouponApplication = $this->config->getMerchantCouponApplication();
+        try {
+            $paymentAction = $this->config->getPaymentAction();
+            $paymentCapture = 1;
+            if ($paymentAction === 'authorize') {
+                $paymentCapture = 0;
+            }
+            $rzpKey = $this->config->getKeyId();
+            $merchantName = $this->config->getMerchantNameOverride();
+            $allowCouponApplication = $this->config->getMerchantCouponApplication();
 
-        $this->getLastOrderId($quote);
+            $this->getLastOrderId($quote);
 
-        $orderNotes = [
-            'cart_mask_id' => $maskedId,
-            'cart_id' => $quoteId,
-            'merchant_order_id' => (string)$quote->getReservedOrderId() ?? 'order pending'
-        ];
-        $customerEmail = $this->getCustomerEmailFromQuote();
-
-        if($customerEmail !== false)
-        {
-            $customerEmailNotes = [
-                'website_logged_in_email' => $customerEmail
+            $orderNotes = [
+                'cart_mask_id' => $maskedId,
+                'cart_id' => $quoteId,
+                'merchant_order_id' => (string)$quote->getReservedOrderId() ?? 'order pending'
             ];
-            $orderNotes = array_merge($orderNotes, $customerEmailNotes);
+            $customerEmail = $this->getCustomerEmailFromQuote();
+
+            if($customerEmail !== false)
+            {
+                $customerEmailNotes = [
+                    'website_logged_in_email' => $customerEmail
+                ];
+                $orderNotes = array_merge($orderNotes, $customerEmailNotes);
+            }
+
+            $razorpay_order = $this->rzp->order->create([
+                'amount' => $totalAmount,
+                'receipt' => (string)$quote->getReservedOrderId() ?? 'order pending',
+                'currency' => $this->storeManager->getStore()->getBaseCurrencyCode(),
+                'payment_capture' => $paymentCapture,
+                'app_offer' => 0,
+                'notes' => $orderNotes,
+                'line_items_total' => $totalAmount,
+                'line_items' => $lineItems
+            ]);
+        } catch (\Exception $e) {
+            $this->logger->critical('graphQL: Razorpay Order not generated. Something went wrong');
+            $properties = [
+                'error_message' => $e->getMessage(),
+                'file_path' => 'controller/OneClick/PlaceOrder.php',
+                'exception_type' => get_class($e),
+                'notes' => 'error during create an order in razorpay'
+            ];
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.1cc.create.order.failed', $properties);
+
+            return $resultJson->setData([
+                'status' => 'error',
+                'message' => __('An error occurred on the server. Please try again.'),
+            ]);
+        } catch (\Razorpay\Api\Errors\Error $e) {
+            $this->logger->critical('graphQL: Razorpay Order not generated. Something went wrong');
+            $properties = [
+                'error_message' => $e->getMessage(),
+                'file_path' => 'controller/OneClick/PlaceOrder.php',
+                'exception_type' => get_class($e),
+                'notes' => 'error during create an order in razorpay'
+            ];
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.1cc.create.order.failed', $properties);
+
+            return $resultJson->setData([
+                'status' => 'error',
+                'message' => __('An error occurred on the server. Please try again.'),
+            ]);
         }
 
-        $razorpay_order = $this->rzp->order->create([
-            'amount' => $totalAmount,
-            'receipt' => (string)$quote->getReservedOrderId() ?? 'order pending',
-            'currency' => $this->storeManager->getStore()->getBaseCurrencyCode(),
-            'payment_capture' => $paymentCapture,
-            'app_offer' => 0,
-            'notes' => $orderNotes,
-            'line_items_total' => $totalAmount,
-            'line_items' => $lineItems
-        ]);
-
-        if (null !== $razorpay_order && !empty($razorpay_order->id)) {
+        if (isset($razorpay_order) && null !== $razorpay_order && !empty($razorpay_order->id)) {
             $this->logger->info('graphQL: Razorpay Order ID: ' . $razorpay_order->id);
             $catalogRzpKey = static::QUOTE_LINKED_RAZORPAY_ORDER_ID.'_'.$maskedId;
             $this->logger->info('graphQL: Razorpay Order ID stored catalogKey: ' . $catalogRzpKey);
@@ -366,6 +415,14 @@ class PlaceOrder extends Action
                 ->save();
         } else {
             $this->logger->critical('graphQL: Razorpay Order not generated. Something went wrong');
+
+            $properties = [
+                'error_message' => "Razorpay Order not generated. Something went wrong",
+                'file_path' => 'controller/OneClick/PlaceOrder.php',
+                'exception_type' => null,
+                'notes' => null
+            ];
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.1cc.create.order.failed', $properties);
 
             $result = [
                 'status' => 'error',
@@ -417,6 +474,14 @@ class PlaceOrder extends Action
             return $reservedOrderId;
         } catch (\Exception $e) {
             // Handle exception if needed
+
+            $properties = [
+                'error_message' => "Failed to generate magento order id at getLastOrderId function",
+                'file_path' => 'controller/OneClick/PlaceOrder.php',
+                'exception_type' => null,
+                'notes' => null
+            ];
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.1cc.create.reserve.orderid.failed', $properties);
             return 'order pending';
         }
     }

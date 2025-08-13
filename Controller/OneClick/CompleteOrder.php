@@ -25,6 +25,7 @@ use Razorpay\Magento\Controller\OneClick\StateMap;
 use Razorpay\Magento\Model\CartConverter;
 use Razorpay\Magento\Model\CustomerConsent;
 use Razorpay\Magento\Constants\OrderCronStatus;
+use Razorpay\Magento\Model\TrackPluginInstrumentation;
 
 class CompleteOrder extends Action
 {
@@ -92,6 +93,7 @@ class CompleteOrder extends Action
     protected $cartConverter;
     protected $customerConsent;
     protected $_order = null;
+    protected $trackPluginInstrumentation;
 
     const COD = 'cashondelivery';
     const RAZORPAY = 'razorpay';
@@ -136,7 +138,8 @@ class CompleteOrder extends Action
         CollectionFactory                                     $collectionFactory,
         StateMap                                              $stateNameMap,
         CartConverter                                         $cartConverter,
-        CustomerConsent                                       $customerConsent
+        CustomerConsent                                       $customerConsent,
+        TrackPluginInstrumentation                            $trackPluginInstrumentation
     )
     {
         parent::__construct($context);
@@ -167,6 +170,7 @@ class CompleteOrder extends Action
         $this->orderStatus = static::STATE_PROCESSING;
         $this->authorizeCommand = new AuthorizeCommand();
         $this->captureCommand = new CaptureCommand();
+        $this->trackPluginInstrumentation = $trackPluginInstrumentation;
     }
 
     public function execute()
@@ -218,6 +222,15 @@ class CompleteOrder extends Action
             $code = $e->getCode();
             $this->messageManager->addError(__('Payment Failed.'));
 
+            $properties = [
+                'error_message' => $e->getMessage(),
+                'file_path' => 'controller/OneClick/CompleteOrder.php',
+                'exception_type' => get_class($e),
+                'notes' => 'complete order failed'
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.1cc.complete.order.failed', $properties);
+
             return $resultJson->setData([
                 'status' => 'error',
                 'code' => $code,
@@ -257,10 +270,26 @@ class CompleteOrder extends Action
                             ->refund($refundData);
                     } catch (\Exception $e) {
                         $this->logger->critical("Razorpay refund failed" . $e->getMessage());
+
+                        $properties = [
+                            'error_message' => $e->getMessage(),
+                            'file_path' => 'controller/OneClick/CompleteOrder.php',
+                            'exception_type' => get_class($e),
+                            'notes' => 'razorpay refund failed in complete order'
+                        ];
+                        $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.1cc.refund.failed', $properties);
                     }
                 }
 
                 $this->messageManager->addError(__($e->getMessage()));
+            } else {
+                $properties = [
+                    'error_message' => $e->getMessage(),
+                    'file_path' => 'controller/OneClick/CompleteOrder.php',
+                    'exception_type' => get_class($e),
+                    'notes' => 'complete order failed'
+                ];
+                $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.1cc.complete.order.failed', $properties);
             }
 
             return $resultJson->setData([
@@ -306,6 +335,13 @@ class CompleteOrder extends Action
                 if ($attempts == self::MAX_ATTEMPTS) {
                     $this->logger->critical("All attempts to place the Magento order have failed for rzp order id " . $rzpOrderId . " & rzp payment id " . $rzpPaymentId . " & magento cart id " . $cartId);
 
+                    $properties = [
+                        'error_message' => $e->getMessage(),
+                        'file_path' => 'controller/OneClick/CompleteOrder.php',
+                        'exception_type' => get_class($e),
+                        'notes' => 'magento order placement failed in all attempts'
+                    ];
+                    $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.1cc.order.placement.failed', $properties);
                     throw new \Exception("Magento order creation failed with error message." . $e->getMessage());
                 }
                 continue;
@@ -528,10 +564,26 @@ class CompleteOrder extends Action
                 $this->logger->critical('graphQL: '
                     . 'Razorpay Error:' . $e->getMessage());
 
+                $properties = [
+                    'error_message' => $e->getMessage(),
+                    'file_path' => 'controller/OneClick/CompleteOrder.php',
+                    'exception_type' => get_class($e),
+                    'notes' => 'email send failed in complete order'
+                ];
+                $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.1cc.email.send.failed', $properties);
+
                 throw new GraphQlInputException(__('Razorpay Error: %1.', $e->getMessage()));
             } catch (\Exception $e) {
                 $this->logger->critical('graphQL: '
                     . 'Error:' . $e->getMessage());
+
+                $properties = [
+                    'error_message' => $e->getMessage(),
+                    'file_path' => 'controller/OneClick/CompleteOrder.php',
+                    'exception_type' => get_class($e),
+                    'notes' => 'email send failed in complete order'
+                ];
+                $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.1cc.email.send.failed', $properties);
 
                 throw new GraphQlInputException(__('Error: %1.', $e->getMessage()));
             }
@@ -593,6 +645,13 @@ class CompleteOrder extends Action
 
             return $appliedDiscounts;
         } catch (\Exception $e) {
+            $properties = [
+                'error_message' => $e->getMessage(),
+                'file_path' => 'controller/OneClick/CompleteOrder.php',
+                'exception_type' => get_class($e),
+                'notes' => 'get applied discounts failed in complete order'
+            ];
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.1cc.get.applied.discounts.failed', $properties);
             // Handle exception if order retrieval fails
             return [];
         }
@@ -625,6 +684,13 @@ class CompleteOrder extends Action
 
             return true;
         } catch (\Exception $e) {
+            $properties = [
+                'error_message' => $e->getMessage(),
+                'file_path' => 'controller/OneClick/CompleteOrder.php',
+                'exception_type' => get_class($e),
+                'notes' => 'update discount amount failed in complete order'
+            ];
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.1cc.update.discount.amount.failed', $properties);
             // Handle exception
             return false;
         }
@@ -778,6 +844,16 @@ class CompleteOrder extends Action
         if (empty($request['error']) === false) {
             $this->logger->critical("Validate: Payment Failed or error from gateway" . $request['razorpay_order_id']);
             $this->messageManager->addError(__('Payment Failed'));
+
+            $properties = [
+                'error_message' => "Payment Failed or error from gateway for " . $request['razorpay_order_id'],
+                'file_path' => 'controller/OneClick/CompleteOrder.php',
+                'exception_type' => null,
+                'notes' => 'validate signature validation failed in complete order'
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.1cc.webhook.validation.failed', $properties);
+
             throw new \Exception("Payment Failed or error from gateway for " . $request['razorpay_order_id']);
         }
         $catalogRzpKey = static::QUOTE_LINKED_RAZORPAY_ORDER_ID . '_' . $cartMaskId;

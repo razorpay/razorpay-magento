@@ -16,6 +16,7 @@ use Magento\Directory\Model\ResourceModel\Region\CollectionFactory;
 use Magento\Directory\Model\ResourceModel\Region\Collection;
 use Razorpay\Magento\Model\CartConverter;
 use Magento\Quote\Api\CartManagementInterface;
+use Razorpay\Magento\Model\TrackPluginInstrumentation;
 
 class AbandonedQuote extends Action
 {
@@ -51,6 +52,7 @@ class AbandonedQuote extends Action
     protected $stateNameMap;
     protected $cartConverter;
     protected $cartManagement;
+    protected $trackPluginInstrumentation;
 
     protected $order;
     const COD = 'cashondelivery';
@@ -79,7 +81,8 @@ class AbandonedQuote extends Action
         StateMap                                   $stateNameMap,
         CartConverter                              $cartConverter,
         CartManagementInterface                    $cartManagement,
-        \Magento\Sales\Model\Order                 $order
+        \Magento\Sales\Model\Order                 $order,
+        TrackPluginInstrumentation                 $trackPluginInstrumentation
     )
     {
         parent::__construct($context);
@@ -95,6 +98,7 @@ class AbandonedQuote extends Action
         $this->cartConverter = $cartConverter;
         $this->cartManagement = $cartManagement;
         $this->order = $order;
+        $this->trackPluginInstrumentation = $trackPluginInstrumentation;
     }
 
     public function execute()
@@ -183,6 +187,16 @@ class AbandonedQuote extends Action
 
             } catch (\Exception $e) {
                 $this->logger->info('graphQL: magento pending order placement failed for AB cart and rzp order id: ' . $rzpOrderId);
+
+                $properties = [
+                    'error_message' => $e->getMessage(),
+                    'file_path' => 'controller/OneClick/AbandonedQuote.php',
+                    'exception_type' => get_class($e),
+                    'notes' => 'Order placement failed for abandoned quote',
+                ];
+
+                $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.1cc.abandoned.order.placement.failed', $properties);
+
                 return $resultJson->setData([
                     'status' => 'Failed',
                     'code' => 'BAD_REQUEST',
@@ -202,6 +216,14 @@ class AbandonedQuote extends Action
             $code = $e->getCode();
             $this->messageManager->addError(__('Payment Failed.'));
 
+            $properties = [
+                'error_message' => $e->getMessage(),
+                'file_path' => 'controller/OneClick/AbandonedQuote.php',
+                'exception_type' => get_class($e),
+                'notes' => 'abandoned quote failed'
+            ];
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.1cc.abandoned.quote.failed', $properties);
+
             return $resultJson->setData([
                 'status' => 'error',
                 'code' => $code,
@@ -212,6 +234,14 @@ class AbandonedQuote extends Action
             $this->messageManager->addError(__('Payment Failed.'));
 
             $code = $e->getCode();
+
+            $properties = [
+                'error_message' => $e->getMessage(),
+                'file_path' => 'controller/OneClick/AbandonedQuote.php',
+                'exception_type' => get_class($e),
+                'notes' => 'abandoned quote failed'
+            ];
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.1cc.abandoned.quote.failed', $properties);
 
             return $resultJson->setData([
                 'status' => 'failed',
