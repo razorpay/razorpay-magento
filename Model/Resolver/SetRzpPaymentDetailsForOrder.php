@@ -148,7 +148,7 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
     /**
      * @inheritdoc
      */
-    public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
+    public function resolve(Field $field, $context, ResolveInfo $info, ?array $value = null, ?array $args = null)
     {
         $this->logger->info('graphQL: Set Razorpay Payment Details for Order Started');
 
