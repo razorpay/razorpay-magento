@@ -219,11 +219,12 @@ class AfterConfigSaveObserver implements ObserverInterface
     public function saveConfigData($razorpayParams)
     {
         $storeName = "";
-
+        
         $firstElement = array_values($razorpayParams)[0];
+        
+        $razorpayParamsFormattedArray = array('config_settings' => array());
         if (empty($firstElement) === false and array_keys($firstElement)[0] === "value")
         {
-            $razorpayParamsFormattedArray = array('config_settings' => array());
             foreach($razorpayParams as $key=>$value)
             {
                 if ($key != "key_id" && $key != "key_secret")
