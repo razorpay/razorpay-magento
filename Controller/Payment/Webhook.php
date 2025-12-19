@@ -251,7 +251,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController implements
 
                     $this->setWebhookData($post, $orderWebhookData['entity_id'], true, $paymentId, $amountPaid);
 
-                    $this->setWebhookNotifiedAt($orderWebhookData['entity_id']);
+                    $this->setWebhookNotifiedAt($orderWebhookData['entity_id'], $post);
                 }
             }
         }
@@ -286,12 +286,27 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController implements
         return $collection->getData();
     }
 
-    protected function setWebhookNotifiedAt($entity_id)
+    protected function setWebhookNotifiedAt($entity_id, $post)
     {
         $order = $this->order->load($entity_id);
 
         $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
-                        ->load($order->getEntityId(), 'order_id');
+                            ->getCollection()
+                            ->addFieldToFilter('order_id', $order->getEntityId())
+                            ->addFieldToFilter('rzp_order_id', $post['payload']['payment']['entity']['order_id'])
+                            ->getFirstItem();
+
+        if (!$orderLink->getId()) {
+            $properties = [
+                "error_message" => "OrderLink not found at setWebhookNotifiedAt",
+                "file_path" => "controller/Payment/Webhook.php",
+                "exception_type" => null,
+                "notes" => null
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.webhook.setdata.failed', $properties);
+            return;
+        }
 
         $orderLink->setRzpWebhookNotifiedAt(time());
         $orderLink->save();
@@ -312,7 +327,23 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController implements
             $order = $this->order->load($entityId);
 
             $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
-                            ->load($order->getEntityId(), 'order_id');
+                            ->getCollection()
+                            ->addFieldToFilter('order_id', $order->getEntityId())
+                            ->addFieldToFilter('rzp_order_id', $post['payload']['payment']['entity']['order_id'])
+                            ->getFirstItem();
+
+            if (!$orderLink->getId()) {
+                
+                $properties = [
+                    "error_message" => "OrderLink not found at setWebhookData",
+                    "file_path" => "controller/Payment/Webhook.php",
+                    "exception_type" => null,
+                    "notes" => "OrderLink not found",
+                ];
+
+                $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.webhook.setdata.failed', $properties);
+                return;
+            }
 
             $existingWebhookData    = $orderLink->getRzpWebhookData();
 
