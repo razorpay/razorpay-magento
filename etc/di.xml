@@ -98,4 +98,10 @@
 			</argument>
 		</arguments>
 	</type>
+
+	<!-- Preference for Order Totals Block to show prepaid and COD amounts in order summary section -->
+	<!-- <preference for="Magento\Sales\Block\Adminhtml\Order\Totals" type="Razorpay\Magento\Block\Adminhtml\Order\Totals" /> -->
+	
+	<!-- Preference for Invoice Totals Block to show prepaid and COD amounts in invoice summary section -->
+	<preference for="Magento\Sales\Block\Adminhtml\Order\Invoice\Totals" type="Razorpay\Magento\Block\Adminhtml\Order\Invoice\Totals" />
 </config>

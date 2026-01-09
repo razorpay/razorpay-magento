@@ -99,6 +99,7 @@ class CompleteOrder extends Action
     const RAZORPAY = 'razorpay';
     const STATE_PENDING_PAYMENT = 'pending_payment';
     const STATE_PROCESSING = 'processing';
+    const STATE_PARTIALLY_PAID = 'partially_paid';
     const QUOTE_LINKED_RAZORPAY_ORDER_ID = "quote_linked_razorpay_order_id";
     const INVENTORY_OUT_OF_STOCK = "Some of the products are out of stock";
     const MAX_ATTEMPTS = "3";
@@ -215,7 +216,7 @@ class CompleteOrder extends Action
             $result = $this->placeMagentoOrder($cartId, $rzpPaymentData, $rzpOrderData);
 
             return $resultJson->setData($result);
-
+            
         } catch (\Razorpay\Api\Errors\Error $e) {
             $this->logger->critical("Validate: Razorpay Error message:" . $e->getMessage());
 
@@ -355,6 +356,8 @@ class CompleteOrder extends Action
                 $this->logger->critical("Razorpay payment is failed for the order id " . $rzpOrderId);
             }
 
+            $isPartialCodOrder = $this->isPartialCod($rzpOrderData->status, $rzpPaymentData->status);
+
             if ($order->getStatus() === 'pending') {
                 if ($rzpPaymentData->status === 'pending' && $rzpPaymentData->method === 'cod') {
                     $order->setState(static::STATE_PENDING_PAYMENT)
@@ -366,9 +369,10 @@ class CompleteOrder extends Action
 
                 $this->logger->info('graphQL: Order Status Updated to ' . $this->orderStatus . " for order id " . $rzpOrderId);
             }
-
-            //Check if any razorpay offer is applied or not
-            if (($rzpOrderData->amount !== $rzpOrderData->amount_paid) && $rzpPaymentData->method != 'cod') {
+            
+            //Check if any razorpay offer is applied or not and not COD/partial COD(because rzp payment offer is not applicable for Partial COD's partially paid amount)
+            if (($rzpOrderData->amount !== $rzpOrderData->amount_paid) && $rzpPaymentData->method != 'cod' && $isPartialCodOrder != 1) {
+                $this->logger->info('graphQL: Entering offer discount calculation - Amount mismatch detected and not COD/partial COD');
                 $discountAmount = $order->getDiscountAmount();
 
                 $codFee = $rzpOrderData->cod_fee;
@@ -400,6 +404,31 @@ class CompleteOrder extends Action
                     $this->updateDiscountAmount($orderId, $newDiscountAmount, $offerDiscount, $totalPaid);
                 }
             }
+            
+            if ($isPartialCodOrder == 1) {
+                //set proper paid and pending amount to order
+                $amountDue = $rzpOrderData->amount_due ?? 0;
+                $amountPaid = $rzpOrderData->amount_paid ?? 0;
+                $codFee = $rzpOrderData->cod_fee ?? 0;
+
+                $this->updateOrderDue($orderId, $amountPaid, $amountDue);
+                
+                // Store prepaid and COD amounts separately for display
+                $prepaidAmount = $amountPaid / 100;
+                $codAmount = $amountDue / 100;
+                
+                $order->setData('razorpay_prepaid_amount', $prepaidAmount);
+                $order->setData('razorpay_cod_amount', $codAmount);
+
+                $partialCodComment = __(
+                    'Partial COD payment - Prepaid: ₹%1, COD Amount Due: ₹%2',
+                    number_format($amountPaid / 100, 2),
+                    number_format($amountDue / 100, 2)
+                );
+                $order->addStatusHistoryComment(
+                    $partialCodComment
+                )->setStatus($order->getStatus())->setIsCustomerNotified(false);
+            }
 
             $payment = $order->getPayment();
 
@@ -411,7 +440,7 @@ class CompleteOrder extends Action
             $payment->setParentTransactionId($payment->getTransactionId());
 
             if ($rzpPaymentData->method != 'cod') {
-                if ($this->config->getPaymentAction() === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE) {
+                if ($this->config->getPaymentAction() === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE_CAPTURE && $isPartialCodOrder != 1) {
                     $payment->addTransactionCommentsToOrder(
                         "$rzpPaymentId",
                         $this->captureCommand->execute(
@@ -426,14 +455,13 @@ class CompleteOrder extends Action
                         "$rzpPaymentId",
                         $this->authorizeCommand->execute(
                             $payment,
-                            $order->getGrandTotal(),
+                            $isPartialCodOrder == 1 ? $amountPaid/100 : $order->getGrandTotal(),
                             $order
                         ),
                         ""
                     );
                 }
                 $this->logger->info('Payment authorized completed for id : ' . $order->getIncrementId());
-
             } else {
                 $order->addStatusHistoryComment("Razorpay Payment Id " . $rzpPaymentId)->setStatus($order->getStatus())->setIsCustomerNotified(true);
             }
@@ -450,8 +478,10 @@ class CompleteOrder extends Action
 
             $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::PAYMENT_AUTHORIZED_COMPLETED);
 
-            if ($order->canInvoice() && $this->config->canAutoGenerateInvoice()
-                && $rzpOrderData->status === 'paid') {
+            if (
+                $order->canInvoice() && $this->config->canAutoGenerateInvoice()
+                && $rzpOrderData->status === 'paid' && $isPartialCodOrder != 1
+            ) {
                 $invoice = $this->invoiceService->prepareInvoice($order);
                 $invoice->setRequestedCaptureCase(\Magento\Sales\Model\Order\Invoice::CAPTURE_ONLINE);
                 $invoice->setTransactionId($rzpPaymentId);
@@ -474,10 +504,18 @@ class CompleteOrder extends Action
                 )->setIsCustomerNotified(true);
 
                 $this->logger->info('Invoice generated for id : ' . $order->getIncrementId());
-            } else if ($rzpOrderData->status === 'paid' and
+            } else if (
+                $rzpOrderData->status === 'paid' && $isPartialCodOrder != 1 &&
                 ($order->canInvoice() === false or
-                    $this->config->canAutoGenerateInvoice() === false)) {
+                    $this->config->canAutoGenerateInvoice() === false)
+            ) {
                 $this->logger->info('Invoice generation not possible for id : ' . $order->getIncrementId());
+            } else if ($order->canInvoice() && $this->config->canAutoGenerateInvoice() && $isPartialCodOrder === true) {
+                //partial cod flow, add partial cod comments to order
+                $partialCodComment = __('Partial COD payment received for order id %1.', $rzpOrderId);
+                $order->addStatusHistoryComment(
+                    $partialCodComment
+                )->setStatus($order->getStatus())->setIsCustomerNotified(false);
             }
 
             $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATED);
@@ -601,10 +639,24 @@ class CompleteOrder extends Action
                     ->setLastOrderStatus($order->getStatus());
             }
 
+            // Check if this is a partial COD order and set status accordingly
+            if ($isPartialCodOrder) {
+                $this->logger->info('graphQL: This is a partial COD order, setting status to partially_paid');
+                $order->setStatus(static::STATE_PARTIALLY_PAID);
+                $order->setState(static::STATE_PROCESSING);
+                
+                // Ensure prepaid and COD amounts are stored if not already set
+                if (!$order->getData('razorpay_prepaid_amount')) {
+                    $amountPaid = $rzpOrderData->amount_paid ?? 0;
+                    $amountDue = $rzpOrderData->amount_due ?? 0;
+                    $order->setData('razorpay_prepaid_amount', $amountPaid / 100);
+                    $order->setData('razorpay_cod_amount', $amountDue / 100);
+                }
+            }
             $order->save();
             $orderLink->save();
 
-            // Get applied discounts data from the order object
+                        // Get applied discounts data from the order object
             $appliedDiscounts = $this->getAppliedDiscounts($order);
 
             $result = [
@@ -795,7 +847,7 @@ class CompleteOrder extends Action
             ->toArray();
 
         return $regionCode['code'] ?? 'NA';
-
+        
     }
 
     protected function getAddress($rzpAddress, $regionCode, $email)
@@ -875,4 +927,20 @@ class CompleteOrder extends Action
             ->verifyPaymentSignature($attributes);
     }
 
+    protected function isPartialCod($orderStatus, $paymentStatus)
+    {
+        // This method checks if the order is a partial COD scenario
+        // 
+        // $orderStatus === 'attempted': The Razorpay order has been attempted (partial payment made)
+        // $paymentStatus === 'captured': The online portion of the payment has been successfully captured
+        return $orderStatus === 'attempted' && $paymentStatus === 'captured';
+    }
+
+    protected function updateOrderDue($orderId, $amountPaid, $amountDue)
+    {
+        $order = $this->order->load($orderId);
+        $order->setTotalPaid($amountPaid/100);
+        $order->setTotalDue($amountDue/100);
+        $order->save();
+    }
 }

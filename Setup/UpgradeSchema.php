@@ -131,11 +131,11 @@ class UpgradeSchema implements UpgradeSchemaInterface
             );
         }
 
-        $tableNameForQuote = $setup->getTable('quote');
+        $tableNameForQuote = $setup->getConnection()->getTableName('quote');
         if ($setup->getConnection()->isTableExists($tableNameForQuote) == true)
         {
             $setup->getConnection()->addColumn(
-                $tableName,
+                $tableNameForQuote,
                 'razorpay_cod_fee',
                 [
                     'nullable' => true,
@@ -144,6 +144,41 @@ class UpgradeSchema implements UpgradeSchemaInterface
                     'comment'  => 'RZP custom cod fee'
                 ]
             );
+        }
+
+        // Add columns to sales_order table for partial COD amounts
+        $salesOrderTable = $setup->getConnection()->getTableName('sales_order');
+        if ($setup->getConnection()->isTableExists($salesOrderTable) == true)
+        {
+            // Check if columns already exist before adding
+            $connection = $setup->getConnection();
+            if (!$connection->tableColumnExists($salesOrderTable, 'razorpay_prepaid_amount')) {
+                $setup->getConnection()->addColumn(
+                    $salesOrderTable,
+                    'razorpay_prepaid_amount',
+                    [
+                        'nullable' => true,
+                        'default'  => 0,
+                        'type' => \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
+                        'length' => '12,4',
+                        'comment'  => 'RZP Prepaid Amount (Partial Payment)'
+                    ]
+                );
+            }
+            
+            if (!$connection->tableColumnExists($salesOrderTable, 'razorpay_cod_amount')) {
+                $setup->getConnection()->addColumn(
+                    $salesOrderTable,
+                    'razorpay_cod_amount',
+                    [
+                        'nullable' => true,
+                        'default'  => 0,
+                        'type' => \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
+                        'length' => '12,4',
+                        'comment'  => 'RZP COD Amount (Remaining Amount)'
+                    ]
+                );
+            }
         }
 
         $table = $setup->getConnection()->newTable($setup->getTable(OrderLink::TABLE_NAME));

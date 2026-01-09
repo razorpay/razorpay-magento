@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Sales:etc/pdf_file.xsd">
+    <totals>
+        <total name="razorpay_prepaid_amount">
+            <title translate="true">Prepaid</title>
+            <model>Razorpay\Magento\Model\Order\Pdf\Total\PrepaidAmount</model>
+            <source_field>razorpay_prepaid_amount</source_field>
+            <font_size>7</font_size>
+            <display_zero>false</display_zero>
+            <sort_order>250</sort_order>
+        </total>
+        <total name="razorpay_cod_amount">
+            <title translate="true">COD Amount</title>
+            <model>Razorpay\Magento\Model\Order\Pdf\Total\CodAmount</model>
+            <source_field>razorpay_cod_amount</source_field>
+            <font_size>7</font_size>
+            <display_zero>false</display_zero>
+            <sort_order>260</sort_order>
+        </total>
+    </totals>
+</config>
+
