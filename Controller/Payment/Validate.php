@@ -305,9 +305,20 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
                     ($order->canInvoice() === false or
                     $this->config->canAutoGenerateInvoice() === false))
             {
+                // This ensures the custom status flow is maintained after payment authorization and capture
+                $order->setState(static::STATUS_PROCESSING)->setStatus($this->orderStatus);
+                
                 $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATION_NOT_POSSIBLE);
                 
                 $this->logger->info('Invoice generation not possible for id : '. $order->getIncrementId());
+            } 
+            else if ($this->config->getPaymentAction() === \Razorpay\Magento\Model\PaymentMethod::ACTION_AUTHORIZE) 
+            {
+                // For authorize-only payments, set the order status and state
+                // This ensures the custom status flow is maintained after payment authorization
+                $order->setState(static::STATUS_PROCESSING)->setStatus($this->orderStatus);
+                
+                $this->logger->info('Order status updated for authorize-only payment for id: ' . $order->getIncrementId());
             }
             $orderLink->save();
             $order->save();

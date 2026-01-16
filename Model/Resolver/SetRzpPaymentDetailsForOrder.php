@@ -382,6 +382,8 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
 
                     $this->invoiceSender->send($invoice);
 
+                    $order->setState(static::STATUS_PROCESSING)->setStatus($this->orderStatus);
+
                     $order->addStatusHistoryComment(
                         __('Notified customer about invoice #%1.', $invoice->getId())
                     )->setIsCustomerNotified(true);
@@ -393,6 +395,7 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
                         ($order->canInvoice() === false or
                         $this->config->canAutoGenerateInvoice() === false))
                 {
+                    $order->setState(static::STATUS_PROCESSING)->setStatus($this->orderStatus);
                     $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATION_NOT_POSSIBLE);
                     $this->logger->info('Invoice generation not possible for id : '. $order->getIncrementId());
                 }
