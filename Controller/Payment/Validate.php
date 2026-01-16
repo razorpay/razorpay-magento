@@ -305,7 +305,7 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
                     ($order->canInvoice() === false or
                     $this->config->canAutoGenerateInvoice() === false))
             {
-                // This ensures the custom status flow is maintained after payment authorization
+                // This ensures the custom status flow is maintained after payment authorization and capture
                 $order->setState(static::STATUS_PROCESSING)->setStatus($this->orderStatus);
                 
                 $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::INVOICE_GENERATION_NOT_POSSIBLE);
