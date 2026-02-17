@@ -200,7 +200,6 @@ define(
                 var options = {
                     key: self.getKeyId(),
                     name: self.getMerchantName(),
-                    amount: data.amount,
                     timeout: 720,
                     handler: function (data) {
                         self.rzp_response = data;
@@ -397,7 +396,6 @@ define(
                 var opts = {
                     key: self.getKeyId(),
                     name: self.getMerchantName(),
-                    amount: data.amount,
                     order_id: data.rzp_order,
                     notes: {
                         merchant_order_id: data.order_id
