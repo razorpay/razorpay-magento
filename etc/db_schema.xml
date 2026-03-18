@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+
+    <table name="sales_order" resource="sales">
+        <column xsi:type="varchar" name="gst_number" nullable="true" length="50" comment="GST Number"/>
+    </table>
+
+    <table name="sales_order_grid" resource="sales">
+        <column xsi:type="varchar" name="gst_number" nullable="true" length="50" comment="GST Number"/>
+    </table>
+
+</schema>

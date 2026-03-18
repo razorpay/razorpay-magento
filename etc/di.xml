@@ -75,6 +75,15 @@
 	        <argument name="logger" xsi:type="object">RazorpayLogger</argument>
 	    </arguments>
 	</type>
+	<!-- Sync gst_number from sales_order to sales_order_grid -->
+	<virtualType name="Magento\Sales\Model\ResourceModel\Order\Grid">
+		<arguments>
+			<argument name="columns" xsi:type="array">
+				<item name="gst_number" xsi:type="string">sales_order.gst_number</item>
+			</argument>
+		</arguments>
+	</virtualType>
+
 	<!-- Add custom total for quote -->
 	<type name="Magento\Quote\Model\Quote\Address\Total\Collector">
 		<arguments>

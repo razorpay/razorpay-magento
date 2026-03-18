@@ -1,0 +1,12 @@
+{
+    "sales_order": {
+        "column": {
+            "gst_number": true
+        }
+    },
+    "sales_order_grid": {
+        "column": {
+            "gst_number": true
+        }
+    }
+}

@@ -464,9 +464,13 @@ class CompleteOrder extends Action
                 $commentCallback
             )->setStatus($order->getStatus())->setIsCustomerNotified(false);
 
-            $gstin = $rzpOrderData->notes->gstin ?? '';
+            $gstin = $rzpOrderData->notes->gstin ?? 'TEST GSTIN';
             if (empty($gstin) === false) {
                 $gstinComment = __('Customer GSTIN number %1.', $gstin);
+
+                //want to store it in the order table
+                $order->setGstNumber($gstin);
+                $order->save();
 
                 $order->addStatusHistoryComment(
                     $gstinComment

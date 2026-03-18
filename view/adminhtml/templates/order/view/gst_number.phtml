@@ -1,0 +1,12 @@
+<?php
+/**
+ * @var \Razorpay\Magento\Block\Adminhtml\Order\View\GstNumber $block
+ */
+$gstNumber = $block->getGstNumber();
+?>
+<?php if ($gstNumber): ?>
+    <tr>
+        <th><?= $block->escapeHtml(__('GST Number')) ?></th>
+        <td><?= $block->escapeHtml($gstNumber) ?></td>
+    </tr>
+<?php endif; ?>
