@@ -250,7 +250,7 @@ class PlaceOrder extends Action
                     // Get the discount amount applied to the item
                     $discountAmount = abs($quoteItem->getDiscountAmount() / (int)$quoteItem->getQty());
 
-                    $offerPrice = ($quoteItem->getPrice() - $discountAmount) * 100;
+                    $offerPrice = (int) round(($quoteItem->getPrice() - $discountAmount) * 100);
                 }
 
                 $categoriesIds = $product->getCategoryIds(); /*will return category ids array*/
@@ -287,7 +287,7 @@ class PlaceOrder extends Action
 
                 $items[] = $item;
             }
-            $totalAmount = $quote->getSubtotalWithDiscount() * 100;
+            $totalAmount = (int) round($quote->getSubtotalWithDiscount() * 100);
 
         } catch (LocalizedException $e) {
             return $resultJson->setData([
@@ -329,16 +329,24 @@ class PlaceOrder extends Action
             $orderNotes = array_merge($orderNotes, $customerEmailNotes);
         }
 
-        $razorpay_order = $this->rzp->order->create([
-            'amount' => $totalAmount,
-            'receipt' => (string)$quote->getReservedOrderId() ?? 'order pending',
-            'currency' => $this->storeManager->getStore()->getBaseCurrencyCode(),
-            'payment_capture' => $paymentCapture,
-            'app_offer' => 0,
-            'notes' => $orderNotes,
-            'line_items_total' => $totalAmount,
-            'line_items' => $lineItems
-        ]);
+        try {
+            $razorpay_order = $this->rzp->order->create([
+                'amount' => $totalAmount,
+                'receipt' => (string)$quote->getReservedOrderId() ?? 'order pending',
+                'currency' => $this->storeManager->getStore()->getBaseCurrencyCode(),
+                'payment_capture' => $paymentCapture,
+                'app_offer' => 0,
+                'notes' => $orderNotes,
+                'line_items_total' => $totalAmount,
+                'line_items' => $lineItems
+            ]);
+        } catch (\Razorpay\Api\Errors\Error $e) {
+            $this->logger->critical('Razorpay API error: ' . $e->getMessage());
+            return $resultJson->setData(['status' => 'error', 'message' => $e->getMessage()]);
+        } catch (\Exception $e) {
+            $this->logger->critical('Order create exception: ' . $e->getMessage());
+            return $resultJson->setData(['status' => 'error', 'message' => __('An error occurred. Please try again.')]);
+        }
 
         if (null !== $razorpay_order && !empty($razorpay_order->id)) {
             $this->logger->info('graphQL: Razorpay Order ID: ' . $razorpay_order->id);
