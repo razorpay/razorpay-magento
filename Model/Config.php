@@ -14,6 +14,7 @@ class Config
     const KEY_PRIVATE_KEY = 'key_secret';
     const KEY_MERCHANT_NAME_OVERRIDE = 'merchant_name_override';
     const KEY_PAYMENT_ACTION = 'rzp_payment_action';
+    const KEY_BUY_NOW_CART_PUSH = 'magic_buy_now_cart_push';
     const KEY_AUTO_INVOICE = 'auto_invoice';
     const KEY_NEW_ORDER_STATUS = 'order_status';
     const ENABLE_WEBHOOK = 'enable_webhook';
@@ -126,6 +127,11 @@ class Config
     public function getPaymentAction()
     {
         return $this->getConfigData(self::KEY_PAYMENT_ACTION);
+    }
+
+    public function getBuyNowAction()
+    {
+        return $this->getConfigData(self::KEY_BUY_NOW_CART_PUSH);
     }
 
     public function getNewOrderStatus()

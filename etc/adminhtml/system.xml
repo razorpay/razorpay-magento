@@ -135,7 +135,19 @@
                     </depends>
                 </field>
 
-                <field id="activate_magic_mini_cart" translate="label" type="select" sortOrder="27" showInDefault="0" showInWebsite="0" showInStore="0">
+                <field id="magic_buy_now_cart_push" translate="label" type="select" sortOrder="27" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Update Product to Existing Cart on Buy Now </label>
+                    <comment>If you enable this configuration then on click of buy now button on PDP, magic will push the item to existing cart</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <config_path>payment/razorpay/magic_buy_now_cart_push</config_path>
+                    <depends>
+                        <field id="activate_magic">1</field>
+                        <field id="activate_magic_buy_now">1</field>
+                    </depends>
+                </field>
+
+
+                <field id="activate_magic_mini_cart" translate="label" type="select" sortOrder="28" showInDefault="0" showInWebsite="0" showInStore="0">
                     <label>Magic Mini Cart Enabled</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <config_path>payment/razorpay/activate_magic_mini_cart</config_path>
@@ -144,7 +156,7 @@
                     </depends>
                 </field>
 
-                <field id="allow_coupon_apply_magic" translate="label" type="select" sortOrder="28" showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="allow_coupon_apply_magic" translate="label" type="select" sortOrder="29" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Allow Coupon Apply on Magic </label>
                     <comment>Setup coupon widget on Magic Checkout modal</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
