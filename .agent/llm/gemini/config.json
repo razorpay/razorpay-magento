@@ -1,0 +1,29 @@
+{
+  "model_preferences": {
+    "primary": "gemini-2.0-flash-exp",
+    "fallback": "gemini-1.5-pro",
+    "fast_tasks": "gemini-1.5-flash"
+  },
+  "context_strategy": {
+    "always_load": ["AGENTS.md", "GEMINI.md"],
+    "load_on_demand": {
+      "checkout_task":  ["context/checkout-flow.md", "docs/LLD.md"],
+      "extension_task": ["context/extension-flows.md"],
+      "api_task":       ["docs/API.md"],
+      "debug_task":     [".agent/skills/debug-payment-failure.md"],
+      "hld_task":       ["docs/HLD.md"]
+    }
+  },
+  "grounding": {
+    "use_file_context": true,
+    "prefer_diagrams": true,
+    "mermaid_support": true
+  },
+  "notes": [
+    "Magento 1.x — XML-based MVC, no Composer",
+    "PHP 5.3 compatibility required",
+    "Prototype.js for all frontend JS",
+    "Razorpay API v1 — Basic Auth with key_id:key_secret",
+    "Amounts always in paise (INR * 100)"
+  ]
+}

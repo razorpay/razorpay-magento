@@ -1,0 +1,26 @@
+{
+  "model_preferences": {
+    "primary": "kimi-k2",
+    "fallback": "moonshot-v1-128k",
+    "fast_tasks": "moonshot-v1-32k"
+  },
+  "context_strategy": {
+    "always_load": ["AGENTS.md", "KIMI.md"],
+    "load_on_demand": {
+      "checkout_task":  ["context/checkout-flow.md"],
+      "extension_task": ["context/extension-flows.md"],
+      "api_task":       ["docs/API.md"],
+      "debug_task":     [".agent/skills/debug-payment-failure.md"],
+      "any_task":       ["docs/FLOWS.md"]
+    }
+  },
+  "long_context": true,
+  "notes": [
+    "Use long context window for reading multiple files at once",
+    "Magento 1.x — XML-based MVC, no Composer, no namespaces",
+    "PHP 5.3 only — no modern PHP features",
+    "JavaScript: Prototype.js (NOT jQuery)",
+    "All Razorpay amounts: paise = INR * 100",
+    "key_secret never in JS or templates"
+  ]
+}
