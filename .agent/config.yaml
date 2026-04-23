@@ -1,0 +1,80 @@
+# Agent Configuration — Razorpay Magento Extension
+# Read by: Claude Code, Gemini CLI, Kimi, Cursor, Devin, SWE-agent, OpenHands, and all LLM agents
+
+agent:
+  name: razorpay-magento-agent
+  version: "1.0.0"
+  description: "Agentic development assistant for the Razorpay Payment Extension for Magento 1.x"
+  repo: "razorpay/razorpay-magento"
+
+# Always read these before starting any task
+context:
+  primary:
+    - AGENTS.md
+  documentation:
+    - docs/HLD.md
+    - docs/LLD.md
+    - docs/FLOWS.md
+    - docs/API.md
+  deep_context:
+    - context/checkout-flow.md
+    - context/extension-flows.md
+    - context/payment-capture.md
+    - context/configuration.md
+
+# All skills available in this repo
+skills:
+  - id: add-checkout-extension
+    file: .agent/skills/add-checkout-extension.md
+    description: Add Razorpay support for a new third-party one-page checkout extension
+    tags: [frontend, php, javascript, integration]
+
+  - id: add-razorpay-api
+    file: .agent/skills/add-razorpay-api.md
+    description: Integrate a new Razorpay REST API endpoint into the extension
+    tags: [backend, php, api, razorpay]
+
+  - id: add-admin-config
+    file: .agent/skills/add-admin-config.md
+    description: Add a new admin configuration field for the Razorpay payment method
+    tags: [backend, php, magento, config]
+
+  - id: debug-payment-failure
+    file: .agent/skills/debug-payment-failure.md
+    description: Diagnose and fix payment capture failures or checkout errors
+    tags: [debug, payment, capture, api]
+
+  - id: implement-refund
+    file: .agent/skills/implement-refund.md
+    description: Implement the refund capability (currently stubbed out in this extension)
+    tags: [backend, php, api, refund]
+
+  - id: add-webhook-handler
+    file: .agent/skills/add-webhook-handler.md
+    description: Add a Razorpay webhook endpoint for async payment events (payment.captured, order.paid, etc.)
+    tags: [backend, php, webhook, razorpay]
+
+  - id: bump-version
+    file: .agent/skills/bump-version.md
+    description: Correctly bump the extension version across all required files
+    tags: [maintenance, versioning, release]
+
+  - id: test-payment-flow
+    file: .agent/skills/test-payment-flow.md
+    description: Test checklist for all four checkout flows (native, FireCheckout, IWD OPC, AppZab)
+    tags: [testing, qa, checkout]
+
+# Hard constraints — enforced for ALL agents
+constraints:
+  php_version: ">=5.3, <7.0"         # Magento 1 runs PHP 5.x
+  javascript: "prototype.js"          # NOT jQuery (except in IWD OPC templates)
+  package_manager: "none"             # No Composer — Magento 1 XML class map
+  no_php_namespaces: true             # `namespace Foo\Bar;` is INVALID here
+  currency_unit: "paise"              # All amounts sent to Razorpay: INR * 100
+  secret_never_in_js: true            # key_secret MUST NOT appear in any .phtml or .js
+
+# LLM-specific configs
+llm:
+  claude:  { config: .agent/llm/claude/config.json,  prompt: .agent/llm/claude/system-prompt.md  }
+  gemini:  { config: .agent/llm/gemini/config.json,  prompt: .agent/llm/gemini/system-prompt.md  }
+  kimi:    { config: .agent/llm/kimi/config.json,    prompt: .agent/llm/kimi/system-prompt.md    }

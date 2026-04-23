@@ -1,0 +1,32 @@
+{
+  "model_preferences": {
+    "primary": "claude-opus-4-6",
+    "fallback": "claude-sonnet-4-6",
+    "fast_tasks": "claude-haiku-4-5-20251001"
+  },
+  "context_strategy": {
+    "always_load": ["AGENTS.md", "CLAUDE.md"],
+    "load_on_demand": {
+      "checkout_task":    ["context/checkout-flow.md", "docs/LLD.md"],
+      "extension_task":   ["context/extension-flows.md", "docs/LLD.md"],
+      "api_task":         ["docs/API.md", "app/code/community/Razorpay/Payments/Helper/Data.php"],
+      "config_task":      ["context/configuration.md"],
+      "debug_task":       [".agent/skills/debug-payment-failure.md", "context/payment-capture.md"],
+      "capture_task":     ["context/payment-capture.md", "app/code/community/Razorpay/Payments/Model/Paymentmethod.php"]
+    }
+  },
+  "tool_preferences": {
+    "file_read": "Read",
+    "search": "Grep",
+    "edit": "Edit",
+    "write": "Write"
+  },
+  "max_context_files": 8,
+  "temperature": 0.1,
+  "notes": [
+    "This extension uses PHP 5.3 — no modern PHP features",
+    "JavaScript is Prototype.js, not jQuery",
+    "All Razorpay amounts in paise (integer, INR * 100)",
+    "key_secret must never appear in any template or JS output"
+  ]
+}

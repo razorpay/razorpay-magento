@@ -1,0 +1,48 @@
+# Cursor Rules — Razorpay Magento Extension
+
+## Project Context
+PHP Magento 1.x payment extension for Razorpay. Module: `Razorpay_Payments`.
+Read `AGENTS.md` for the full codebase map.
+
+## Language & Framework Rules
+- PHP 5.3+ compatible only. No namespaces, no arrow functions, no typed properties, no match.
+- JavaScript uses Prototype.js (NOT jQuery). Exceptions: IWD OPC phtml uses `$j_opc` (scoped jQuery).
+- Magento 1 class naming: `Namespace_Module_Layer_Name` maps to `app/code/community/Namespace/Module/Layer/Name.php`
+- No Composer. Class loading via Magento's XML declaration in `config.xml`.
+
+## Key Patterns
+
+### Reading Config
+```php
+Mage::getStoreConfig('payment/razorpay/field_name');
+// or
+Mage::getModel('razorpay_payments/paymentmethod')->getConfigData('field_name');
+```
+
+### API Calls
+```php
+$helper = Mage::helper('razorpay_payments');
+$result = $helper->sendRequest($url, $postData); // handles auth automatically
+```
+
+### JS AJAX (Prototype.js)
+```javascript
+new Ajax.Request(url, {
+    method: 'post',
+    onSuccess: function(response) { var data = response.responseJSON; },
+    onFailure: function() { alert('Error'); }
+});
+```
+
+## File Modification Rules
+- **Changing API calls?** → Edit `Helper/Data.php` only
+- **Changing checkout button behavior?** → Edit appropriate `extensions/*/payments.phtml`
+- **Adding admin config?** → Edit both `system.xml` AND `config.xml` (defaults)
+- **Changing routes?** → Edit `config.xml` + `CheckoutController.php`
+
+## Do Not
+- Add Composer packages
+- Use PHP namespaces
+- Use jQuery in non-IWD templates
+- Expose `key_secret` to browser/JS
+- Add `$_canRefund = true` without implementing `refund()` method
