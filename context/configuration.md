@@ -34,14 +34,23 @@
 - **Format**: `rzp_live_xxx` (live) or `rzp_test_xxx` (test)
 
 ### `key_secret` (API Key Secret)
-- **Type**: Text input (not password type — security concern)
+- **Type**: Text input — **known security gap: should be `obscure` + encrypted backend**
 - **Config path**: `payment/razorpay/key_secret`
 - **Default**: `'Key Secret'` (placeholder)
 - **Scope**: Default + Website
 - **Used by**:
   - `Paymentmethod::getConfigData('key_secret')` → used in `Helper::sendRequest()` for Basic Auth
-  - NEVER exposed to browser/JS
-- **Security note**: Stored plaintext in `core_config_data`. Production Magento instances should use encrypted config values.
+  - NEVER exposed to browser/JS or any template output
+- **Security note**: Currently stored plaintext in `core_config_data`. To fix, update `system.xml` entry for `key_secret` to use encrypted storage:
+  ```xml
+  <key_secret translate="label">
+      <label>API Key Secret</label>
+      <frontend_type>obscure</frontend_type>
+      <backend_model>adminhtml/system_config_backend_encrypted</backend_model>
+      ...
+  </key_secret>
+  ```
+- **Never** call `var_dump`, `print_r`, or `Mage::log` with `key_secret` value — it is a live payment credential.
 
 ### `title` (Payment Method Title)
 - **Type**: Text input

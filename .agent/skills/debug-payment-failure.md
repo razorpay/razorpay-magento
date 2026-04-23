@@ -29,18 +29,34 @@ var_dump(Mage::getStoreConfigFlag('payment/razorpay/active'));
 
 ### Check 2: Are API keys set?
 ```php
+// Check that keys are not still the default placeholder values.
+// NEVER dump or log key_secret — it is a live credential.
 $model = Mage::getModel('razorpay_payments/paymentmethod');
-var_dump($model->getConfigData('key_id'));     // Should NOT be 'Key ID'
-var_dump($model->getConfigData('key_secret')); // Should NOT be 'Key Secret'
+$keyId = $model->getConfigData('key_id');
+if ($keyId === 'Key ID' || empty($keyId)) {
+    echo 'ERROR: key_id is not configured';
+}
+// Verify key_secret is set WITHOUT revealing its value:
+$keySecret = $model->getConfigData('key_secret');
+if ($keySecret === 'Key Secret' || empty($keySecret)) {
+    echo 'ERROR: key_secret is not configured';
+}
+unset($keySecret); // discard — do not log or print
 ```
 
 ### Check 3: cURL connectivity
 ```bash
-curl -u rzp_test_KEY_ID:KEY_SECRET \
+# Use a .netrc file or environment variable to avoid credentials appearing in shell history.
+# Option A — environment variable (credentials not in command history):
+export RZP_KEY_ID="rzp_test_xxx"
+export RZP_KEY_SECRET="your_secret"
+curl -u "${RZP_KEY_ID}:${RZP_KEY_SECRET}" \
   -X POST https://api.razorpay.com/v1/orders \
   -d "receipt=test&amount=100&currency=INR"
+unset RZP_KEY_ID RZP_KEY_SECRET
 ```
 Expected: `{"id":"order_xxx",...}` — if error, check key credentials.
+> **Security:** Never paste literal `key_secret` values into terminal commands, chat messages, or log files.
 
 ### Check 4: PHP exception in Magento logs
 ```bash

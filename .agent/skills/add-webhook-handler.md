@@ -16,23 +16,40 @@ The current extension relies entirely on the browser JS callback (`handler: onSu
 
 ---
 
-## Step 1 — Register the Webhook Route
+## Step 1 — Register the Webhook Route + Disable CSRF Correctly
 
 File: `app/code/community/Razorpay/Payments/etc/config.xml`
 
-Add under `<frontend><routers>`:
+The `razorpay` router is already present. Add the `nodispatch` flag to exclude the webhook
+action from Magento's CSRF form_key check — this is the correct Magento 1 pattern:
+
 ```xml
-<routers>
-    <razorpay>
-        <use>standard</use>
-        <args>
-            <module>Razorpay_Payments</module>
-            <frontName>razorpay</frontName>
-        </args>
-    </razorpay>
-</routers>
+<frontend>
+    <routers>
+        <razorpay>
+            <use>standard</use>
+            <args>
+                <module>Razorpay_Payments</module>
+                <frontName>razorpay</frontName>
+            </args>
+        </razorpay>
+    </routers>
+    <secure_url>
+        <razorpay_order>/razorpay/order</razorpay_order>
+        <razorpay_webhook>/razorpay/webhook</razorpay_webhook>
+    </secure_url>
+</frontend>
 ```
-(Already present — the `razorpay` router covers all controllers.)
+
+**IMPORTANT — do NOT use this CSRF bypass inside the controller:**
+```php
+// WRONG — do not do this:
+$this->getRequest()->setPost('form_key', Mage::getSingleton('core/session')->getFormKey());
+```
+That approach initialises the user session unnecessarily, creates session overhead on every webhook
+call, and is semantically incorrect. Instead, simply extend `Mage_Core_Controller_Front_Action`
+and rely on Razorpay's HMAC signature for all authentication. The Magento CSRF form_key is
+a browser-session protection mechanism — it does not apply to server-to-server webhook calls.
 
 The webhook URL will be: `https://yourstore.com/razorpay/webhook/index`
 
@@ -54,12 +71,8 @@ class Razorpay_Payments_WebhookController extends Mage_Core_Controller_Front_Act
      */
     public function indexAction()
     {
-        $helper = Mage::helper('razorpay_payments');
-
-        // Disable Magento's CSRF protection for this endpoint
-        $this->getRequest()->setPost('form_key', Mage::getSingleton('core/session')->getFormKey());
-
-        // Read raw POST body (webhooks send JSON, not form-encoded)
+        // Read raw POST body FIRST — before any session/output operations
+        // (webhooks send JSON, not form-encoded)
         $rawBody = file_get_contents('php://input');
 
         if (empty($rawBody))
@@ -68,13 +81,23 @@ class Razorpay_Payments_WebhookController extends Mage_Core_Controller_Front_Act
             return;
         }
 
-        // Verify webhook signature
+        // MANDATORY signature verification — reject ALL requests without a valid signature.
+        // Never make this optional: an unverified webhook endpoint lets any attacker
+        // cancel orders (payment.failed) or mark unpaid orders as paid (payment.captured).
         $webhookSecret = Mage::getStoreConfig('payment/razorpay/webhook_secret');
-        $signature      = $this->getRequest()->getHeader('X-Razorpay-Signature');
+        $signature     = $this->getRequest()->getHeader('X-Razorpay-Signature');
 
-        if (!empty($webhookSecret) && !$this->verifyWebhookSignature($rawBody, $signature, $webhookSecret))
+        if (empty($webhookSecret))
         {
-            Mage::log('Razorpay webhook: invalid signature', null, 'razorpay_webhook.log');
+            // Webhook secret not configured — refuse all webhook calls until it is set.
+            Mage::log('Razorpay webhook: webhook_secret not configured — request rejected', null, 'razorpay_webhook.log');
+            $this->getResponse()->setHttpResponseCode(400);
+            return;
+        }
+
+        if (empty($signature) || !$this->verifyWebhookSignature($rawBody, $signature, $webhookSecret))
+        {
+            Mage::log('Razorpay webhook: invalid or missing signature', null, 'razorpay_webhook.log');
             $this->getResponse()->setHttpResponseCode(400);
             return;
         }
@@ -111,12 +134,41 @@ class Razorpay_Payments_WebhookController extends Mage_Core_Controller_Front_Act
     }
 
     /**
-     * Verify Razorpay webhook signature using HMAC-SHA256
+     * Verify Razorpay webhook signature using HMAC-SHA256.
+     *
+     * IMPORTANT: Uses a constant-time string comparison to prevent timing attacks.
+     * hash_equals() is only available in PHP >= 5.6. For PHP 5.3–5.5 compatibility
+     * we implement a constant-time comparison manually.
+     *
+     * @param string $body      Raw request body
+     * @param string $signature X-Razorpay-Signature header value
+     * @param string $secret    Webhook secret from admin config
+     * @return bool
      */
     protected function verifyWebhookSignature($body, $signature, $secret)
     {
         $expectedSignature = hash_hmac('sha256', $body, $secret);
-        return hash_equals($expectedSignature, $signature);
+
+        // Constant-time comparison — prevents timing oracle attacks.
+        // hash_equals() is PHP 5.6+; this fallback covers PHP 5.3–5.5.
+        if (function_exists('hash_equals'))
+        {
+            return hash_equals($expectedSignature, $signature);
+        }
+
+        // Manual constant-time comparison for PHP < 5.6
+        if (strlen($expectedSignature) !== strlen($signature))
+        {
+            return false;
+        }
+
+        $result = 0;
+        for ($i = 0, $len = strlen($expectedSignature); $i < $len; $i++)
+        {
+            $result |= ord($expectedSignature[$i]) ^ ord($signature[$i]);
+        }
+
+        return $result === 0;
     }
 
     /**
@@ -144,7 +196,13 @@ class Razorpay_Payments_WebhookController extends Mage_Core_Controller_Front_Act
     }
 
     /**
-     * Handle payment.failed event
+     * Handle payment.failed event.
+     *
+     * SECURITY: Only cancel orders that are in STATE_PENDING_PAYMENT.
+     * Never cancel orders that are already processing/complete — this prevents
+     * a scenario where a duplicate/late webhook cancels an already-confirmed order.
+     * The orderId comes from Razorpay's payload (which has been signature-verified),
+     * but we still restrict what states we'll act on.
      */
     protected function handlePaymentFailed($payload)
     {
@@ -152,13 +210,16 @@ class Razorpay_Payments_WebhookController extends Mage_Core_Controller_Front_Act
         $paymentId = $payment['id'];
         $orderId   = isset($payment['notes']['merchant_order_id']) ? $payment['notes']['merchant_order_id'] : null;
 
-        Mage::log('payment.failed: ' . $paymentId . ' for order: ' . $orderId, null, 'razorpay_webhook.log');
+        Mage::log('payment.failed for order: ' . $orderId, null, 'razorpay_webhook.log');
 
-        // Optional: cancel the pending Magento order
         if ($orderId)
         {
             $order = Mage::getModel('sales/order')->loadByIncrementId($orderId);
-            if ($order->getId() && $order->canCancel())
+
+            // Only cancel orders that are strictly pending payment.
+            // Do NOT cancel processing/complete orders — a failed webhook must
+            // never override a successful capture that already happened.
+            if ($order->getId() && $order->getState() === Mage_Sales_Model_Order::STATE_PENDING_PAYMENT)
             {
                 $order->cancel()->save();
             }
@@ -239,13 +300,14 @@ Add to `config.xml` under `<frontend>`:
 
 ---
 
-## Checklist
+## Security Checklist
 
-- [ ] `WebhookController.php` created with `indexAction()`
-- [ ] Signature verification implemented with `hash_hmac('sha256', ...)`
-- [ ] `webhook_secret` config field added (encrypted storage)
-- [ ] Webhook URL registered in Razorpay Dashboard
-- [ ] Events selected in Razorpay Dashboard match switch cases in controller
-- [ ] Log file `var/log/razorpay_webhook.log` created and writable
-- [ ] Tested with Razorpay's webhook test tool in Dashboard
-- [ ] HTTPS required on production (Razorpay rejects HTTP webhook URLs)
+- [ ] `webhook_secret` is configured in Magento admin **before** enabling the endpoint — requests are rejected when secret is empty
+- [ ] Signature verification is **mandatory** — no code path processes the payload without a valid HMAC signature
+- [ ] Constant-time comparison used (`hash_equals` with PHP 5.3 fallback) — no timing oracle
+- [ ] `payment.failed` only cancels orders in `STATE_PENDING_PAYMENT` — never overrides already-processing orders
+- [ ] No session initialisation in the webhook controller (no `setPost('form_key', ...)`)
+- [ ] `webhook_secret` stored with `<backend_model>adminhtml/system_config_backend_encrypted</backend_model>`
+- [ ] Webhook URL uses HTTPS (Razorpay rejects HTTP)
+- [ ] Webhook URL registered in Razorpay Dashboard with matching secret
+- [ ] Log entries do NOT contain `key_secret`, raw API responses, or card/account details

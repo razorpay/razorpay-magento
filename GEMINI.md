@@ -112,7 +112,7 @@ Access in PHP: `Mage::getStoreConfig('payment/razorpay/{field}')`
 | Field | Type | Description |
 |-------|------|-------------|
 | `active` | boolean | Enable payment method |
-| `key_id` | string | Public API key (pk_live_... or rzp_live_...) |
+| `key_id` | string | Public API key (`rzp_live_...` for live, `rzp_test_...` for test) |
 | `key_secret` | string | Secret API key |
 | `title` | string | Display name at checkout |
 | `merchant_name_override` | string | Name shown in Razorpay modal |

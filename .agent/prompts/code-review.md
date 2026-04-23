@@ -50,13 +50,29 @@ When reviewing any code change, verify:
 
 ---
 
+### Webhook Controller (if added)
+- [ ] Signature verification is **mandatory** — no `if (!empty($webhookSecret))` optional guard
+- [ ] `webhook_secret` is rejected-empty: endpoint returns 400 when secret not configured
+- [ ] Constant-time comparison used (not `===` or `strcmp`) — `hash_equals()` with PHP 5.3 fallback
+- [ ] No session initialisation in webhook action (`Mage::getSingleton('core/session')` not called)
+- [ ] `payment.failed` only cancels `STATE_PENDING_PAYMENT` orders — never already-processing orders
+- [ ] `payment.captured` does not update orders that are already `processing` or `complete`
+
+---
+
 ## Common Issues to Flag
 
 | Issue | What to Look For | Fix |
 |-------|-----------------|-----|
 | Double amount conversion | `$amount * 100 * 100` | Remove one conversion |
+| Float paise conversion | `(int)($amount * 100)` | Use `(int)round($amount * 100)` |
 | Key secret in template | `$this->getConfigData('key_secret')` in phtml | Remove — never expose secret |
-| jQuery in non-IWD template | `jQuery(...)` or `$(...)` (jQuery style) in firecheckout/appzab templates | Replace with Prototype.js |
+| Key secret logged | `Mage::log(...key_secret...)` | Remove — credential must not appear in logs |
+| Optional webhook signature | `if (!empty($webhookSecret) && !$this->verify...)` | Make check mandatory |
+| `hash_equals` without fallback | `return hash_equals(...)` only | Add PHP 5.3 manual constant-time fallback |
+| Session in webhook | `Mage::getSingleton('core/session')` in webhook controller | Remove entirely |
+| jQuery in non-IWD template | `jQuery(...)` or `$.ajax()` in firecheckout/appzab templates | Replace with Prototype.js |
 | Missing enabled check | Template output without `isRazorpayEnabled()` | Add the guard |
 | Hardcoded amounts | `amount = 100` instead of computed from quote | Use `getBaseGrandTotal() * 100` |
 | Missing URL registration | `sendRequest($url)` with hardcoded URL | Add to `$this->urls` and use `getRelativeUrl()` |
+| Wrong key format documented | `pk_live_` (Stripe format) | Razorpay format is `rzp_live_` / `rzp_test_` |

@@ -55,7 +55,9 @@ public function refund(Varien_Object $payment, $amount)
         Mage::throwException('Razorpay payment ID not found. Cannot process refund.');
     }
 
-    $refundAmount = (int) ($amount * 100); // Convert to paise
+    // Convert to paise. Use round() before casting to int — floating point
+    // multiplication is imprecise: (int)(10.10 * 100) can yield 1009 not 1010.
+    $refundAmount = (int) round($amount * 100);
 
     try
     {
