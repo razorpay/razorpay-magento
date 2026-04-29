@@ -233,6 +233,13 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
         $receipt_id = $mazeOrder->getIncrementId();
 
+        $requestBody = json_decode($this->getRequest()->getContent(), true);
+        $deviceId = isset($requestBody['device_id']) ? (string)$requestBody['device_id'] : '';
+        $userAgent = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '';
+        $clientIp = isset($_SERVER['HTTP_X_FORWARDED_FOR'])
+            ? trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0])
+            : ($_SERVER['REMOTE_ADDR'] ?? '');
+
         $payment_action = $this->config->getPaymentAction();
 
         $maze_version = $this->_objectManager->get('Magento\Framework\App\ProductMetadataInterface')->getVersion();
@@ -335,7 +342,10 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                     'currency' => $mazeOrder->getOrderCurrencyCode(),
                     'payment_capture' => $payment_capture,
                     'notes' => [
-                        'referrer'  => (isset($_SERVER['HTTP_REFERER']) === true) ? $_SERVER['HTTP_REFERER'] : null
+                        'referrer'  => (isset($_SERVER['HTTP_REFERER']) === true) ? $_SERVER['HTTP_REFERER'] : null,
+                        'shield_device_id' => $deviceId,
+                        'shield_user_agent' => $userAgent,
+                        'shield_client_ip' => trim($clientIp),
                     ]
                 ]);
 

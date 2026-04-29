@@ -157,38 +157,68 @@ define(
             },
 
 
+            generateDeviceId: function() {
+                var STORAGE_KEY = 'rzp_device_id';
+                var stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) return Promise.resolve(stored);
+
+                var components = [
+                    navigator.userAgent, navigator.language,
+                    new Date().getTimezoneOffset(), navigator.platform,
+                    navigator.hardwareConcurrency, screen.colorDepth,
+                    screen.width + screen.height, screen.width * screen.height,
+                    window.devicePixelRatio
+                ].join(',');
+
+                return window.crypto.subtle
+                    .digest('SHA-1', new TextEncoder().encode(components))
+                    .then(function(buf) {
+                        var hex = Array.from(new Uint8Array(buf))
+                            .map(function(b) { return b.toString(16).padStart(2,'0'); })
+                            .join('');
+                        var id = ['1', hex, Date.now(), Math.random().toString().slice(-8)].join('.');
+                        localStorage.setItem(STORAGE_KEY, id);
+                        return id;
+                    })
+                    .catch(function() { return ''; });
+            },
+
             getRzpOrderId: function (orderId) {
                 var self = this;
 
-                $.ajax({
-                    type: 'POST',
-                    url: url.build('razorpay/payment/order'), 
+                self.generateDeviceId().then(function(deviceId) {
+                    $.ajax({
+                        type: 'POST',
+                        url: url.build('razorpay/payment/order'),
+                        data: JSON.stringify({ device_id: deviceId }),
+                        contentType: 'application/json',
 
-                    /**
-                     * Success callback
-                     * @param {Object} response
-                     */
-                    success: function (response) {
-                        fullScreenLoader.stopLoader();
-                        if (response.success) {
-                            if (response.is_hosted) {
-                                self.renderHosted(response);
+                        /**
+                         * Success callback
+                         * @param {Object} response
+                         */
+                        success: function (response) {
+                            fullScreenLoader.stopLoader();
+                            if (response.success) {
+                                if (response.is_hosted) {
+                                    self.renderHosted(response);
+                                } else {
+                                    self.doCheckoutPayment(response);
+                                }
                             } else {
-                                self.doCheckoutPayment(response);
+                                self.isPaymentProcessing.reject(response.message);
                             }
-                        } else {
+                        },
+
+                        /**
+                         * Error callback
+                         * @param {*} response
+                         */
+                        error: function (response) {
+                            fullScreenLoader.stopLoader();
                             self.isPaymentProcessing.reject(response.message);
                         }
-                    },
-
-                    /**
-                     * Error callback
-                     * @param {*} response
-                     */
-                    error: function (response) {
-                        fullScreenLoader.stopLoader();
-                        self.isPaymentProcessing.reject(response.message);
-                    }
+                    });
                 });
             },
 
