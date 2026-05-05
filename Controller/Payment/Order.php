@@ -236,9 +236,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $requestBody = json_decode($this->getRequest()->getContent(), true);
         $deviceId = isset($requestBody['device_id']) ? (string)$requestBody['device_id'] : '';
         $userAgent = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '';
-        $clientIp = isset($_SERVER['HTTP_X_FORWARDED_FOR'])
-            ? trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0])
-            : ($_SERVER['REMOTE_ADDR'] ?? '');
+
+        $clientIp = $this->getClientIp();
 
         $payment_action = $this->config->getPaymentAction();
 
@@ -345,9 +344,9 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                         'referrer'  => (isset($_SERVER['HTTP_REFERER']) === true) ? $_SERVER['HTTP_REFERER'] : null,
                         'shield_device_id' => $deviceId,
                         'shield_user_agent' => $userAgent,
-                        'shield_client_ip' => trim($clientIp),
+                        'shield_client_ip' => $clientIp,
                     ]
-                ]);
+                        ]);
 
                 if (null !== $order && !empty($order->id))
                 {
@@ -598,4 +597,32 @@ class Order extends \Razorpay\Magento\Controller\BaseController
        return new Api($this->config->getKeyId(), "");
     }
     // @codeCoverageIgnoreEnd
+
+    /**
+     * Get client IP with validation
+     * @return string Valid IP address or empty string
+     */
+    private function getClientIp()
+    {
+        $ip = '';
+
+        if (isset($_SERVER['HTTP_X_FORWARDED_FOR']) && !empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            $forwardedIps = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+            $ip = trim($forwardedIps[0]);
+
+            if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+                $ip = '';
+            }
+        }
+
+        if (empty($ip) && isset($_SERVER['REMOTE_ADDR'])) {
+            $ip = $_SERVER['REMOTE_ADDR'];
+
+            if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+                $ip = '';
+            }
+        }
+
+        return $ip;
+    }
 }
