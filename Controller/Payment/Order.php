@@ -335,18 +335,28 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             if ((isset($rzpOrderId) === false) and
                 (empty($rzpOrderId) === true))
             {
-                $order = $this->rzp->order->create([
-                    'amount' => $amount,
-                    'receipt' => $receipt_id,
-                    'currency' => $mazeOrder->getOrderCurrencyCode(),
-                    'payment_capture' => $payment_capture,
+                $orderPayload = [
+                    'amount'            => $amount,
+                    'receipt'           => $receipt_id,
+                    'currency'          => $mazeOrder->getOrderCurrencyCode(),
+                    'payment_capture'   => $payment_capture,
+                    'line_items_total'  => $this->toPaise($mazeOrder->getSubtotalInclTax()),
+                    'line_items'        => $this->buildLineItems($mazeOrder),
+                    'shipping_fee'      => $this->toPaise($mazeOrder->getShippingInclTax()),
+                    'customer_details'  => $this->buildCustomerDetails($mazeOrder),
                     'notes' => [
-                        'referrer'  => (isset($_SERVER['HTTP_REFERER']) === true) ? $_SERVER['HTTP_REFERER'] : null,
-                        'shield_device_id' => $deviceId,
+                        'referrer'          => (isset($_SERVER['HTTP_REFERER']) === true) ? $_SERVER['HTTP_REFERER'] : null,
+                        'shield_device_id'  => $deviceId,
                         'shield_user_agent' => $userAgent,
-                        'shield_client_ip' => $clientIp,
+                        'shield_client_ip'  => $clientIp,
                     ]
-                        ]);
+                ];
+
+                $writer = new \Zend_Log_Writer_Stream(BP . '/var/log/shubh.log');
+                $pdpLogger = new \Zend_Log();
+                $pdpLogger->addWriter($writer);
+                $pdpLogger->info('RZP Order Payload | MagentoOrderId:' . $receipt_id . ' | ' . json_encode($orderPayload, JSON_UNESCAPED_SLASHES));
+                $order = $this->rzp->order->create($orderPayload);
 
                 if (null !== $order && !empty($order->id))
                 {
@@ -597,6 +607,124 @@ class Order extends \Razorpay\Magento\Controller\BaseController
        return new Api($this->config->getKeyId(), "");
     }
     // @codeCoverageIgnoreEnd
+
+    private function toPaise($amount)
+    {
+        return (int)(number_format((float)($amount ?? 0) * 100, 0, '.', ''));
+    }
+
+    private function buildLineItems($order)
+    {
+        $lineItems = [];
+
+        $mediaUrl = $this->_storeManager->getStore()
+                        ->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA);
+
+        foreach ($order->getAllVisibleItems() as $item)
+        {
+            $product    = $item->getProduct();
+            $imageUrl   = '';
+            $productUrl = '';
+
+            if ($product)
+            {
+                $imageUrl = $product->getImage() ? $mediaUrl . 'catalog/product' . $product->getImage() : '';
+                try
+                {
+                    $productUrl = $product->getProductUrl();
+                }
+                catch (\Exception $e)
+                {
+                    $productUrl = '';
+                }
+            }
+
+            $price      = $this->toPaise($item->getPrice());
+            $qty        = (int)($item->getQtyOrdered() ?? 0);
+            $discount   = ($qty > 0 && $item->getDiscountAmount()) ? $this->toPaise((float)$item->getDiscountAmount() / $qty) : 0;
+            $offerPrice = max(0, $price - $discount);
+            $name       = substr((string)$item->getName(), 0, 125);
+
+            $lineItems[] = [
+                'type'        => 'e-commerce',
+                'sku'         => (string)$item->getSku(),
+                'variant_id'  => (string)$item->getProductId(),
+                'price'       => $price,
+                'offer_price' => $offerPrice,
+                'tax_amount'  => 0,
+                'quantity'    => $qty,
+                'name'        => $name,
+                'description' => $name,
+                'image_url'   => $imageUrl,
+                'product_url' => $productUrl,
+            ];
+        }
+
+        return $lineItems;
+    }
+
+    private function buildCustomerDetails($order)
+    {
+        $billingAddress = $order->getBillingAddress();
+
+        $name = trim((string)$order->getCustomerFirstname() . ' ' . (string)$order->getCustomerLastname());
+        if (empty($name) && $billingAddress)
+        {
+            $name = trim((string)$billingAddress->getName());
+        }
+
+        $createdAt    = $order->getCustomerCreatedAt();
+        $ts           = $createdAt ? strtotime($createdAt) : false;
+        $registeredAt = ($ts !== false) ? (int)$ts : null;
+
+        return [
+            'name'             => $name,
+            'contact'          => $billingAddress ? (string)$billingAddress->getTelephone() : '',
+            'email'            => (string)($order->getCustomerEmail() ?? ''),
+            'insights'         => [
+                'has_account'  => ($order->getCustomerId() !== null),
+                'registered_at'=> $registeredAt,
+            ],
+            'billing_address'  => $this->buildAddress($billingAddress),
+            'shipping_address' => $this->buildAddress($order->getShippingAddress() ?: $billingAddress),
+        ];
+    }
+
+    private $iso3Cache = [];
+
+    private function buildAddress($address)
+    {
+        if (empty($address))
+        {
+            return [];
+        }
+
+        $iso2 = (string)($address->getCountryId() ?? '');
+
+        if (!isset($this->iso3Cache[$iso2]))
+        {
+            $iso3 = $iso2;
+            if (!empty($iso2))
+            {
+                $countryModel = $this->_objectManager->get(\Magento\Directory\Model\Country::class)->loadByCode($iso2);
+                $iso3         = $countryModel->getData('iso3_code') ?: $iso2;
+            }
+            $this->iso3Cache[$iso2] = $iso3;
+        }
+
+        return [
+            'line1'     => (string)$address->getStreetLine(1),
+            'line2'     => (string)$address->getStreetLine(2),
+            'city'      => (string)$address->getCity(),
+            'state'     => (string)$address->getRegion(),
+            'zipcode'   => (string)$address->getPostcode(),
+            'country'   => $this->iso3Cache[$iso2],
+            'name'      => (string)($address->getName() ?? ''),
+            'contact'   => (string)($address->getTelephone() ?? ''),
+            'latitude'  => null,
+            'longitude' => null,
+        ];
+    }
 
     /**
      * Get client IP with validation
