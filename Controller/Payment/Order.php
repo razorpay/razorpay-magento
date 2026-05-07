@@ -351,11 +351,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                         'shield_client_ip'  => $clientIp,
                     ]
                 ];
-
-                $writer = new \Zend_Log_Writer_Stream(BP . '/var/log/shubh.log');
-                $pdpLogger = new \Zend_Log();
-                $pdpLogger->addWriter($writer);
-                $pdpLogger->info('RZP Order Payload | MagentoOrderId:' . $receipt_id . ' | ' . json_encode($orderPayload, JSON_UNESCAPED_SLASHES));
+                
                 $order = $this->rzp->order->create($orderPayload);
 
                 if (null !== $order && !empty($order->id))
