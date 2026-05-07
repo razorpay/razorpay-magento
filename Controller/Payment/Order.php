@@ -331,7 +331,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
                 return $response;
             }
-
+            
             if ((isset($rzpOrderId) === false) and
                 (empty($rzpOrderId) === true))
             {
@@ -340,7 +340,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                     'receipt'           => $receipt_id,
                     'currency'          => $mazeOrder->getOrderCurrencyCode(),
                     'payment_capture'   => $payment_capture,
-                    'line_items_total'  => $this->toPaise($mazeOrder->getSubtotalInclTax()),
+                    'line_items_total'  => $this->toPaise($mazeOrder->getSubtotal() + $mazeOrder->getDiscountAmount()),
                     'line_items'        => $this->buildLineItems($mazeOrder),
                     'shipping_fee'      => $this->toPaise($mazeOrder->getShippingInclTax()),
                     'customer_details'  => $this->buildCustomerDetails($mazeOrder),
@@ -668,18 +668,12 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         {
             $name = trim((string)$billingAddress->getName());
         }
-
-        $createdAt    = $order->getCustomerCreatedAt();
-        $ts           = $createdAt ? strtotime($createdAt) : false;
-        $registeredAt = ($ts !== false) ? (int)$ts : null;
-
         return [
             'name'             => $name,
             'contact'          => $billingAddress ? (string)$billingAddress->getTelephone() : '',
             'email'            => (string)($order->getCustomerEmail() ?? ''),
             'insights'         => [
                 'has_account'  => ($order->getCustomerId() !== null),
-                'registered_at'=> $registeredAt,
             ],
             'billing_address'  => $this->buildAddress($billingAddress),
             'shipping_address' => $this->buildAddress($order->getShippingAddress() ?: $billingAddress),
