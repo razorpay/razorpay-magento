@@ -192,10 +192,9 @@ define(
                     // not purely random, so reasonably stable across page loads
                     var hash = 0;
                     for (var i = 0; i < components.length; i++) {
-                        hash = ((hash << 5) - hash) + components.charCodeAt(i);
-                        hash |= 0;
+                        hash = ((hash << 5) - hash + components.charCodeAt(i)) | 0;
                     }
-                    var id = ['1', Math.abs(hash).toString(16), Date.now(), Math.random().toString().slice(-8)].join('.');
+                    var id = ['1', Math.abs(hash).toString(16).padStart(8, '0'), Date.now(), Math.random().toString().slice(-8)].join('.');
                     storageSet(STORAGE_KEY, id);
                     return id;
                 }

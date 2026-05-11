@@ -50,6 +50,13 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     protected $trackPluginInstrumentation;
 
     /**
+     * @var \Magento\Directory\Model\CountryFactory
+     */
+    private $countryFactory;
+
+
+
+    /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession
@@ -66,8 +73,9 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Magento\Catalog\Model\Session $catalogSession,
         \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Psr\Log\LoggerInterface $logger,
-        TrackPluginInstrumentation $trackPluginInstrumentation
-    ) 
+        TrackPluginInstrumentation $trackPluginInstrumentation,
+        \Magento\Directory\Model\CountryFactory $countryFactory
+    )
     {
         parent::__construct(
             $context,
@@ -93,6 +101,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $this->webhooks->entity = 'collection';
         $this->webhooks->items  = [];
         $this->trackPluginInstrumentation = $trackPluginInstrumentation;
+        $this->countryFactory             = $countryFactory;
     }
 
     public function execute()
@@ -234,8 +243,12 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $receipt_id = $mazeOrder->getIncrementId();
 
         $requestBody = json_decode($this->getRequest()->getContent(), true);
-        $deviceId = isset($requestBody['device_id']) ? (string)$requestBody['device_id'] : '';
-        $userAgent = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '';
+        $rawDeviceId = isset($requestBody['device_id']) ? (string)$requestBody['device_id'] : '';
+        // Format: {version}.{hex-hash}.{timestamp}.{random} — max 255 chars, safe chars only
+        $deviceId = (strlen($rawDeviceId) <= 255 && preg_match('/^[a-zA-Z0-9._-]+$/', $rawDeviceId))
+            ? $rawDeviceId
+            : '';
+        $userAgent = (string) $this->getRequest()->getServer('HTTP_USER_AGENT', '');
 
         $clientIp = $this->getClientIp();
 
@@ -606,7 +619,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
     private function toPaise($amount)
     {
-        return (int)(number_format((float)($amount ?? 0) * 100, 0, '.', ''));
+        return (int) round((float) ($amount ?? 0) * 100);
     }
 
     private function buildLineItems($order)
@@ -637,7 +650,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
             $price      = $this->toPaise($item->getPrice());
             $qty        = (int)($item->getQtyOrdered() ?? 0);
-            $discount   = ($qty > 0 && $item->getDiscountAmount()) ? $this->toPaise((float)$item->getDiscountAmount() / $qty) : 0;
+            $discount   = ($qty > 0 && $item->getDiscountAmount()) ? intdiv($this->toPaise((float)$item->getDiscountAmount()), $qty) : 0;
             $offerPrice = max(0, $price - $discount);
             $name       = substr((string)$item->getName(), 0, 125);
 
@@ -696,7 +709,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             $iso3 = $iso2;
             if (!empty($iso2))
             {
-                $countryModel = $this->_objectManager->get(\Magento\Directory\Model\Country::class)->loadByCode($iso2);
+                $countryModel = $this->countryFactory->create()->loadByCode($iso2);
                 $iso3         = $countryModel->getData('iso3_code') ?: $iso2;
             }
             $this->iso3Cache[$iso2] = $iso3;
@@ -716,31 +729,10 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         ];
     }
 
-    /**
-     * Get client IP with validation
-     * @return string Valid IP address or empty string
-     */
     private function getClientIp()
     {
-        $ip = '';
-
-        if (isset($_SERVER['HTTP_X_FORWARDED_FOR']) && !empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            $forwardedIps = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
-            $ip = trim($forwardedIps[0]);
-
-            if (!filter_var($ip, FILTER_VALIDATE_IP)) {
-                $ip = '';
-            }
-        }
-
-        if (empty($ip) && isset($_SERVER['REMOTE_ADDR'])) {
-            $ip = $_SERVER['REMOTE_ADDR'];
-
-            if (!filter_var($ip, FILTER_VALIDATE_IP)) {
-                $ip = '';
-            }
-        }
-
-        return $ip;
+        /** @var \Magento\Framework\HTTP\PhpEnvironment\Request $request */
+        $request = $this->getRequest();
+        return $request->getClientIp(true);
     }
 }
