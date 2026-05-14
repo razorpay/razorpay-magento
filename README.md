@@ -223,7 +223,7 @@ If you encounter this error message, update the plugin to the latest version to 
 
 ### Data Collection Notice
 
-As part of Razorpay's fraud detection and risk assessment services, this plugin **collects and transmits the user data** to Razorpay at the time of order creation.
+As part of Razorpay's fraud detection and risk assessment services, this plugin collects and transmits the following data to Razorpay at the time of order creation: **device fingerprint, IP address, browser user agent, order details (amount, line items), and billing/shipping address**.
 
 ---
 

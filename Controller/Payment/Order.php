@@ -46,6 +46,9 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     protected $webhooks;
 
     protected const THREE_DECIMAL_CURRENCIES = ["KWD", "OMR", "BHD"];
+    private const MAX_DEVICE_ID_LENGTH       = 255;
+    private const MAX_USER_AGENT_LENGTH      = 512;
+    private const MAX_LINE_ITEM_NAME_LENGTH  = 125;
 
     protected $trackPluginInstrumentation;
 
@@ -54,7 +57,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
      */
     private $countryFactory;
 
-
+    private $iso3Cache = [];
 
     /**
      * @param \Magento\Framework\App\Action\Context $context
@@ -245,10 +248,10 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $requestBody = json_decode($this->getRequest()->getContent(), true);
         $rawDeviceId = isset($requestBody['device_id']) ? (string)$requestBody['device_id'] : '';
         // Format: {version}.{hex-hash}.{timestamp}.{random} — max 255 chars, safe chars only
-        $deviceId = (strlen($rawDeviceId) <= 255 && preg_match('/^[a-zA-Z0-9._-]+$/', $rawDeviceId))
+        $deviceId = (strlen($rawDeviceId) <= self::MAX_DEVICE_ID_LENGTH && preg_match('/^[a-zA-Z0-9._-]+$/', $rawDeviceId))
             ? $rawDeviceId
             : '';
-        $userAgent = (string) $this->getRequest()->getServer('HTTP_USER_AGENT', '');
+        $userAgent = substr((string) $this->getRequest()->getServer('HTTP_USER_AGENT', ''), 0, self::MAX_USER_AGENT_LENGTH);
 
         $clientIp = $this->getClientIp();
 
@@ -650,9 +653,10 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
             $price      = $this->toPaise($item->getPrice());
             $qty        = (int)($item->getQtyOrdered() ?? 0);
+            // intdiv intentionally floors per-item discount; remainder (≤ qty-1 paise) is absorbed into line_items_total
             $discount   = ($qty > 0 && $item->getDiscountAmount()) ? intdiv($this->toPaise((float)$item->getDiscountAmount()), $qty) : 0;
             $offerPrice = max(0, $price - $discount);
-            $name       = substr((string)$item->getName(), 0, 125);
+            $name       = substr((string)$item->getName(), 0, self::MAX_LINE_ITEM_NAME_LENGTH);
 
             $lineItems[] = [
                 'type'        => 'e-commerce',
@@ -660,7 +664,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 'variant_id'  => (string)$item->getProductId(),
                 'price'       => $price,
                 'offer_price' => $offerPrice,
-                'tax_amount'  => 0,
+                'tax_amount'  => ($qty > 0) ? intdiv($this->toPaise((float)$item->getTaxAmount()), $qty) : 0,
                 'quantity'    => $qty,
                 'name'        => $name,
                 'description' => $name,
@@ -692,8 +696,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             'shipping_address' => $this->buildAddress($order->getShippingAddress() ?: $billingAddress),
         ];
     }
-
-    private $iso3Cache = [];
 
     private function buildAddress($address)
     {

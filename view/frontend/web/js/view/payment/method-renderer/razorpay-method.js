@@ -186,8 +186,6 @@ define(
                 // is distinguishable in Sentry/Datadog. Silent failures in prod are
                 // invisible without this — empty string was reaching backend with no signal
                 function fallbackId(reason) {
-                    console.warn('[Razorpay] generateDeviceId falling back to hash. Reason:', reason);
-
                     // djb2 hash over same components string — still device-fingerprint-derived,
                     // not purely random, so reasonably stable across page loads
                     var hash = 0;
