@@ -733,8 +733,14 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
     private function getClientIp()
     {
-        /** @var \Magento\Framework\HTTP\PhpEnvironment\Request $request */
         $request = $this->getRequest();
-        return $request->getClientIp(true);
+        $ip = $request->getClientIp(true);
+
+        // XFF can be "clientIp, proxy1, proxy2" — take only the first
+        if (strpos($ip, ',') !== false) {
+            $ip = trim(explode(',', $ip)[0]);
+        }
+
+        return filter_var($ip, FILTER_VALIDATE_IP) ? $ip : '';
     }
 }
