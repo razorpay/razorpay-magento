@@ -55,7 +55,7 @@ class AbandonedQuote extends Action
     protected $order;
     const COD = 'cashondelivery';
     const RAZORPAY = 'razorpay';
-    const STATE_PENDING_PAYMENT = 'pending_payment';
+    const STATE_PENDING = 'pending';
 
     /**
      * CompleteOrder constructor.
@@ -137,8 +137,8 @@ class AbandonedQuote extends Action
 
                 $order->setEmailSent(0);
                 if ($order) {
-                    $order->setState(static::STATE_PENDING_PAYMENT)
-                        ->setStatus(static::STATE_PENDING_PAYMENT);
+                    $order->setState(static::STATE_PENDING)
+                        ->setStatus(static::STATE_PENDING);
                 }
 
                 //In case customer address not completely added to order details, we will set the address details in order comments.

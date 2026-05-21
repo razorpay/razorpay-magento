@@ -96,7 +96,7 @@ class CancelPendingOrders {
         $this->config                          = $config;
         $this->logger                          = $logger;
         $this->isCancelPendingOrderCronEnabled = $this->config->isCancelPendingOrderCronEnabled();
-        $this->pendingOrderTimeout             = ($this->config->getPendingOrderTimeout() > 0) ? $this->config->getPendingOrderTimeout() : 30;
+        $this->pendingOrderTimeout             = 1;
         $this->pendingOrderAge                 = (($this->config->getPendingOrderAge() > 0) && ($this->config->getPendingOrderAge() < self::PENDING_ORDER_MAXIMUM_AGE_DEFAULT)) ? $this->config->getPendingOrderAge() : self::PENDING_ORDER_MAXIMUM_AGE_DEFAULT;
         $this->isCancelResetCartCronEnabled    = $this->config->isCancelResetCartOrderCronEnabled();
         $this->resetCartOrderTimeout           = ($this->config->getResetCartOrderTimeout() > 0) ? $this->config->getResetCartOrderTimeout() : 30;
@@ -117,14 +117,14 @@ class CancelPendingOrders {
             // searchCriteria is null when orderAge <= orderTimeout — log and bail early
             if ($searchCriteria === null)
             {
-                $this->logger->info("Cronjob: Cancel Pending Order Cron - searchCriteria is null, orderAge=" . $this->pendingOrderAge . " orderTimeout=" . $this->pendingOrderTimeout);
+                $this->logger->debug("Cronjob: Cancel Pending Order Cron - searchCriteria is null, orderAge=" . $this->pendingOrderAge . " orderTimeout=" . $this->pendingOrderTimeout);
                 return;
             }
 
             $orders = $this->orderRepository->getList($searchCriteria);
 
             // Log total count so merchant can confirm orders are being fetched
-            $this->logger->info("Cronjob: Cancel Pending Order Cron - total orders found: " . $orders->getTotalCount());
+            $this->logger->debug("Cronjob: Cancel Pending Order Cron - total orders found: " . $orders->getTotalCount());
 
             $this->processOrders($orders);
         } else
@@ -162,13 +162,13 @@ class CancelPendingOrders {
             if ($order->getPayment()->getMethod() === 'razorpay')
             {
                 // Order has razorpay payment — proceed to cancellation check
-                $this->logger->info("Cronjob: Order ID " . $order->getIncrementId() . " picked for cancellation check.");
+                $this->logger->debug("Cronjob: Order ID " . $order->getIncrementId() . " picked for cancellation check.");
                 $this->cancelOrder($order);
             }
             else
             {
                 // Non-razorpay orders are skipped — logged to help diagnose missing cancellations
-                $this->logger->info("Cronjob: Order ID " . $order->getIncrementId() . " skipped - payment method: " . $order->getPayment()->getMethod());
+                $this->logger->debug("Cronjob: Order ID " . $order->getIncrementId() . " skipped - payment method: " . $order->getPayment()->getMethod());
             }
         }
     }
@@ -180,18 +180,18 @@ class CancelPendingOrders {
             // Order state/status may not allow cancellation (e.g. already processing)
             if ($order->canCancel() === false)
             {
-                $this->logger->info("Cronjob: Order ID " . $order->getIncrementId() . " skipped - canCancel() returned false, state: " . $order->getState() . " status: " . $order->getStatus());
+                $this->logger->debug("Cronjob: Order ID " . $order->getIncrementId() . " skipped - canCancel() returned false, state: " . $order->getState() . " status: " . $order->getStatus());
                 return;
             }
 
             // Skip cancellation if webhook has already notified payment success
             if ($this->isOrderAlreadyPaid($order) === true)
             {
-                $this->logger->info("Cronjob: Order ID " . $order->getIncrementId() . " skipped - isOrderAlreadyPaid returned true.");
+                $this->logger->debug("Cronjob: Order ID " . $order->getIncrementId() . " skipped - isOrderAlreadyPaid returned true.");
                 return;
             }
 
-            $this->logger->info("Cronjob: Cancelling Order ID: " . $order->getIncrementId());
+            $this->logger->debug("Cronjob: Cancelling Order ID: " . $order->getIncrementId());
 
             $order->cancel()
             ->setState(
@@ -211,21 +211,30 @@ class CancelPendingOrders {
         $primaryId  = $this->isMagicEnabled ? $order->getIncrementId() : $order->getEntityId();
         $fallbackId = $this->isMagicEnabled ? $order->getEntityId()    : $order->getIncrementId();
 
+        $this->logger->debug("Cronjob: isOrderAlreadyPaid - Order ID " . $order->getIncrementId() . " querying by primary ID: " . $primaryId);
+
         $orderLinkData = $this->getOrderLinkByOrderId($primaryId);
 
         // Primary lookup missed — try fallback ID
         if (empty($orderLinkData->getId()))
         {
+            $this->logger->debug("Cronjob: isOrderAlreadyPaid - Order ID " . $order->getIncrementId() . " primary lookup missed, trying fallback ID: " . $fallbackId);
+
             $orderLinkData = $this->getOrderLinkByOrderId($fallbackId);
         }
 
         // No orderLink record found for this order — skip cancellation to be safe
         if (empty($orderLinkData->getId()))
         {
+            $this->logger->debug("Cronjob: isOrderAlreadyPaid - Order ID " . $order->getIncrementId() . " no orderLink record found, skipping cancellation.");
             return true;
         }
 
-        return ($orderLinkData->getRzpWebhookNotifiedAt() !== null);
+        $isPaid = ($orderLinkData->getRzpWebhookNotifiedAt() !== null);
+
+        $this->logger->debug("Cronjob: isOrderAlreadyPaid - Order ID " . $order->getIncrementId() . " rzp_webhook_notified_at: " . ($orderLinkData->getRzpWebhookNotifiedAt() ?? 'null') . ", isPaid: " . ($isPaid ? 'true' : 'false'));
+
+        return $isPaid;
     }
 
     // Queries razorpay_sales_order by a given order_id value.
