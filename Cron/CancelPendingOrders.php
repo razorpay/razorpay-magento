@@ -96,7 +96,7 @@ class CancelPendingOrders {
         $this->config                          = $config;
         $this->logger                          = $logger;
         $this->isCancelPendingOrderCronEnabled = $this->config->isCancelPendingOrderCronEnabled();
-        $this->pendingOrderTimeout             = 1;
+        $this->pendingOrderTimeout             = ($this->config->getPendingOrderTimeout() > 0) ? $this->config->getPendingOrderTimeout() : 30;
         $this->pendingOrderAge                 = (($this->config->getPendingOrderAge() > 0) && ($this->config->getPendingOrderAge() < self::PENDING_ORDER_MAXIMUM_AGE_DEFAULT)) ? $this->config->getPendingOrderAge() : self::PENDING_ORDER_MAXIMUM_AGE_DEFAULT;
         $this->isCancelResetCartCronEnabled    = $this->config->isCancelResetCartOrderCronEnabled();
         $this->resetCartOrderTimeout           = ($this->config->getResetCartOrderTimeout() > 0) ? $this->config->getResetCartOrderTimeout() : 30;
