@@ -66,6 +66,8 @@ class CancelPendingOrders {
 
     protected $pendingOrderAge;
 
+    protected $isMagicEnabled;
+
     protected const PENDING_ORDER_MAXIMUM_AGE_DEFAULT = 43200;
 
     /**
@@ -99,6 +101,7 @@ class CancelPendingOrders {
         $this->isCancelResetCartCronEnabled    = $this->config->isCancelResetCartOrderCronEnabled();
         $this->resetCartOrderTimeout           = ($this->config->getResetCartOrderTimeout() > 0) ? $this->config->getResetCartOrderTimeout() : 30;
         $this->debug                           = $debug;
+        $this->isMagicEnabled                  = (bool)$this->config->getMagicStatus();
     }
 
     public function execute()
@@ -111,15 +114,19 @@ class CancelPendingOrders {
 
             $searchCriteria = $this->getSearchCriteria(self::PENDING_ORDER_CRON, $this->pendingOrderTimeout, $this->pendingOrderAge, null, self::STATUS_PENDING);
 
-            $orders = $this->orderRepository->getList($searchCriteria);
-            foreach ($orders->getItems() as $order)
+            // searchCriteria is null when orderAge <= orderTimeout — log and bail early
+            if ($searchCriteria === null)
             {
-                if ($order->getPayment()->getMethod() === 'razorpay') {
-                    $this->debug->log("Cronjob: Magento Order Id = " . $order->getIncrementId() . " picked for cancellation.");
-
-                    $this->cancelOrder($order);    
-                }
+                $this->logger->info("Cronjob: Cancel Pending Order Cron - searchCriteria is null, orderAge=" . $this->pendingOrderAge . " orderTimeout=" . $this->pendingOrderTimeout);
+                return;
             }
+
+            $orders = $this->orderRepository->getList($searchCriteria);
+
+            // Log total count so merchant can confirm orders are being fetched
+            $this->logger->info("Cronjob: Cancel Pending Order Cron - total orders found: " . $orders->getTotalCount());
+
+            $this->processOrders($orders);
         } else
         {
             $this->logger->critical('Cronjob: isCancelPendingOrderCronEnabled:'
@@ -137,14 +144,7 @@ class CancelPendingOrders {
 
             $orders = $this->orderRepository->getList($searchCriteria);
 
-            foreach ($orders->getItems() as $order)
-            {
-                if ($order->getPayment()->getMethod() === 'razorpay') {
-                    $this->debug->log("Cronjob: Magento Order Id = " . $order->getIncrementId() . " picked for cancellation in reset cart cron.");
-
-                    $this->cancelOrder($order);
-                }
-            }
+            $this->processOrders($orders);
         } else
         {
             $this->logger->critical('Cronjob: isCancelResetCartCronEnabled:'
@@ -153,36 +153,91 @@ class CancelPendingOrders {
         }
     }
 
-    private function cancelOrder($order)
+    // Iterates orders and triggers cancellation for razorpay payment orders only.
+    // Extracted to avoid duplicating this loop across both cron types.
+    private function processOrders($orders)
     {
-        if ($order)
+        foreach ($orders->getItems() as $order)
         {
-            if ($order->canCancel() and
-                $this->isOrderAlreadyPaid($order->getEntityId()) === false)
+            if ($order->getPayment()->getMethod() === 'razorpay')
             {
-                $this->logger->info("Cronjob: Cancelling Order ID: " . $order->getIncrementId());
-
-                $order->cancel()
-                ->setState(
-                    Order::STATE_CANCELED,
-                    Order::STATE_CANCELED,
-                    'Payment Failed',
-                    false
-                )->save();
+                // Order has razorpay payment — proceed to cancellation check
+                $this->logger->info("Cronjob: Order ID " . $order->getIncrementId() . " picked for cancellation check.");
+                $this->cancelOrder($order);
+            }
+            else
+            {
+                // Non-razorpay orders are skipped — logged to help diagnose missing cancellations
+                $this->logger->info("Cronjob: Order ID " . $order->getIncrementId() . " skipped - payment method: " . $order->getPayment()->getMethod());
             }
         }
     }
 
-    private function isOrderAlreadyPaid($entity_id)
+    private function cancelOrder($order)
+    {
+        if ($order)
+        {
+            // Order state/status may not allow cancellation (e.g. already processing)
+            if ($order->canCancel() === false)
+            {
+                $this->logger->info("Cronjob: Order ID " . $order->getIncrementId() . " skipped - canCancel() returned false, state: " . $order->getState() . " status: " . $order->getStatus());
+                return;
+            }
+
+            // Skip cancellation if webhook has already notified payment success
+            if ($this->isOrderAlreadyPaid($order) === true)
+            {
+                $this->logger->info("Cronjob: Order ID " . $order->getIncrementId() . " skipped - isOrderAlreadyPaid returned true.");
+                return;
+            }
+
+            $this->logger->info("Cronjob: Cancelling Order ID: " . $order->getIncrementId());
+
+            $order->cancel()
+            ->setState(
+                Order::STATE_CANCELED,
+                Order::STATE_CANCELED,
+                'Payment Failed',
+                false
+            )->save();
+        }
+    }
+
+    private function isOrderAlreadyPaid($order)
+    {
+        // Magic checkout stores order_id as increment_id in razorpay_sales_order.
+        // Standard checkout stores order_id as entity_id.
+        // Query primary ID first based on config, then fall back to the other.
+        $primaryId  = $this->isMagicEnabled ? $order->getIncrementId() : $order->getEntityId();
+        $fallbackId = $this->isMagicEnabled ? $order->getEntityId()    : $order->getIncrementId();
+
+        $orderLinkData = $this->getOrderLinkByOrderId($primaryId);
+
+        // Primary lookup missed — try fallback ID
+        if (empty($orderLinkData->getId()))
+        {
+            $orderLinkData = $this->getOrderLinkByOrderId($fallbackId);
+        }
+
+        // No orderLink record found for this order — skip cancellation to be safe
+        if (empty($orderLinkData->getId()))
+        {
+            return true;
+        }
+
+        return ($orderLinkData->getRzpWebhookNotifiedAt() !== null);
+    }
+
+    // Queries razorpay_sales_order by a given order_id value.
+    // Extracted to avoid repeating the collection query pattern for primary/fallback lookups.
+    private function getOrderLinkByOrderId($orderId)
     {
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
 
-        $orderLinkData = $objectManager->get('Razorpay\Magento\Model\OrderLink')
-                        ->getCollection()
-                        ->addFilter('order_id', $entity_id)
-                        ->getFirstItem();
-        
-        return ($orderLinkData->getRzpWebhookNotifiedAt() !== null);
+        return $objectManager->get('Razorpay\Magento\Model\OrderLink')
+                ->getCollection()
+                ->addFilter('order_id', $orderId)
+                ->getFirstItem();
     }
 
     private function getSearchCriteria($cronName, $orderTimeout, $orderAge, $orderState, $orderStatus)
