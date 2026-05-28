@@ -46,8 +46,18 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     protected $webhooks;
 
     protected const THREE_DECIMAL_CURRENCIES = ["KWD", "OMR", "BHD"];
+    private const MAX_DEVICE_ID_LENGTH       = 255;
+    private const MAX_USER_AGENT_LENGTH      = 512;
+    private const MAX_LINE_ITEM_NAME_LENGTH  = 125;
 
     protected $trackPluginInstrumentation;
+
+    /**
+     * @var \Magento\Directory\Model\CountryFactory
+     */
+    private $countryFactory;
+
+    private $iso3Cache = [];
 
     /**
      * @param \Magento\Framework\App\Action\Context $context
@@ -66,8 +76,9 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Magento\Catalog\Model\Session $catalogSession,
         \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Psr\Log\LoggerInterface $logger,
-        TrackPluginInstrumentation $trackPluginInstrumentation
-    ) 
+        TrackPluginInstrumentation $trackPluginInstrumentation,
+        \Magento\Directory\Model\CountryFactory $countryFactory
+    )
     {
         parent::__construct(
             $context,
@@ -93,6 +104,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $this->webhooks->entity = 'collection';
         $this->webhooks->items  = [];
         $this->trackPluginInstrumentation = $trackPluginInstrumentation;
+        $this->countryFactory             = $countryFactory;
     }
 
     public function execute()
@@ -233,6 +245,16 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
         $receipt_id = $mazeOrder->getIncrementId();
 
+        $requestBody = json_decode($this->getRequest()->getContent(), true);
+        $rawDeviceId = isset($requestBody['device_id']) ? (string)$requestBody['device_id'] : '';
+        // Format: {version}.{hex-hash}.{timestamp}.{random} — max 255 chars, safe chars only
+        $deviceId = (strlen($rawDeviceId) <= self::MAX_DEVICE_ID_LENGTH && preg_match('/^[a-zA-Z0-9._-]+$/', $rawDeviceId))
+            ? $rawDeviceId
+            : '';
+        $userAgent = substr((string) $this->getRequest()->getServer('HTTP_USER_AGENT', ''), 0, self::MAX_USER_AGENT_LENGTH);
+
+        $clientIp = $this->getClientIp();
+
         $payment_action = $this->config->getPaymentAction();
 
         $maze_version = $this->_objectManager->get('Magento\Framework\App\ProductMetadataInterface')->getVersion();
@@ -325,19 +347,28 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
                 return $response;
             }
-
+            
             if ((isset($rzpOrderId) === false) and
                 (empty($rzpOrderId) === true))
             {
-                $order = $this->rzp->order->create([
-                    'amount' => $amount,
-                    'receipt' => $receipt_id,
-                    'currency' => $mazeOrder->getOrderCurrencyCode(),
-                    'payment_capture' => $payment_capture,
+                $orderPayload = [
+                    'amount'            => $amount,
+                    'receipt'           => $receipt_id,
+                    'currency'          => $mazeOrder->getOrderCurrencyCode(),
+                    'payment_capture'   => $payment_capture,
+                    'line_items_total'  => $this->toPaise($mazeOrder->getSubtotal() + $mazeOrder->getDiscountAmount()),
+                    'line_items'        => $this->buildLineItems($mazeOrder),
+                    'shipping_fee'      => $this->toPaise($mazeOrder->getShippingInclTax()),
+                    'customer_details'  => $this->buildCustomerDetails($mazeOrder),
                     'notes' => [
-                        'referrer'  => (isset($_SERVER['HTTP_REFERER']) === true) ? $_SERVER['HTTP_REFERER'] : null
+                        'referrer'          => (isset($_SERVER['HTTP_REFERER']) === true) ? $_SERVER['HTTP_REFERER'] : null,
+                        'shield_device_id'  => $deviceId,
+                        'shield_user_agent' => $userAgent,
+                        'shield_client_ip'  => $clientIp,
                     ]
-                ]);
+                ];
+                
+                $order = $this->rzp->order->create($orderPayload);
 
                 if (null !== $order && !empty($order->id))
                 {
@@ -588,4 +619,128 @@ class Order extends \Razorpay\Magento\Controller\BaseController
        return new Api($this->config->getKeyId(), "");
     }
     // @codeCoverageIgnoreEnd
+
+    private function toPaise($amount)
+    {
+        return (int) round((float) ($amount ?? 0) * 100);
+    }
+
+    private function buildLineItems($order)
+    {
+        $lineItems = [];
+
+        $mediaUrl = $this->_storeManager->getStore()
+                        ->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA);
+
+        foreach ($order->getAllVisibleItems() as $item)
+        {
+            $product    = $item->getProduct();
+            $imageUrl   = '';
+            $productUrl = '';
+
+            if ($product)
+            {
+                $imageUrl = $product->getImage() ? $mediaUrl . 'catalog/product' . $product->getImage() : '';
+                try
+                {
+                    $productUrl = $product->getProductUrl();
+                }
+                catch (\Exception $e)
+                {
+                    $productUrl = '';
+                }
+            }
+
+            $price      = $this->toPaise($item->getPrice());
+            $qty        = (int)($item->getQtyOrdered() ?? 0);
+            // intdiv intentionally floors per-item discount; remainder (≤ qty-1 paise) is absorbed into line_items_total
+            $discount   = ($qty > 0 && $item->getDiscountAmount()) ? intdiv($this->toPaise((float)$item->getDiscountAmount()), $qty) : 0;
+            $offerPrice = max(0, $price - $discount);
+            $name       = substr((string)$item->getName(), 0, self::MAX_LINE_ITEM_NAME_LENGTH);
+
+            $lineItems[] = [
+                'type'        => 'e-commerce',
+                'sku'         => (string)$item->getSku(),
+                'variant_id'  => (string)$item->getProductId(),
+                'price'       => $price,
+                'offer_price' => $offerPrice,
+                'tax_amount'  => ($qty > 0) ? intdiv($this->toPaise((float)$item->getTaxAmount()), $qty) : 0,
+                'quantity'    => $qty,
+                'name'        => $name,
+                'description' => $name,
+                'image_url'   => $imageUrl,
+                'product_url' => $productUrl,
+            ];
+        }
+
+        return $lineItems;
+    }
+
+    private function buildCustomerDetails($order)
+    {
+        $billingAddress = $order->getBillingAddress();
+
+        $name = trim((string)$order->getCustomerFirstname() . ' ' . (string)$order->getCustomerLastname());
+        if (empty($name) && $billingAddress)
+        {
+            $name = trim((string)$billingAddress->getName());
+        }
+        return [
+            'name'             => $name,
+            'contact'          => $billingAddress ? (string)$billingAddress->getTelephone() : '',
+            'email'            => (string)($order->getCustomerEmail() ?? ''),
+            'insights'         => [
+                'has_account'  => ($order->getCustomerId() !== null),
+            ],
+            'billing_address'  => $this->buildAddress($billingAddress),
+            'shipping_address' => $this->buildAddress($order->getShippingAddress() ?: $billingAddress),
+        ];
+    }
+
+    private function buildAddress($address)
+    {
+        if (empty($address))
+        {
+            return [];
+        }
+
+        $iso2 = (string)($address->getCountryId() ?? '');
+
+        if (!isset($this->iso3Cache[$iso2]))
+        {
+            $iso3 = $iso2;
+            if (!empty($iso2))
+            {
+                $countryModel = $this->countryFactory->create()->loadByCode($iso2);
+                $iso3         = $countryModel->getData('iso3_code') ?: $iso2;
+            }
+            $this->iso3Cache[$iso2] = $iso3;
+        }
+
+        return [
+            'line1'     => (string)$address->getStreetLine(1),
+            'line2'     => (string)$address->getStreetLine(2),
+            'city'      => (string)$address->getCity(),
+            'state'     => (string)$address->getRegion(),
+            'zipcode'   => (string)$address->getPostcode(),
+            'country'   => $this->iso3Cache[$iso2],
+            'name'      => (string)($address->getName() ?? ''),
+            'contact'   => (string)($address->getTelephone() ?? ''),
+            'latitude'  => null,
+            'longitude' => null,
+        ];
+    }
+
+    private function getClientIp()
+    {
+        $request = $this->getRequest();
+        $ip = $request->getClientIp(true);
+
+        // XFF can be "clientIp, proxy1, proxy2" — take only the first
+        if (strpos($ip, ',') !== false) {
+            $ip = trim(explode(',', $ip)[0]);
+        }
+
+        return filter_var($ip, FILTER_VALIDATE_IP) ? $ip : '';
+    }
 }

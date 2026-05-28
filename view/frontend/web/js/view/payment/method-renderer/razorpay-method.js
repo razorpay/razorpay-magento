@@ -85,7 +85,7 @@ define(
                     this.getPlaceOrderDeferredObject()
                         .fail(
                             function () {
-                                self.isPlaceOrderActionAllowed(true);
+                            self.isPlaceOrderActionAllowed(true);
                             }
                         ).done(
                         function (orderId) {
@@ -104,8 +104,8 @@ define(
             doCheckoutPayment: function(rzpResponse){
 
                 var self = this,
-                billing_address,
-                rzp_order_id;
+                    billing_address,
+                    rzp_order_id;
 
                 fullScreenLoader.startLoader();
                 this.messageContainer.clear();
@@ -157,38 +157,116 @@ define(
             },
 
 
+            generateDeviceId: function() {
+                var STORAGE_KEY = 'rzp_device_id';
+
+                // ✅ storageGet/storageSet: localStorage throws a synchronous SecurityError
+                // in Safari private browsing and when storage is disabled — typeof check
+                // is not enough, you have to try/catch actual usage
+                function storageGet(key) {
+                    try { return localStorage.getItem(key); } catch(e) { return null; }
+                }
+
+                function storageSet(key, value) {
+                    try { localStorage.setItem(key, value); } catch(e) { /* silent — persistence is best-effort */ }
+                }
+
+                var stored = storageGet(STORAGE_KEY);
+                if (stored) return Promise.resolve(stored);
+
+                var components = [
+                    navigator.userAgent, navigator.language,
+                    new Date().getTimezoneOffset(), navigator.platform,
+                    navigator.hardwareConcurrency, screen.colorDepth,
+                    screen.width + screen.height, screen.width * screen.height,
+                    window.devicePixelRatio
+                ].join(',');
+
+                // ✅ fallbackId(reason): accepts a reason string so every fallback path
+                // is distinguishable in Sentry/Datadog. Silent failures in prod are
+                // invisible without this — empty string was reaching backend with no signal
+                function fallbackId(reason) {
+                    // djb2 hash over same components string — still device-fingerprint-derived,
+                    // not purely random, so reasonably stable across page loads
+                    var hash = 0;
+                    for (var i = 0; i < components.length; i++) {
+                        hash = ((hash << 5) - hash + components.charCodeAt(i)) | 0;
+                    }
+                    var id = ['1', Math.abs(hash).toString(16).padStart(8, '0'), Date.now(), Math.random().toString().slice(-8)].join('.');
+                    storageSet(STORAGE_KEY, id);
+                    return id;
+                }
+
+                // ✅ Guard BEFORE any call — crypto.subtle is undefined on HTTP
+                // (non-secure contexts) and some mobile WebViews. The original
+                // .catch() only caught Promise rejections — a synchronous TypeError
+                // from undefined.digest() escapes the chain entirely
+                if (!window.crypto || !window.crypto.subtle) {
+                    return Promise.resolve(fallbackId('crypto.subtle unavailable — HTTP or unsupported browser'));
+                }
+
+                return window.crypto.subtle
+                    .digest('SHA-1', new TextEncoder().encode(components))
+                    .then(function(buf) {
+                        var hex = Array.from(new Uint8Array(buf))
+                            .map(function(b) { return b.toString(16).padStart(2, '0'); })
+                            .join('');
+                        var id = ['1', hex, Date.now(), Math.random().toString().slice(-8)].join('.');
+                        storageSet(STORAGE_KEY, id);
+                        return id;
+                    })
+                    .catch(function(e) {
+                        // ✅ Surfaces actual browser error message, not just that it failed
+                        return fallbackId(e && e.message ? e.message : 'digest() rejected');
+                    });
+            },
+
             getRzpOrderId: function (orderId) {
                 var self = this;
 
-                $.ajax({
-                    type: 'POST',
-                    url: url.build('razorpay/payment/order'), 
+                // ✅ Return the Promise explicitly — wrapping inside generateDeviceId().then()
+                // made this implicitly async with no signal to callers. Explicit return makes
+                // the async contract visible and prevents silent regressions
+                return self.generateDeviceId().then(function(deviceId) {
+                    return new Promise(function(resolve, reject) {
+                        $.ajax({
+                            type: 'POST',
+                            url: url.build('razorpay/payment/order'),
+                            data: JSON.stringify({ device_id: deviceId }),
+                            contentType: 'application/json',
 
-                    /**
-                     * Success callback
-                     * @param {Object} response
-                     */
-                    success: function (response) {
-                        fullScreenLoader.stopLoader();
-                        if (response.success) {
-                            if (response.is_hosted) {
-                                self.renderHosted(response);
-                            } else {
-                                self.doCheckoutPayment(response);
+                        /**
+                         * Success callback
+                         * @param {Object} response
+                         */
+                            success: function (response) {
+                                fullScreenLoader.stopLoader();
+                                if (response.success) {
+                                    resolve(response);
+                                    if (response.is_hosted) {
+                                        self.renderHosted(response);
+                                    } else {
+                                        self.doCheckoutPayment(response);
+                                    }
+                                } else {
+                                    // ✅ Reject with structured Error, not raw message string
+                                    reject(new Error(response.message));
+                                    self.isPaymentProcessing.reject(response.message);
+                                }
+                            },
+
+                        /**
+                         * Error callback
+                         * @param {*} response
+                         */
+                            error: function (response) {
+                                fullScreenLoader.stopLoader();
+                                // ✅ Reject with structured Error, not raw message string
+                                reject(new Error(response.message));
+                                self.isPaymentProcessing.reject(response.message);
                             }
-                        } else {
-                            self.isPaymentProcessing.reject(response.message);
-                        }
-                    },
-
-                    /**
-                     * Error callback
-                     * @param {*} response
-                     */
-                    error: function (response) {
-                        fullScreenLoader.stopLoader();
-                        self.isPaymentProcessing.reject(response.message);
-                    }
+                        });
+                    });
                 });
             },
 
@@ -344,40 +422,40 @@ define(
 
                 function visitNestedOption(options, parentKey) {
                     for (let curKey in options) {
-                      if (options.hasOwnProperty(curKey)) {
-                        const value = options[curKey];
-                        let prepareKey = parentKey ? `${parentKey}[${curKey}]` : curKey;
+                        if (options.hasOwnProperty(curKey)) {
+                            const value = options[curKey];
+                            let prepareKey = parentKey ? `${parentKey}[${curKey}]` : curKey;
 
-                        if (typeof value === 'object') {
-                          visitNestedOption(value, prepareKey);
-                        } else {
+                            if (typeof value === 'object') {
+                                visitNestedOption(value, prepareKey);
+                            } else {
                           // Exception: Rename key -> key_id (merchant key)
-                          if (prepareKey === 'key') {
-                            prepareKey = 'key_id';
-                          }
+                                if (prepareKey === 'key') {
+                                    prepareKey = 'key_id';
+                                }
 
-                          form.appendChild(self.createHiddenInput(prepareKey, value));
+                                form.appendChild(self.createHiddenInput(prepareKey, value));
+                            }
                         }
-                      }
                     }
                 }
-              visitNestedOption(options);
+                visitNestedOption(options);
             },
 
             createHiddenInput: function(key, value) {
-              var input = document.createElement('input');
+                var input = document.createElement('input');
 
-              input.type = 'hidden';
-              input.name = key;
-              input.value = value;
+                input.type = 'hidden';
+                input.name = key;
+                input.value = value;
 
-              return input;
+                return input;
             },
 
             renderHosted: function(data) {
                 var self = this,
-                billing_address;
-               
+                    billing_address;
+
                 billing_address = quote.billingAddress();
                 this.user = {
                     name: billing_address.firstname + ' ' + billing_address.lastname,
@@ -393,7 +471,7 @@ define(
                 }
 
                 this.merchant_order_id = data.order_id;
-               
+
                 var opts = {
                     key: self.getKeyId(),
                     name: self.getMerchantName(),

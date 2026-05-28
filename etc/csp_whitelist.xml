@@ -10,6 +10,8 @@
         <policy id="script-src">
             <values>
                 <value id="razorpay_checkout" type="host">checkout.razorpay.com</value>
+                <!-- cdn.razorpay.com serves the Shield JS fingerprinting script loaded during checkout -->
+                <value id="razorpay_cdn" type="host">cdn.razorpay.com</value>
             </values>
         </policy>
         <policy id="frame-src">

@@ -219,6 +219,14 @@ Download the latest code.zip and replace all the contents of the code folder wit
 ## I am getting the following error message "Column not found: 1054 Unknown column 'main_table.rzp_webhook_notified_at' in 'field list', query was: SELECT main_table.entity_id, main_table.rzp_webhook_notified_at FROM sales_order AS main_table."
 If you encounter this error message, update the plugin to the latest version to resolve the issue.
 
+---
+
+### Data Collection Notice
+
+As part of Razorpay's fraud detection and risk assessment services, this plugin collects and transmits the following data to Razorpay at the time of order creation: **device fingerprint, IP address, browser user agent, order details (amount, line items), and billing/shipping address**.
+
+---
+
 ### Support
 
 Visit [https://razorpay.com](https://razorpay.com) for support requests or email contact@razorpay.com.
