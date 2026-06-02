@@ -7,6 +7,7 @@ type Mutation {
 	setRzpPaymentDetailsForOrder(input: SetRzpPaymentDetailsForOrderInput) : SetRzpPaymentDetailsForOrderOutput @resolver(class: "Razorpay\\Magento\\Model\\Resolver\\SetRzpPaymentDetailsForOrder")
 	placeRazorpayOrder (order_id: String @doc(description: "order_id to generate Razorpay Order ID."), referrer: String @doc(description: "Checkout page URL of store.")) : RazorpayOrder @resolver( class: "Razorpay\\Magento\\Model\\Resolver\\PlaceRazorpayOrder") @doc(description: "Place Razorpay Order with cart amount and currency to generate RZP order ID.")
 	resetCart(order_id: String @doc(description: "order_id used to generate Razorpay Order ID.")) : ResetCart @resolver( class: "Razorpay\\Magento\\Model\\Resolver\\ResetCart")
+	convertCartToOrder(input: ConvertCartToOrderInput): ConvertCartToOrderOutput @resolver(class: "Razorpay\\Magento\\Model\\Resolver\\ConvertCartToOrder") @doc(description: "Convert Razorpay-paid cart to Magento order (headless checkout).")
 }
 
 type RazorpayOrder {
@@ -36,6 +37,25 @@ type Coupon {
     title: String
     discountAmount: Float
     description: String
+}
+
+input ConvertCartToOrderInput {
+    cart_id: String! @doc(description: "Masked cart ID")
+    razorpay_payment_id: String! @doc(description: "Razorpay payment ID")
+    razorpay_order_id: String! @doc(description: "Razorpay order ID")
+    razorpay_signature: String! @doc(description: "Razorpay payment signature")
+}
+
+type ConvertCartToOrderOutput {
+    success: Boolean!
+    message: String
+    rzp_order_id: String
+    order_id: String
+    order_increment_id: String
+    order_quote_id: String
+    amount: String
+    currency: String
+    phone_number: String
 }
 
 type Query {
