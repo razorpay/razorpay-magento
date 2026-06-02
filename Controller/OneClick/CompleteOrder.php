@@ -25,6 +25,7 @@ use Razorpay\Magento\Controller\OneClick\StateMap;
 use Razorpay\Magento\Model\CartConverter;
 use Razorpay\Magento\Model\CustomerConsent;
 use Razorpay\Magento\Constants\OrderCronStatus;
+use Magento\CatalogInventory\Api\StockManagementInterface;
 
 class CompleteOrder extends Action
 {
@@ -91,6 +92,7 @@ class CompleteOrder extends Action
     protected $stateNameMap;
     protected $cartConverter;
     protected $customerConsent;
+    protected $stockManagement;
     protected $_order = null;
 
     const COD = 'cashondelivery';
@@ -136,7 +138,8 @@ class CompleteOrder extends Action
         CollectionFactory                                     $collectionFactory,
         StateMap                                              $stateNameMap,
         CartConverter                                         $cartConverter,
-        CustomerConsent                                       $customerConsent
+        CustomerConsent                                       $customerConsent,
+        StockManagementInterface                              $stockManagement
     )
     {
         parent::__construct($context);
@@ -163,6 +166,7 @@ class CompleteOrder extends Action
         $this->stateNameMap = $stateNameMap;
         $this->cartConverter = $cartConverter;
         $this->customerConsent = $customerConsent;
+        $this->stockManagement = $stockManagement;
         $this->resultRedirectFactory = $context->getResultFactory();;
         $this->orderStatus = static::STATE_PROCESSING;
         $this->authorizeCommand = new AuthorizeCommand();
@@ -298,6 +302,11 @@ class CompleteOrder extends Action
                     $order = $this->order->load($orderId);
                 } else {
                     $orderId = $order->getId();
+                    // Order was pre-placed by AbandonedQuote without stock reservation.
+                    // Subtract inventory now that payment is confirmed.
+                    if ((int)$orderLink->getRzpUpdateOrderCronStatus() === OrderCronStatus::ABANDONED_QUOTE_ORDER_PLACED) {
+                        $this->subtractInventoryForOrder($order);
+                    }
                 }
                 break;
             } catch (\Exception $e) {
@@ -627,6 +636,22 @@ class CompleteOrder extends Action
         } catch (\Exception $e) {
             // Handle exception
             return false;
+        }
+    }
+
+    private function subtractInventoryForOrder(\Magento\Sales\Model\Order $order)
+    {
+        $items = [];
+        foreach ($order->getAllItems() as $orderItem) {
+            // Only process leaf items (no children); configurable parents are skipped.
+            if (empty($orderItem->getChildrenItems())) {
+                $items[$orderItem->getProductId()] = $orderItem->getQtyOrdered();
+            }
+        }
+        if (!empty($items)) {
+            $websiteId = $this->storeManager->getStore($order->getStoreId())->getWebsiteId();
+            $this->stockManagement->registerProductsSale($items, $websiteId);
+            $this->logger->info('graphQL: Inventory subtracted for abandoned-quote order ' . $order->getIncrementId());
         }
     }
 
