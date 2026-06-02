@@ -1,6 +1,7 @@
 <?php
 namespace Razorpay\Magento\Cron;
 use \Magento\Sales\Model\Order;
+use Razorpay\Magento\Constants\OrderCronStatus;
 
 class CancelPendingOrders {
     /**
@@ -162,15 +163,42 @@ class CancelPendingOrders {
             {
                 $this->logger->info("Cronjob: Cancelling Order ID: " . $order->getIncrementId());
 
-                $order->cancel()
-                ->setState(
-                    Order::STATE_CANCELED,
-                    Order::STATE_CANCELED,
-                    'Payment Failed',
-                    false
-                )->save();
+                if ($this->isInventoryNotReserved($order->getIncrementId())) {
+                    // This order was placed during the OneClick Abandoned Quote flow
+                    // without reserving stock. Cancel it directly to avoid adding
+                    // undecremeneted stock back to inventory.
+                    $this->logger->info("Cronjob: Order ID: " . $order->getIncrementId() . " was placed without stock reservation; cancelling without stock restoration.");
+                    foreach ($order->getAllItems() as $item) {
+                        $item->setStatus(\Magento\Sales\Model\Order\Item::STATUS_CANCELED);
+                        $item->setQtyCanceled($item->getQtyOrdered());
+                        $item->save();
+                    }
+                    $order->setState(Order::STATE_CANCELED)
+                        ->setStatus(Order::STATE_CANCELED)
+                        ->addStatusHistoryComment('Payment not received, order cancelled automatically', false)
+                        ->save();
+                } else {
+                    $order->cancel()
+                    ->setState(
+                        Order::STATE_CANCELED,
+                        Order::STATE_CANCELED,
+                        'Payment Failed',
+                        false
+                    )->save();
+                }
             }
         }
+    }
+
+    private function isInventoryNotReserved($incrementId)
+    {
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $orderLinkData = $objectManager->get('Razorpay\Magento\Model\OrderLink')
+                        ->getCollection()
+                        ->addFilter('order_id', $incrementId)
+                        ->getFirstItem();
+
+        return ((int)$orderLinkData->getRzpUpdateOrderCronStatus() === OrderCronStatus::ABANDONED_QUOTE_ORDER_PLACED);
     }
 
     private function isOrderAlreadyPaid($entity_id)

@@ -16,6 +16,7 @@ use Magento\Directory\Model\ResourceModel\Region\CollectionFactory;
 use Magento\Directory\Model\ResourceModel\Region\Collection;
 use Razorpay\Magento\Model\CartConverter;
 use Magento\Quote\Api\CartManagementInterface;
+use Razorpay\Magento\Constants\OrderCronStatus;
 
 class AbandonedQuote extends Action
 {
@@ -133,6 +134,18 @@ class AbandonedQuote extends Action
                     $orderId = $this->cartManagement->placeOrder($cartId);
                     $order = $this->order->load($orderId);
                     $orderPlacement = true;
+
+                    // Mark this order so the cancel cron and CompleteOrder know
+                    // that stock was NOT reserved during this pending order placement.
+                    try {
+                        $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                            ->getCollection()
+                            ->addFilter('order_id', $reservedOrderId)
+                            ->getFirstItem();
+                        $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::ABANDONED_QUOTE_ORDER_PLACED)->save();
+                    } catch (\Exception $e) {
+                        $this->logger->critical('AbandonedQuote: Failed to update OrderLink for inventory tracking: ' . $e->getMessage());
+                    }
                 }
 
                 $order->setEmailSent(0);
@@ -304,7 +317,10 @@ class AbandonedQuote extends Action
         }
 
         $quote->setPaymentMethod($paymentMethod);
-        $quote->setInventoryProcessed(false);
+        // Mark inventory as already processed so placeOrder() does not reserve stock
+        // for this pending abandoned-quote order. Stock will be decremented in
+        // CompleteOrder once payment is confirmed.
+        $quote->setInventoryProcessed(true);
         // Set Sales Order Payment
         $quote->getPayment()->importData(['method' => $paymentMethod]);
 
