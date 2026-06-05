@@ -258,6 +258,11 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
             $this->rzp = $this->setAndGetRzpApiInstance();
 
+            $writer = new \Zend_Log_Writer_Stream(BP . '/var/log/rzp_pdp.log');
+            $logger = new \Zend_Log();
+            $logger->addWriter($writer);
+            $logger->info('[PaymentMethod::refund] key_id: ' . $this->key_id . ' | key_secret: ' . substr($this->key_secret, 0, 6) . '***' . ' | payment_id: ' . $paymentId . ' | amount: ' . $amount);
+
             $this->rzp->setHeader('User-Agent', 'Razorpay/' . $this->getChannel());
 
             $refund = $this->rzp->payment

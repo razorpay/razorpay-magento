@@ -8,8 +8,10 @@ use Magento\Sales\Model\Order\Payment;
 use Razorpay\Magento\Model\PaymentMethod;
 use Magento\Framework\Exception\LocalizedException;
 use Razorpay\Magento\Model\TrackPluginInstrumentation;
+use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\Config\Storage\WriterInterface;
 use Magento\Framework\App\RequestInterface;
+use Magento\Store\Model\ScopeInterface;
 use Razorpay\Magento\Model\Config;
 
 
@@ -60,7 +62,22 @@ class AfterConfigSaveObserver implements ObserverInterface
         $this->_storeManager = $storeManager;
         $this->logger          = $logger;
 
-        $this->config = $config;
+        $this->trackPluginInstrumentation = $trackPluginInstrumentation;
+
+        // Resolve the store context matching the admin scope being edited so that
+        // API keys and the webhook URL are fetched for the correct website.
+        $storeId   = $request->getParam('store');
+        $websiteId = $request->getParam('website');
+
+        if ($storeId) {
+            $configStore = $storeManager->getStore($storeId);
+            $this->config->setStoreId($storeId);
+        } elseif ($websiteId) {
+            $configStore = $storeManager->getWebsite($websiteId)->getDefaultStore();
+            $this->config->setStoreId($configStore->getId());
+        } else {
+            $configStore = $storeManager->getStore();
+        }
 
         $this->key_id = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
         $this->key_secret = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
@@ -69,9 +86,12 @@ class AfterConfigSaveObserver implements ObserverInterface
 
         $this->rzp = $this->paymentMethod->setAndGetRzpApiInstance();
 
-        $this->trackPluginInstrumentation = $trackPluginInstrumentation;
+        $this->webhookUrl = $configStore->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_WEB) . 'razorpay/payment/webhook';
 
-        $this->webhookUrl = $this->_storeManager->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_WEB) . 'razorpay/payment/webhook';
+        $writer = new \Zend_Log_Writer_Stream(BP . '/var/log/rzp_pdp.log');
+        $logger = new \Zend_Log();
+        $logger->addWriter($writer);
+        $logger->info('[AfterConfigSaveObserver] key_id: ' . $this->key_id . ' | scope: ' . ($storeId ? 'store/' . $storeId : ($websiteId ? 'website/' . $websiteId : 'default')) . ' | webhookUrl: ' . $this->webhookUrl);
 
         $this->webhookId = null;
 
@@ -88,18 +108,21 @@ class AfterConfigSaveObserver implements ObserverInterface
      */
     public function execute(Observer $observer)
     {
+        [$scope, $scopeId] = $this->getCurrentScope();
+        
         $razorpayParams = $this->request->getParam('groups')['razorpay']['fields'];
-
+        
         $this->saveConfigData($razorpayParams);
-
+        
         $razorpayParams['enable_webhook']                    = $this->config->getConfigData('enable_webhook');
         $razorpayParams['webhook_events']['value']           = explode (",", $this->config->getConfigData('webhook_events'));
         $razorpayParams['supported_webhook_events']['value'] = explode (",", $this->config->getConfigData('supported_webhook_events'));
-
+        
         $domain = parse_url($this->webhookUrl, PHP_URL_HOST);
-
+        
         $domain_ip = gethostbyname($domain);
-
+        
+        
         if(isset($razorpayParams['enable_webhook']) === true)
         {
             if (!filter_var($domain_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE))
@@ -113,7 +136,6 @@ class AfterConfigSaveObserver implements ObserverInterface
                     "exception_type" => null,
                     "notes" => "observer: after config save failed to create webhook",
                 ];
-
                 $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.observer.afterconfigsave.failed', $properties);
                 return;
             }
@@ -136,22 +158,27 @@ class AfterConfigSaveObserver implements ObserverInterface
                         $events[$event] = true;
                     }
                 }
+                
+                // Check for a webhook_secret that exists at THIS exact scope only — no fallback.
+                // getConfigData() uses SCOPE_STORE chain (store→website→default) which would
+                // return the DEFAULT secret for Website 2 on first save, preventing new secret generation.
+                $existingSecret = $this->config->getConfigDataAtSpecificScope('webhook_secret', $scope, $scopeId);
 
-                if(empty($this->config->getConfigData('webhook_secret')) === false)
+                if ($existingSecret !== false && $existingSecret !== null && $existingSecret !== '')
                 {
-                    $razorpayParams['webhook_secret']['value'] = $this->config->getConfigData('webhook_secret');
+                    $razorpayParams['webhook_secret']['value'] = $existingSecret;
 
-                    $this->logger->info("Razorpay Webhook with existing secret.");
+                    $this->logger->info("Razorpay Webhook with existing secret at scope: $scope/$scopeId");
                 }
                 else
                 {
                     $secret = $this->generatePassword();
 
-                    $this->config->setConfigData('webhook_secret',$secret);
+                    $this->config->setConfigData('webhook_secret', $secret, $scope, $scopeId);
 
                     $razorpayParams['webhook_secret']['value'] = $secret;
 
-                    $this->logger->info("Razorpay Webhook created new secret.");
+                    $this->logger->info("Razorpay Webhook created new secret at scope: $scope/$scopeId");
                 }
 
                 if(empty($this->webhookId) === false)
@@ -163,7 +190,7 @@ class AfterConfigSaveObserver implements ObserverInterface
                         "active" => true,
                     ], $this->webhookId);
 
-                    $this->config->setConfigData('webhook_triggered_at', time());
+                    $this->config->setConfigData('webhook_triggered_at', time(), $scope, $scopeId);
 
                     $this->logger->info("Razorpay Webhook Updated by Admin.");
                 }
@@ -176,7 +203,7 @@ class AfterConfigSaveObserver implements ObserverInterface
                         "active" => true,
                     ]);
 
-                    $this->config->setConfigData('webhook_triggered_at', time());
+                    $this->config->setConfigData('webhook_triggered_at', time(), $scope, $scopeId);
 
                     $this->logger->info("Razorpay Webhook Created by Admin");
                 }
@@ -220,10 +247,11 @@ class AfterConfigSaveObserver implements ObserverInterface
     {
         $storeName = "";
 
+        $razorpayParamsFormattedArray = array('config_settings' => array());
+
         $firstElement = array_values($razorpayParams)[0];
         if (empty($firstElement) === false and array_keys($firstElement)[0] === "value")
         {
-            $razorpayParamsFormattedArray = array('config_settings' => array());
             foreach($razorpayParams as $key=>$value)
             {
                 if ($key != "key_id" && $key != "key_secret")
@@ -308,9 +336,29 @@ class AfterConfigSaveObserver implements ObserverInterface
         return $this->webhooks;
     }
 
+    /**
+     * Returns [scope, scopeId] matching the admin config scope being saved.
+     * Used so that auto-generated values (webhook_secret, webhook_triggered_at)
+     * are written to the same scope the admin is currently editing, not DEFAULT.
+     */
+    private function getCurrentScope(): array
+    {
+        $storeId   = $this->request->getParam('store');
+        $websiteId = $this->request->getParam('website');
+
+        if ($storeId) {
+            return [ScopeInterface::SCOPE_STORES, (int) $storeId];
+        }
+        if ($websiteId) {
+            return [ScopeInterface::SCOPE_WEBSITES, (int) $websiteId];
+        }
+        return ['default', 0];
+    }
+
     private function disableWebhook()
     {
-        $this->config->setConfigData('enable_webhook', 0);
+        [$scope, $scopeId] = $this->getCurrentScope();
+        $this->config->setConfigData('enable_webhook', 0, $scope, $scopeId);
 
         try
         {

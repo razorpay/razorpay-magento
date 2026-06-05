@@ -73,6 +73,11 @@ abstract class BaseController extends \Magento\Framework\App\Action\Action
         $this->key_id = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
         $this->key_secret = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
 
+        $writer = new \Zend_Log_Writer_Stream(BP . '/var/log/rzp_pdp.log');
+        $logger = new \Zend_Log();
+        $logger->addWriter($writer);
+        $logger->info('[BaseController] key_id: ' . $this->key_id . ' | key_secret: ' . substr($this->key_secret, 0, 6) . '***' . ' | request_uri: ' . ($_SERVER['REQUEST_URI'] ?? ''));
+
         $this->rzp = new Api($this->key_id, $this->key_secret);
     }
 
