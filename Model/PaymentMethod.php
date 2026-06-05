@@ -256,12 +256,30 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                 ]
             ];
 
+            // Resolve API keys from website_id stored in razorpay_sales_order.
+            // Admin refunds run under Website 1's store context, so we must
+            // explicitly look up which website this order belongs to.
+            $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                ->getCollection()
+                ->addFilter('order_id', $order->getEntityId())
+                ->getFirstItem();
+
+            $websiteId = $orderLink->getId() ? (int) $orderLink->getWebsiteId() : 0;
+
+            $this->key_id = $websiteId
+                ? ($this->config->getConfigDataAtSpecificScope(Config::KEY_PUBLIC_KEY, 'websites', $websiteId) ?: $this->config->getConfigData(Config::KEY_PUBLIC_KEY))
+                : $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
+
+            $this->key_secret = $websiteId
+                ? ($this->config->getConfigDataAtSpecificScope(Config::KEY_PRIVATE_KEY, 'websites', $websiteId) ?: $this->config->getConfigData(Config::KEY_PRIVATE_KEY))
+                : $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
+
             $this->rzp = $this->setAndGetRzpApiInstance();
 
             $writer = new \Zend_Log_Writer_Stream(BP . '/var/log/rzp_pdp.log');
             $logger = new \Zend_Log();
             $logger->addWriter($writer);
-            $logger->info('[PaymentMethod::refund] key_id: ' . $this->key_id . ' | key_secret: ' . substr($this->key_secret, 0, 6) . '***' . ' | payment_id: ' . $paymentId . ' | amount: ' . $amount);
+            $logger->info('[PaymentMethod::refund] key_id: ' . $this->key_id . ' | key_secret: ' . substr($this->key_secret, 0, 6) . '***' . ' | payment_id: ' . $paymentId . ' | amount: ' . $amount . ' | website_id: ' . $websiteId);
 
             $this->rzp->setHeader('User-Agent', 'Razorpay/' . $this->getChannel());
 

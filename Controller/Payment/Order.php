@@ -468,6 +468,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
         $orderLink->setRzpOrderId($rzpOrderId)
                     ->setOrderId($mazeOrder->getEntityId())
+                    ->setWebsiteId((int) $this->_storeManager->getStore()->getWebsiteId())
                     ->save();
 
         $this->logger->info("Data saved in razorpay_sales_order for Mage Order($receipt_id)");
