@@ -98,6 +98,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
     protected $trackPluginInstrumentation;
 
+    protected $orderLinkCollectionFactory;
+
     //protected $_isOffline = true;
 
     protected $key_id;
@@ -143,6 +145,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
         \Razorpay\Magento\Controller\Payment\Order $order,
         TrackPluginInstrumentation $trackPluginInstrumentation,
+        \Razorpay\Magento\Model\ResourceModel\OrderLink\CollectionFactory $orderLinkCollectionFactory,
         \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
         \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
         array $data = []
@@ -170,7 +173,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $this->key_secret = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
 
 
-        $this->trackPluginInstrumentation = $trackPluginInstrumentation;
+        $this->trackPluginInstrumentation    = $trackPluginInstrumentation;
+        $this->orderLinkCollectionFactory    = $orderLinkCollectionFactory;
 
         $this->order = $order;
     }
@@ -232,17 +236,17 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $this->refundOnline();
 
         $order = $payment->getOrder();
-
+        
         $creditmemo = $this->request->getPost('creditmemo');
-
+        
         $reason = (!empty($creditmemo['comment_text'])) ? $creditmemo['comment_text'] : 'Refunded by site admin';
-
+        
         $refundId = $payment->getTransactionId();
-
+        
         $this->_logger->info('Razorpay Refund - Transaction ID:' . $refundId);
-
+        
         $paymentId = substr($refundId, 0, -7);
-
+        
         try
         {
             $data = [
@@ -253,14 +257,13 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                     'order_id'              =>  $order->getIncrementId(),
                     'refund_from_website'   =>  true,
                     'source'                =>  'Magento',
-                ]
-            ];
-
+                    ]
+                    ];
+                    
             // Resolve API keys from website_id stored in razorpay_sales_order.
             // Admin refunds run under Website 1's store context, so we must
             // explicitly look up which website this order belongs to.
-            $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
-                ->getCollection()
+            $orderLink = $this->orderLinkCollectionFactory->create()
                 ->addFilter('order_id', $order->getEntityId())
                 ->getFirstItem();
 
