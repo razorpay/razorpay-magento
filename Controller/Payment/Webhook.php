@@ -171,12 +171,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController implements
     {
         $this->logger->info("Razorpay Webhook processing started." );
 
-        $writer = new \Zend_Log_Writer_Stream(BP . '/var/log/rzp_pdp.log');
-        $logger = new \Zend_Log();
-        $logger->addWriter($writer);
         $websiteId = (int) $this->_storeManager->getStore()->getWebsiteId();
-        $logger->info('[Webhook::execute] key_id: ' . $this->key_id . ' | key_secret: ' . substr($this->key_secret, 0, 6) . '***' . ' | website_id: ' . $websiteId . ' | store_code: ' . $this->_storeManager->getStore()->getCode());
-
         $this->config->setConfigData('webhook_triggered_at', time(), ScopeInterface::SCOPE_WEBSITES, $websiteId);
 
         $post = $this->getPostData();

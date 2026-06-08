@@ -135,10 +135,6 @@ class UpdateOrdersToProcessingV2 {
         $keyId                          = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
         $keySecret                      = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
         $this->api                      = new Api($keyId, $keySecret);
-        $writer = new \Zend_Log_Writer_Stream(BP . '/var/log/rzp_pdp.log');
-        $cronLogger = new \Zend_Log();
-        $cronLogger->addWriter($writer);
-        $cronLogger->info('[UpdateOrdersToProcessingV2::__construct] key_id: ' . $keyId . ' | key_secret: ' . substr($keySecret, 0, 6) . '*** | NOTE: api instance built but NOT used - cron works from cached webhook DB data only');
         $this->orderRepository          = $orderRepository;
         $this->searchCriteriaBuilder    = $searchCriteriaBuilder;
         $this->sortOrderBuilder         = $sortOrderBuilder;

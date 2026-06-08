@@ -236,17 +236,17 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $this->refundOnline();
 
         $order = $payment->getOrder();
-        
+
         $creditmemo = $this->request->getPost('creditmemo');
-        
+
         $reason = (!empty($creditmemo['comment_text'])) ? $creditmemo['comment_text'] : 'Refunded by site admin';
-        
+
         $refundId = $payment->getTransactionId();
-        
+
         $this->_logger->info('Razorpay Refund - Transaction ID:' . $refundId);
-        
+
         $paymentId = substr($refundId, 0, -7);
-        
+
         try
         {
             $data = [
@@ -257,8 +257,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                     'order_id'              =>  $order->getIncrementId(),
                     'refund_from_website'   =>  true,
                     'source'                =>  'Magento',
-                    ]
-                    ];
+                ]
+            ];
                     
             // Resolve API keys from website_id stored in razorpay_sales_order.
             // Admin refunds run under Website 1's store context, so we must
@@ -278,11 +278,6 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                 : $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
 
             $this->rzp = $this->setAndGetRzpApiInstance();
-
-            $writer = new \Zend_Log_Writer_Stream(BP . '/var/log/rzp_pdp.log');
-            $logger = new \Zend_Log();
-            $logger->addWriter($writer);
-            $logger->info('[PaymentMethod::refund] key_id: ' . $this->key_id . ' | key_secret: ' . substr($this->key_secret, 0, 6) . '***' . ' | payment_id: ' . $paymentId . ' | amount: ' . $amount . ' | website_id: ' . $websiteId);
 
             $this->rzp->setHeader('User-Agent', 'Razorpay/' . $this->getChannel());
 

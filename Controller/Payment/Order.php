@@ -372,11 +372,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                     ]
                 ];
                 
-                $writer = new \Zend_Log_Writer_Stream(BP . '/var/log/rzp_pdp.log');
-                $logger = new \Zend_Log();
-                $logger->addWriter($writer);
-                $logger->info('[Order::execute] key_id: ' . $this->key_id . ' | key_secret: ' . substr($this->key_secret, 0, 6) . '***' . ' | website_id: ' . $this->_storeManager->getStore()->getWebsiteId() . ' | store_code: ' . $this->_storeManager->getStore()->getCode());
-
                 $order = $this->rzp->order->create($orderPayload);
 
                 if (null !== $order && !empty($order->id))

@@ -8,7 +8,6 @@ use Magento\Sales\Model\Order\Payment;
 use Razorpay\Magento\Model\PaymentMethod;
 use Magento\Framework\Exception\LocalizedException;
 use Razorpay\Magento\Model\TrackPluginInstrumentation;
-use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\Config\Storage\WriterInterface;
 use Magento\Framework\App\RequestInterface;
 use Magento\Store\Model\ScopeInterface;
@@ -87,11 +86,6 @@ class AfterConfigSaveObserver implements ObserverInterface
         $this->rzp = $this->paymentMethod->setAndGetRzpApiInstance();
 
         $this->webhookUrl = $configStore->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_WEB) . 'razorpay/payment/webhook';
-
-        $writer = new \Zend_Log_Writer_Stream(BP . '/var/log/rzp_pdp.log');
-        $logger = new \Zend_Log();
-        $logger->addWriter($writer);
-        $logger->info('[AfterConfigSaveObserver] key_id: ' . $this->key_id . ' | scope: ' . ($storeId ? 'store/' . $storeId : ($websiteId ? 'website/' . $websiteId : 'default')) . ' | webhookUrl: ' . $this->webhookUrl);
 
         $this->webhookId = null;
 

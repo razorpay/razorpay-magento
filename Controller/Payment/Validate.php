@@ -125,11 +125,6 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
         $keyId                 = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
         $keySecret             = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
 
-        $writer = new \Zend_Log_Writer_Stream(BP . '/var/log/rzp_pdp.log');
-        $logger = new \Zend_Log();
-        $logger->addWriter($writer);
-        $logger->info('[Validate::__construct] key_id: ' . $keyId . ' | key_secret: ' . substr($keySecret, 0, 6) . '***' . ' | BaseController key_id: ' . $this->key_id);
-
         $this->api             = new Api($keyId, $keySecret);
         $this->order           = $order;
         $this->config          = $config;
