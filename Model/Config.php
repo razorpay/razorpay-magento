@@ -218,6 +218,17 @@ class Config
     }
 
     /**
+     * @param string $field
+     * @param string $scope
+     * @param int $scopeId
+     */
+    public function deleteConfigData($field, $scope = 'default', $scopeId = 0)
+    {
+        $path = 'payment/' . $this->methodCode . '/' . $field;
+        $this->configWriter->delete($path, $scope, $scopeId);
+    }
+
+    /**
      * @return bool
      */
     public function isActive()

@@ -72,10 +72,18 @@ class AfterConfigSaveObserver implements ObserverInterface
             $configStore = $storeManager->getStore($storeId);
             $this->config->setStoreId($storeId);
         } elseif ($websiteId) {
-            $configStore = $storeManager->getWebsite($websiteId)->getDefaultStore();
-            $this->config->setStoreId($configStore->getId());
+            $websiteDefaultStore = $storeManager->getWebsite($websiteId)->getDefaultStore();
+            if ($websiteDefaultStore) {
+                $configStore = $websiteDefaultStore;
+                $this->config->setStoreId($configStore->getId());
+            } else {
+                $configStore = $storeManager->getDefaultStoreView() ?: $storeManager->getStore();
+            }
         } else {
-            $configStore = $storeManager->getStore();
+            // Default scope — use the default frontend store view, not the admin store
+            // (admin store has no frontend URL and would produce an empty/wrong webhookUrl)
+            // getDefaultStoreView() can return null if no enabled store views exist — fall back to getStore()
+            $configStore = $storeManager->getDefaultStoreView() ?: $storeManager->getStore();
         }
 
         $this->key_id = $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
@@ -153,27 +161,25 @@ class AfterConfigSaveObserver implements ObserverInterface
                     }
                 }
                 
-                // Check for a webhook_secret that exists at THIS exact scope only — no fallback.
-                // getConfigData() uses SCOPE_STORE chain (store→website→default) which would
-                // return the DEFAULT secret for Website 2 on first save, preventing new secret generation.
-                $existingSecret = $this->config->getConfigDataAtSpecificScope('webhook_secret', $scope, $scopeId);
-
-                if ($existingSecret !== false && $existingSecret !== null && $existingSecret !== '')
+                // Webhook secret is always stored at DEFAULT scope only.
+                // All websites read it via the scope fallback chain (store → website → default).
+                // Using one shared secret eliminates per-scope sync complexity and prevents
+                // mismatches when multiple scopes share the same Razorpay webhook URL.
+                $secretToUse = $this->config->getConfigDataAtSpecificScope('webhook_secret', 'default', 0);
+                if (!$secretToUse)
                 {
-                    $razorpayParams['webhook_secret']['value'] = $existingSecret;
-
-                    $this->logger->info("Razorpay Webhook with existing secret at scope: $scope/$scopeId");
+                    $secretToUse = $this->generatePassword();
+                    $this->config->setConfigData('webhook_secret', $secretToUse, 'default', 0);
+                    $this->logger->info("Razorpay Webhook created new secret.");
                 }
-                else
+
+                // Clean up any stale scope-specific secrets so fallback to default/0 always works
+                if ($scope !== 'default')
                 {
-                    $secret = $this->generatePassword();
-
-                    $this->config->setConfigData('webhook_secret', $secret, $scope, $scopeId);
-
-                    $razorpayParams['webhook_secret']['value'] = $secret;
-
-                    $this->logger->info("Razorpay Webhook created new secret at scope: $scope/$scopeId");
+                    $this->config->deleteConfigData('webhook_secret', $scope, $scopeId);
                 }
+
+                $razorpayParams['webhook_secret']['value'] = $secretToUse;
 
                 if(empty($this->webhookId) === false)
                 {
