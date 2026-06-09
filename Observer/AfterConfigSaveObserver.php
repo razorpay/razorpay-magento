@@ -102,7 +102,7 @@ class AfterConfigSaveObserver implements ObserverInterface
      */
     public function execute(Observer $observer)
     {
-        [$scope, $scopeId] = $this->getCurrentScope();
+        list($scope, $scopeId) = $this->getCurrentScope();
         
         $razorpayParams = $this->request->getParam('groups')['razorpay']['fields'];
         
@@ -351,7 +351,7 @@ class AfterConfigSaveObserver implements ObserverInterface
 
     private function disableWebhook()
     {
-        [$scope, $scopeId] = $this->getCurrentScope();
+        list($scope, $scopeId) = $this->getCurrentScope();
         $this->config->setConfigData('enable_webhook', 0, $scope, $scopeId);
 
         try

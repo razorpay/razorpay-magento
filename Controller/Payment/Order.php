@@ -142,6 +142,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                     $razorpayParams['webhook_events']['value']           = explode (",", $this->config->getConfigData('webhook_events'));
                     $razorpayParams['supported_webhook_events']['value'] = explode (",", $this->config->getConfigData('supported_webhook_events'));
 
+                    $websiteId = (int) $this->_storeManager->getStore()->getWebsiteId();
+
                     if(empty($this->config->getConfigData('webhook_secret')) === false)
                     {
                         $razorpayParams['webhook_secret']['value'] = $this->config->getConfigData('webhook_secret');
@@ -154,7 +156,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                     {
                         $secret = $this->generatePassword();
 
-                        $websiteId = (int) $this->_storeManager->getStore()->getWebsiteId();
                         $this->config->setConfigData('webhook_secret', $secret, ScopeInterface::SCOPE_WEBSITES, $websiteId);
 
                         $razorpayParams['webhook_secret']['value'] = $secret;
@@ -178,8 +179,6 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                             $events[$event] = true;
                         }
                     }
-
-                    $websiteId = (int) $this->_storeManager->getStore()->getWebsiteId();
 
                     if(empty($this->webhookId) === false)
                     {

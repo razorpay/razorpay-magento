@@ -5,7 +5,6 @@ namespace Razorpay\Magento\Model;
 use \Magento\Framework\App\Config\ScopeConfigInterface;
 use \Magento\Framework\App\Config\Storage\WriterInterface;
 use \Magento\Framework\App\ResourceConnection;
-use \Magento\Store\Model\ScopeInterface;
 
 class Config
 {
