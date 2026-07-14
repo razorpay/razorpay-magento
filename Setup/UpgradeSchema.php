@@ -78,6 +78,20 @@ class UpgradeSchema implements UpgradeSchemaInterface
         $tableName = $setup->getTable(OrderLink::TABLE_NAME);
         if ($setup->getConnection()->isTableExists($tableName) == true)
         {
+            // v4.2.3 — store website_id so refunds can resolve the correct API keys
+            if (!$setup->getConnection()->tableColumnExists($tableName, 'website_id'))
+            {
+                $setup->getConnection()->addColumn(
+                    $tableName,
+                    'website_id',
+                    [
+                        'nullable' => true,
+                        'type'     => \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
+                        'comment'  => 'Website ID (for multi-website API key resolution)'
+                    ]
+                );
+            }
+
             $setup->getConnection()->addColumn(
                 $tableName,
                 'rzp_order_id',
@@ -139,6 +153,15 @@ class UpgradeSchema implements UpgradeSchemaInterface
                 Table::TYPE_INTEGER,
                 [
                     'nullable' => true
+                ]
+            )
+            ->addColumn(
+                'website_id',
+                Table::TYPE_INTEGER,
+                null,
+                [
+                    'nullable' => true,
+                    'comment'  => 'Website ID (for multi-website API key resolution)'
                 ]
             )
             ->addColumn(

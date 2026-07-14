@@ -4,6 +4,7 @@ namespace Razorpay\Magento\Model;
 
 use \Magento\Framework\App\Config\ScopeConfigInterface;
 use \Magento\Framework\App\Config\Storage\WriterInterface;
+use \Magento\Framework\App\ResourceConnection;
 
 class Config
 {
@@ -41,19 +42,53 @@ class Config
     protected $configWriter;
 
     /**
+     * @var ResourceConnection
+     */
+    protected $resourceConnection;
+
+    /**
      * @var int
      */
     protected $storeId = null;
 
     /**
      * @param ScopeConfigInterface $scopeConfig
+     * @param WriterInterface $configWriter
+     * @param ResourceConnection $resourceConnection
      */
     public function __construct(
         ScopeConfigInterface $scopeConfig,
-        WriterInterface $configWriter
+        WriterInterface $configWriter,
+        ResourceConnection $resourceConnection
     ) {
-        $this->scopeConfig = $scopeConfig;
-        $this->configWriter = $configWriter;
+        $this->scopeConfig        = $scopeConfig;
+        $this->configWriter       = $configWriter;
+        $this->resourceConnection = $resourceConnection;
+    }
+
+    /**
+     * Read config value at EXACTLY the given scope — no fallback to parent scopes.
+     * Returns false if no row exists at that specific scope.
+     *
+     * @param string $field
+     * @param string $scope  e.g. 'default', 'websites', 'stores'
+     * @param int    $scopeId
+     * @return string|false
+     */
+    public function getConfigDataAtSpecificScope($field, $scope = 'default', $scopeId = 0)
+    {
+        $path       = 'payment/' . $this->methodCode . '/' . $field;
+        $connection = $this->resourceConnection->getConnection();
+        $table      = $connection->getTableName('core_config_data');
+
+        $select = $connection->select()
+            ->from($table, ['value'])
+            ->where('scope = ?', $scope)
+            ->where('scope_id = ?', (int) $scopeId)
+            ->where('path = ?', $path);
+
+        $value = $connection->fetchOne($select);
+        return $value;
     }
 
     /**
@@ -168,17 +203,29 @@ class Config
      *
      * @param string $field
      * @param string $value
-     * @param null|string $storeId
+     * @param string $scope
+     * @param int $scopeId
      *
      * @return mixed
      */
-    public function setConfigData($field, $value)
+    public function setConfigData($field, $value, $scope = 'default', $scopeId = 0)
     {
         $code = $this->methodCode;
 
         $path = 'payment/' . $code . '/' . $field;
 
-        return $this->configWriter->save($path, $value);
+        return $this->configWriter->save($path, $value, $scope, $scopeId);
+    }
+
+    /**
+     * @param string $field
+     * @param string $scope
+     * @param int $scopeId
+     */
+    public function deleteConfigData($field, $scope = 'default', $scopeId = 0)
+    {
+        $path = 'payment/' . $this->methodCode . '/' . $field;
+        $this->configWriter->delete($path, $scope, $scopeId);
     }
 
     /**

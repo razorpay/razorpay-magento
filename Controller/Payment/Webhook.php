@@ -8,6 +8,7 @@ use Razorpay\Api\Api;
 use Razorpay\Api\Errors;
 use Razorpay\Magento\Model\Config;
 use Razorpay\Magento\Model\PaymentMethod;
+use Magento\Store\Model\ScopeInterface;
 use Magento\Framework\App\CsrfAwareActionInterface;
 use Magento\Framework\App\Request\InvalidRequestException;
 use Magento\Framework\App\RequestInterface;
@@ -101,6 +102,11 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController implements
     protected $trackPluginInstrumentation;
 
     /**
+     * @var \Magento\Store\Model\StoreManagerInterface
+     */
+    protected $_storeManager;
+
+    /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession
@@ -111,6 +117,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController implements
      * @param \Magento\Framework\DB\Transaction $transaction
      * @param \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender
      * @param \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
@@ -124,7 +131,8 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController implements
         \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender,
         \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
         \Razorpay\Magento\Model\Util\DebugUtils $debug,
-        TrackPluginInstrumentation $trackPluginInstrumentation
+        TrackPluginInstrumentation $trackPluginInstrumentation,
+        \Magento\Store\Model\StoreManagerInterface $storeManager
     ) {
         parent::__construct(
             $context,
@@ -146,6 +154,7 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController implements
         $this->orderStatus        = static::STATUS_PROCESSING;
         $this->debug              = $debug;
         $this->trackPluginInstrumentation = $trackPluginInstrumentation;
+        $this->_storeManager      = $storeManager;
         $this->enableCustomPaidOrderStatus = $this->config->isCustomPaidOrderStatusEnabled();
 
         if ($this->enableCustomPaidOrderStatus === true
@@ -161,8 +170,9 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController implements
     public function execute()
     {
         $this->logger->info("Razorpay Webhook processing started." );
-        
-        $this->config->setConfigData('webhook_triggered_at', time());
+
+        $websiteId = (int) $this->_storeManager->getStore()->getWebsiteId();
+        $this->config->setConfigData('webhook_triggered_at', time(), ScopeInterface::SCOPE_WEBSITES, $websiteId);
 
         $post = $this->getPostData();
 

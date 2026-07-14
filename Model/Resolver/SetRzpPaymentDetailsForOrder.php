@@ -440,6 +440,7 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
                 $order->save();
 
                 $orderLink->setRzpPaymentId($rzp_payment_id);
+                $orderLink->setWebsiteId((int) $order->getStore()->getWebsiteId());
                 $orderLink->save();
             }
         } catch (\Razorpay\Api\Errors\Error $e)

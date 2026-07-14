@@ -5,6 +5,7 @@ namespace Razorpay\Magento\Controller\Payment;
 use Razorpay\Api\Api;
 use Razorpay\Magento\Model\PaymentMethod;
 use Magento\Framework\Controller\ResultFactory;
+use Magento\Store\Model\ScopeInterface;
 use Razorpay\Magento\Model\TrackPluginInstrumentation;
 
 class Order extends \Razorpay\Magento\Controller\BaseController
@@ -141,6 +142,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                     $razorpayParams['webhook_events']['value']           = explode (",", $this->config->getConfigData('webhook_events'));
                     $razorpayParams['supported_webhook_events']['value'] = explode (",", $this->config->getConfigData('supported_webhook_events'));
 
+                    $websiteId = (int) $this->_storeManager->getStore()->getWebsiteId();
+
                     if(empty($this->config->getConfigData('webhook_secret')) === false)
                     {
                         $razorpayParams['webhook_secret']['value'] = $this->config->getConfigData('webhook_secret');
@@ -153,7 +156,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                     {
                         $secret = $this->generatePassword();
 
-                        $this->config->setConfigData('webhook_secret',$secret);
+                        $this->config->setConfigData('webhook_secret', $secret, ScopeInterface::SCOPE_WEBSITES, $websiteId);
 
                         $razorpayParams['webhook_secret']['value'] = $secret;
 
@@ -186,7 +189,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                             "active" => true,
                         ], $this->webhookId);
 
-                        $this->config->setConfigData('webhook_triggered_at', time());
+                        $this->config->setConfigData('webhook_triggered_at', time(), ScopeInterface::SCOPE_WEBSITES, $websiteId);
 
                         // @codeCoverageIgnoreStart
                         $this->logger->info("Razorpay Webhook Updated by Admin.");
@@ -201,7 +204,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                             "active" => true,
                         ]);
 
-                        $this->config->setConfigData('webhook_triggered_at', time());
+                        $this->config->setConfigData('webhook_triggered_at', time(), ScopeInterface::SCOPE_WEBSITES, $websiteId);
                         
                         // @codeCoverageIgnoreStart
                         $this->logger->info("Razorpay Webhook Created by Admin");
@@ -459,6 +462,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
         $orderLink->setRzpOrderId($rzpOrderId)
                     ->setOrderId($mazeOrder->getEntityId())
+                    ->setWebsiteId((int) $this->_storeManager->getStore()->getWebsiteId())
                     ->save();
 
         $this->logger->info("Data saved in razorpay_sales_order for Mage Order($receipt_id)");

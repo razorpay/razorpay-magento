@@ -98,6 +98,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
 
     protected $trackPluginInstrumentation;
 
+    protected $orderLinkCollectionFactory;
+
     //protected $_isOffline = true;
 
     protected $key_id;
@@ -143,6 +145,7 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
         \Razorpay\Magento\Controller\Payment\Order $order,
         TrackPluginInstrumentation $trackPluginInstrumentation,
+        \Razorpay\Magento\Model\ResourceModel\OrderLink\CollectionFactory $orderLinkCollectionFactory,
         \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
         \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
         array $data = []
@@ -170,7 +173,8 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
         $this->key_secret = $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
 
 
-        $this->trackPluginInstrumentation = $trackPluginInstrumentation;
+        $this->trackPluginInstrumentation    = $trackPluginInstrumentation;
+        $this->orderLinkCollectionFactory    = $orderLinkCollectionFactory;
 
         $this->order = $order;
     }
@@ -255,6 +259,23 @@ class PaymentMethod extends \Magento\Payment\Model\Method\AbstractMethod
                     'source'                =>  'Magento',
                 ]
             ];
+                    
+            // Resolve API keys from website_id stored in razorpay_sales_order.
+            // Admin refunds run under Website 1's store context, so we must
+            // explicitly look up which website this order belongs to.
+            $orderLink = $this->orderLinkCollectionFactory->create()
+                ->addFilter('order_id', $order->getEntityId())
+                ->getFirstItem();
+
+            $websiteId = $orderLink->getId() ? (int) $orderLink->getWebsiteId() : 0;
+
+            $this->key_id = $websiteId
+                ? ($this->config->getConfigDataAtSpecificScope(Config::KEY_PUBLIC_KEY, 'websites', $websiteId) ?: $this->config->getConfigData(Config::KEY_PUBLIC_KEY))
+                : $this->config->getConfigData(Config::KEY_PUBLIC_KEY);
+
+            $this->key_secret = $websiteId
+                ? ($this->config->getConfigDataAtSpecificScope(Config::KEY_PRIVATE_KEY, 'websites', $websiteId) ?: $this->config->getConfigData(Config::KEY_PRIVATE_KEY))
+                : $this->config->getConfigData(Config::KEY_PRIVATE_KEY);
 
             $this->rzp = $this->setAndGetRzpApiInstance();
 
