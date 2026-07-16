@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ /**
+  * Copyright © Magento, Inc. All rights reserved.
+  * See COPYING.txt for license details.
+  */
+-->
+<actionGroups xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/actionGroupSchema.xsd">
+    <actionGroup name="StorefrontSelectRazorpayPaymentMethodActionGroup">
+        <annotations>
+            <description>Selects the 'Razorpay' Payment Method on the Storefront Checkout Payment page.</description>
+        </annotations>
+
+        <waitForElementVisible selector="{{StorefrontRazorpayPaymentSection.razorpayPaymentRadio}}" stepKey="waitForRazorpayOption"/>
+        <click selector="{{StorefrontRazorpayPaymentSection.razorpayPaymentRadio}}" stepKey="clickRazorpayOption"/>
+    </actionGroup>
+
+    <actionGroup name="StorefrontClickPayWithRazorpayActionGroup">
+        <annotations>
+            <description>
+                Clicks the 'Pay with Razorpay' button. This triggers preparePayment() ->
+                placeOrder() in razorpay-method.js, which places the real Magento order
+                via the standard checkout placeOrder action, then automatically POSTs to
+                razorpay/payment/order (Controller/Payment/Order::execute()) to create the
+                matching razorpay_sales_order (OrderLink) row -- both of these are real,
+                assertable DB writes that happen before any further interaction.
+                Immediately after that AJAX call resolves, the JS opens Razorpay's own
+                hosted checkout.js modal (an external, third-party iframe outside this
+                module's DOM) to collect card/UPI/etc. details. MFTF cannot reliably drive
+                that hosted UI, so tests using this action group should assert on the
+                order/OrderLink state created up to this point, then simulate the webhook
+                side of the flow via RazorpaySimulateWebhookActionGroup rather than
+                attempting to fill in the hosted modal.
+            </description>
+        </annotations>
+
+        <waitForElementClickable selector="{{StorefrontRazorpayPaymentSection.payWithRazorpayButton}}" stepKey="waitForPayButtonClickable"/>
+        <click selector="{{StorefrontRazorpayPaymentSection.payWithRazorpayButton}}" stepKey="clickPayWithRazorpay"/>
+    </actionGroup>
+</actionGroups>

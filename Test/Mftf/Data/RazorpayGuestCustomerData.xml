@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ /**
+  * Copyright © Magento, Inc. All rights reserved.
+  * See COPYING.txt for license details.
+  */
+-->
+<entities xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:mftf:DataGenerator/etc/dataProfileSchema.xsd">
+    <!--
+        Deliberately not "unique=prefix" (unlike Simple_US_Customer/CustomerEntityOne):
+        this email is passed as a literal CLI argument to
+        razorpay:mftf:get-order-info to look the order back up after checkout,
+        so it must be a fixed, predictable value.
+    -->
+    <entity name="RazorpayGuestCustomer" type="customer">
+        <data key="email">razorpay.mftf.guest@example.com</data>
+        <data key="firstname">Razorpay</data>
+        <data key="lastname">MftfGuest</data>
+    </entity>
+</entities>

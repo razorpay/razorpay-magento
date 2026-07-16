@@ -7,6 +7,20 @@
 -->
 
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <!--
+        razorpayMftfGetOrderInfoCommand is only used by MFTF functional tests
+        (see Test/Mftf/Test/StorefrontRazorpayCheckoutFlowTest.php) to retrieve
+        the order/rzp_order_id created by the storefront JS flow, since that
+        flow never navigates to a visible success page for Razorpay's off-site
+        payment method.
+    -->
+    <type name="Magento\Framework\Console\CommandListInterface">
+        <arguments>
+            <argument name="commands" xsi:type="array">
+                <item name="razorpayMftfGetOrderInfoCommand" xsi:type="object">Razorpay\Magento\Console\Command\MftfGetOrderRazorpayInfoCommand</item>
+            </argument>
+        </arguments>
+    </type>
     <type name="Magento\Sales\Model\Order\Email\Container\OrderIdentity">
         <plugin name="change_is_enable_method" type="Razorpay\Magento\Plugin\Sales\Order\Email\Container\OrderIdentityPlugin" disabled="false"/>
     </type>

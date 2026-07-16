@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ /**
+  * Copyright © Magento, Inc. All rights reserved.
+  * See COPYING.txt for license details.
+  */
+-->
+<tests xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/testSchema.xsd">
+    <test name="StorefrontRazorpayCheckoutFlowTest">
+        <annotations>
+            <features value="Razorpay"/>
+            <stories value="Razorpay Checkout"/>
+            <title value="Guest places an order with Razorpay and a signed webhook is accepted and persisted"/>
+            <description value="
+                Covers the critical end-to-end flow up to the boundary MFTF can
+                actually verify: guest checkout selects Razorpay, clicking 'Pay with
+                Razorpay' places the real order and creates the matching
+                razorpay_sales_order row (verified via a real order-lookup step), then
+                a correctly-signed payment.authorized webhook is simulated (standing in
+                for Razorpay's hosted checkout.js modal, a third-party iframe MFTF
+                cannot drive) and its persistence to that row is asserted.
+
+                Does NOT attempt to fill in Razorpay's hosted card/UPI form, and does
+                NOT assert the order transitions to 'Processing' -- that transition is
+                performed by Cron/UpdateOrdersToProcessingV2, which deliberately only
+                picks up orders whose webhook arrived more than 5 minutes ago
+                (PROCESS_ORDER_WAIT_TIME). That real DB-backed transition, including the
+                grace-window behavior, is covered without an artificial 5+ minute wait
+                by Test/Integration/Cron/UpdateOrdersToProcessingV2Test.php.
+            "/>
+            <severity value="CRITICAL"/>
+            <group value="razorpay"/>
+        </annotations>
+
+        <before>
+            <actionGroup ref="AdminLoginActionGroup" stepKey="loginToAdminPanel"/>
+            <actionGroup ref="RazorpayCliEnablePaymentMethodActionGroup" stepKey="enableRazorpayPaymentMethod"/>
+            <actionGroup ref="RazorpayCliSetWebhookSecretActionGroup" stepKey="setWebhookSecret">
+                <argument name="webhookSecret" value="mftf_test_webhook_secret"/>
+            </actionGroup>
+            <createData entity="ApiSimpleProduct" stepKey="createSimpleProduct"/>
+        </before>
+
+        <after>
+            <deleteData createDataKey="createSimpleProduct" stepKey="deleteSimpleProduct"/>
+            <actionGroup ref="RazorpayCliDisablePaymentMethodActionGroup" stepKey="disableRazorpayPaymentMethod"/>
+            <actionGroup ref="AdminLogoutActionGroup" stepKey="logout"/>
+        </after>
+
+        <!-- Add product to cart and proceed to checkout -->
+        <amOnPage url="$$createSimpleProduct.custom_attributes[url_key]$$.html" stepKey="goToProductPage"/>
+        <waitForPageLoad stepKey="waitForProductPageLoad"/>
+        <actionGroup ref="AddSimpleProductToCartActionGroup" stepKey="addProductToCart">
+            <argument name="product" value="$$createSimpleProduct$$"/>
+        </actionGroup>
+        <actionGroup ref="ClickViewAndEditCartFromMiniCartActionGroup" stepKey="openMiniCart"/>
+        <actionGroup ref="StorefrontClickProceedToCheckoutActionGroup" stepKey="proceedToCheckout"/>
+
+        <!-- Guest checkout: shipping step -->
+        <actionGroup ref="FillGuestCheckoutShippingAddressFormActionGroup" stepKey="fillGuestShippingForm">
+            <argument name="customer" value="RazorpayGuestCustomer"/>
+            <argument name="customerAddress" value="US_Address_TX"/>
+        </actionGroup>
+        <actionGroup ref="StorefrontGuestCheckoutProceedToPaymentStepActionGroup" stepKey="proceedToPaymentStep"/>
+
+        <!-- Select Razorpay and click pay -->
+        <actionGroup ref="StorefrontSelectRazorpayPaymentMethodActionGroup" stepKey="selectRazorpayPaymentMethod"/>
+        <actionGroup ref="StorefrontClickPayWithRazorpayActionGroup" stepKey="clickPayWithRazorpay"/>
+
+        <!--
+            At this point the order and its razorpay_sales_order row exist in the
+            DB (Controller/Payment/Order::execute() ran as part of the JS flow), and
+            Razorpay's hosted checkout.js modal is open server-side-unverifiable to
+            MFTF. Retrieve the increment_id/rzp_order_id via the module's own MFTF-only
+            CLI command rather than a storefront success page, since this off-site
+            payment flow never navigates there.
+
+            Output format: "increment_id|rzp_order_id|rzp_webhook_notified_at"
+        -->
+        <magentoCLI command="razorpay:mftf:get-order-info {{RazorpayGuestCustomer.email}}" stepKey="getOrderInfoBeforeWebhook"/>
+        <assertStringContainsString stepKey="assertOrderInfoNotAnError">
+            <expectedResult type="string">|</expectedResult>
+            <actualResult type="variable">getOrderInfoBeforeWebhook</actualResult>
+        </assertStringContainsString>
+
+        <executeJS function="return '{$getOrderInfoBeforeWebhook}'.split('|')[0];" stepKey="extractIncrementId"/>
+        <executeJS function="return '{$getOrderInfoBeforeWebhook}'.split('|')[1];" stepKey="extractRzpOrderId"/>
+
+        <!-- Before the webhook arrives, rzp_webhook_notified_at must be empty -->
+        <executeJS function="return '{$getOrderInfoBeforeWebhook}'.split('|')[2];" stepKey="webhookNotifiedAtBefore"/>
+        <assertEmpty stepKey="assertWebhookNotNotifiedYet">
+            <actualResult type="variable">webhookNotifiedAtBefore</actualResult>
+        </assertEmpty>
+
+        <!-- Simulate the correctly-signed webhook Razorpay would send after the
+             customer completes payment in the hosted modal -->
+        <actionGroup ref="RazorpaySimulateWebhookActionGroup" stepKey="simulatePaymentAuthorizedWebhook">
+            <argument name="webhookSecret" value="mftf_test_webhook_secret"/>
+            <argument name="event" value="payment.authorized"/>
+            <argument name="razorpayOrderId" value="{$extractRzpOrderId}"/>
+            <argument name="razorpayPaymentId" value="pay_MFTFTEST1"/>
+            <argument name="amountInPaise" value="1000"/>
+            <argument name="merchantOrderId" value="{$extractIncrementId}"/>
+        </actionGroup>
+
+        <!-- After the webhook, rzp_webhook_notified_at must now be set -->
+        <magentoCLI command="razorpay:mftf:get-order-info {{RazorpayGuestCustomer.email}}" stepKey="getOrderInfoAfterWebhook"/>
+        <executeJS function="return '{$getOrderInfoAfterWebhook}'.split('|')[2];" stepKey="webhookNotifiedAtAfter"/>
+        <assertNotEmpty stepKey="assertWebhookNotified">
+            <actualResult type="variable">webhookNotifiedAtAfter</actualResult>
+        </assertNotEmpty>
+
+        <!-- Order remains Pending -- the webhook only persists data, it does not
+             mutate order state directly (see Controller/Payment/Webhook.php) -->
+        <actionGroup ref="FilterOrderGridByIdActionGroup" stepKey="filterOrderGridById">
+            <argument name="orderId" value="{$extractIncrementId}"/>
+        </actionGroup>
+        <click selector="{{AdminOrdersGridSection.viewLink($extractIncrementId)}}" stepKey="openOrder"/>
+        <waitForPageLoad stepKey="waitForOrderPageLoad"/>
+        <see selector="{{AdminOrderDetailsInformationSection.orderStatus}}" userInput="Pending" stepKey="seeOrderStatusStillPending"/>
+    </test>
+</tests>

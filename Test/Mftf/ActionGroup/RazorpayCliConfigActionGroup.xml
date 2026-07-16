@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ /**
+  * Copyright © Magento, Inc. All rights reserved.
+  * See COPYING.txt for license details.
+  */
+-->
+<actionGroups xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/actionGroupSchema.xsd">
+    <actionGroup name="RazorpayCliEnablePaymentMethodActionGroup">
+        <annotations>
+            <description>Enables the Razorpay payment method and sets test API keys via CLI config:set.</description>
+        </annotations>
+
+        <arguments>
+            <argument name="keyId" type="string" defaultValue="rzp_test_1234567890"/>
+            <argument name="keySecret" type="string" defaultValue="mftf_test_key_secret"/>
+        </arguments>
+
+        <magentoCLI command="config:set payment/razorpay/active 1" stepKey="enableRazorpay"/>
+        <magentoCLI command="config:set payment/razorpay/key_id {{keyId}}" stepKey="setKeyId"/>
+        <magentoCLI command="config:set payment/razorpay/key_secret {{keySecret}}" stepKey="setKeySecret"/>
+        <magentoCLI command="config:set payment/razorpay/rzp_payment_action authorize" stepKey="setPaymentAction"/>
+    </actionGroup>
+
+    <actionGroup name="RazorpayCliDisablePaymentMethodActionGroup">
+        <annotations>
+            <description>Disables the Razorpay payment method via CLI config:set.</description>
+        </annotations>
+
+        <magentoCLI command="config:set payment/razorpay/active 0" stepKey="disableRazorpay"/>
+    </actionGroup>
+
+    <actionGroup name="RazorpayCliSetWebhookSecretActionGroup">
+        <annotations>
+            <description>
+                Sets a webhook secret via CLI, matching what an admin would configure via
+                the "Webhook Secret" field on the payment method's admin config page
+                (Model/WebhookUrl.php renders the corresponding URL there). The value set
+                here must be passed as the webhookSecret argument to
+                RazorpaySimulateWebhookActionGroup so the simulated webhook's HMAC
+                signature validates against it.
+            </description>
+        </annotations>
+
+        <arguments>
+            <argument name="webhookSecret" type="string" defaultValue="mftf_test_webhook_secret"/>
+        </arguments>
+
+        <magentoCLI command="config:set payment/razorpay/enable_webhook 1" stepKey="enableWebhook"/>
+        <magentoCLI command="config:set payment/razorpay/webhook_secret {{webhookSecret}}" stepKey="setWebhookSecret"/>
+    </actionGroup>
+</actionGroups>

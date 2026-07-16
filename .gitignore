@@ -1,2 +1,5 @@
 .DS_Store
 .idea
+/var/
+.phpunit.result.cache
+*.md

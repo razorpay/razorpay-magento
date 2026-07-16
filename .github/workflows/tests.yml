@@ -1,0 +1,84 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master-2.x
+
+jobs:
+  static-and-unit:
+    name: Static analysis + Unit tests (PHP ${{ matrix.php-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # This range mirrors composer.json's declared support ("7.*|^8.1") plus
+        # newer versions Magento itself is moving to. PHPUnit 9.6.22 has been
+        # confirmed working through PHP 8.5 in this session; see TESTING.md
+        # "PHP version matrix" for the full compatibility findings and the
+        # 7.4/8.1-8.3 vs 8.4/8.5 distinction PHPStan's phpVersion emulation draws.
+        php-version: ['7.4', '8.1', '8.2', '8.3', '8.4', '8.5']
+    env:
+      # Magento Marketplace credentials, required to install
+      # magento/project-community-edition from repo.magento.com even for
+      # Community Edition. Configure at:
+      # https://github.com/razorpay/razorpay-magento/settings/secrets/actions
+      # Value format: {"http-basic":{"repo.magento.com":{"username":"<public key>","password":"<private key>"}}}
+      COMPOSER_AUTH: ${{ secrets.MAGENTO_COMPOSER_AUTH }}
+
+    steps:
+      - name: Checkout module
+        uses: actions/checkout@v4
+        with:
+          path: module
+
+      - name: Set up PHP ${{ matrix.php-version }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          tools: composer:v2
+          coverage: none
+
+      - name: Create Magento Community Edition skeleton
+        run: |
+          composer create-project --repository-url=https://repo.magento.com/ \
+            magento/project-community-edition:2.4.7 magento --no-install --no-interaction
+
+      - name: Install the module into the Magento skeleton
+        run: |
+          mkdir -p magento/app/code/Razorpay
+          cp -r module magento/app/code/Razorpay/Magento
+
+      - name: Install Composer dependencies (root + module require-dev)
+        working-directory: magento
+        run: |
+          composer config --no-plugins allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
+          composer install --no-interaction --prefer-dist
+          composer require --dev --no-interaction --working-dir=. \
+            squizlabs/php_codesniffer:^3.12 \
+            magento/magento-coding-standard \
+            phpmd/phpmd:^2.15 \
+            phpstan/phpstan:^1.12 \
+            phpunit/phpunit:^9.6 \
+            magento/php-compatibility-fork:^0.1
+
+      - name: Run static analysis (phpcs, phpmd, phpstan)
+        working-directory: magento
+        run: app/code/Razorpay/Magento/bin/run-tests.sh static
+
+      - name: Run PHP compatibility matrix
+        working-directory: magento
+        run: app/code/Razorpay/Magento/bin/run-tests.sh compat
+
+      - name: Run unit tests
+        working-directory: magento
+        run: app/code/Razorpay/Magento/bin/run-tests.sh unit
+
+      - name: Upload test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs-php${{ matrix.php-version }}
+          path: magento/app/code/Razorpay/Magento/var/log/tests/
+          if-no-files-found: ignore

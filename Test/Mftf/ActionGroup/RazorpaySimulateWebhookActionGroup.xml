@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ /**
+  * Copyright © Magento, Inc. All rights reserved.
+  * See COPYING.txt for license details.
+  */
+-->
+<actionGroups xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/actionGroupSchema.xsd">
+    <actionGroup name="RazorpaySimulateWebhookActionGroup">
+        <annotations>
+            <description>
+                Simulates a real, correctly-signed Razorpay webhook POST against
+                razorpay/payment/webhook, standing in for the part of the flow that
+                Razorpay's hosted checkout.js modal (external, third-party iframe) would
+                otherwise trigger server-side after a customer completes payment. Requires
+                the target order's rzp_order_id and the webhook_secret configured via
+                RazorpaySetWebhookSecretActionGroup earlier in the test.
+            </description>
+        </annotations>
+
+        <arguments>
+            <argument name="webhookSecret" type="string"/>
+            <argument name="event" type="string" defaultValue="payment.authorized"/>
+            <argument name="razorpayOrderId" type="string"/>
+            <argument name="razorpayPaymentId" type="string" defaultValue="pay_MFTFTEST1"/>
+            <argument name="amountInPaise" type="string" defaultValue="1000"/>
+            <argument name="merchantOrderId" type="string"/>
+        </arguments>
+
+        <helper class="Razorpay\Magento\Test\Mftf\Helper\RazorpayWebhookHelper" method="postSignedWebhook" stepKey="postWebhook">
+            <argument name="baseUrl">{{_ENV.MAGENTO_BASE_URL}}</argument>
+            <argument name="webhookSecret">{{webhookSecret}}</argument>
+            <argument name="event">{{event}}</argument>
+            <argument name="razorpayOrderId">{{razorpayOrderId}}</argument>
+            <argument name="razorpayPaymentId">{{razorpayPaymentId}}</argument>
+            <argument name="amountInPaise">{{amountInPaise}}</argument>
+            <argument name="merchantOrderId">{{merchantOrderId}}</argument>
+        </helper>
+    </actionGroup>
+</actionGroups>

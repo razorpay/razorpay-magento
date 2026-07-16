@@ -1,0 +1,14 @@
+parameters:
+    level: 5
+    bootstrapFiles:
+        - Test/phpstan-bootstrap.php
+    paths:
+        - Constants
+        - Controller
+        - Cron
+        - Model
+        - Observer
+        - Plugin
+        - Setup
+    excludePaths:
+        - vendor/*
