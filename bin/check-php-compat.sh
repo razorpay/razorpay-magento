@@ -6,6 +6,14 @@ MAGENTO_ROOT="$(cd "$MODULE_DIR/../../../.." && pwd)"
 VENDOR_BIN="$MAGENTO_ROOT/vendor/bin"
 MODULE_REL="app/code/Razorpay/Magento"
 
+# See bin/run-tests.sh for why this prefers MAMP's PHP binary when available.
+MAMP_PHP="/Applications/MAMP/bin/php/php8.2.26/bin/php"
+if [ -x "$MAMP_PHP" ]; then
+    PHP_BIN="$MAMP_PHP"
+else
+    PHP_BIN="php"
+fi
+
 # PHP versions this module claims to support (see composer.json "require".php
 # and TESTING.md for the reasoning behind this list).
 PHP_VERSIONS=(7.4 8.1 8.2 8.3 8.4 8.5)
@@ -13,7 +21,7 @@ PHP_VERSIONS=(7.4 8.1 8.2 8.3 8.4 8.5)
 echo "=== PHPCompatibility (phpcs) ==="
 for v in "${PHP_VERSIONS[@]}"; do
     echo "--- testVersion $v ---"
-    (cd "$MAGENTO_ROOT" && "$VENDOR_BIN/phpcs" \
+    (cd "$MAGENTO_ROOT" && "$PHP_BIN" "$VENDOR_BIN/phpcs" \
         --standard="$MODULE_REL/phpcs-compatibility.xml.dist" \
         --runtime-set testVersion "$v" \
         --report=summary) || true
@@ -39,16 +47,16 @@ parameters:
     phpVersion: $ver_num
 EOF
     echo "--- phpVersion $v (${ver_num}) ---"
-    (cd "$MAGENTO_ROOT" && "$VENDOR_BIN/phpstan" analyse -c "$tmp_config" --memory-limit=1G --error-format=table) || true
+    (cd "$MAGENTO_ROOT" && "$PHP_BIN" "$VENDOR_BIN/phpstan" analyse -c "$tmp_config" --memory-limit=1G --error-format=table) || true
     rm -f "$tmp_config"
 done
 
 echo ""
 echo "=== php -l (syntax lint, only runs against the PHP binary available in this environment) ==="
-php -v | head -1
+"$PHP_BIN" -v | head -1
 FAIL=0
 for f in $(cd "$MAGENTO_ROOT/$MODULE_REL" && find Constants Controller Cron Model Observer Plugin Setup -name "*.php"); do
-    out=$(php -l "$MAGENTO_ROOT/$MODULE_REL/$f" 2>&1)
+    out=$("$PHP_BIN" -l "$MAGENTO_ROOT/$MODULE_REL/$f" 2>&1)
     if ! echo "$out" | grep -q "No syntax errors detected"; then
         echo "FATAL: $f"
         echo "$out"

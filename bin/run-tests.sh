@@ -6,6 +6,19 @@ MAGENTO_ROOT="$(cd "$MODULE_DIR/../../../.." && pwd)"
 VENDOR_BIN="$MAGENTO_ROOT/vendor/bin"
 MODULE_REL="app/code/Razorpay/Magento"
 
+# vendor/bin/* tools use "#!/usr/bin/env php", so they run whichever php is
+# first on $PATH. In this MAMP-based environment that's Homebrew's PHP, which
+# is NOT the PHP Magento itself is wired to (MAMP's bundled PHP has the
+# correct mysqli.default_socket for MAMP's MySQL). Prefer the MAMP binary if
+# it exists so vendor/bin/phpunit etc. actually connect to the same DB
+# bin/magento does; fall back to plain "php" elsewhere.
+MAMP_PHP="/Applications/MAMP/bin/php/php8.2.26/bin/php"
+if [ -x "$MAMP_PHP" ]; then
+    PHP_BIN="$MAMP_PHP"
+else
+    PHP_BIN="php"
+fi
+
 DIRS="Constants Controller Cron Model Observer Plugin Setup"
 
 LOG_DIR="$MODULE_DIR/var/log/tests"
@@ -51,7 +64,6 @@ run_logged() {
     set +e
     "$@" > "$log_file" 2>&1
     local status=$?
-    set -e
 
     grep -v -e '^PHP Deprecated' -e '^Deprecated:' "$log_file" || true
 
@@ -67,23 +79,23 @@ run_logged() {
 }
 
 run_phpcs() {
-    run_logged phpcs "$VENDOR_BIN/phpcs" --standard="$MAGENTO_ROOT/$MODULE_REL/phpcs.xml.dist"
+    run_logged phpcs "$PHP_BIN" "$VENDOR_BIN/phpcs" --standard="$MAGENTO_ROOT/$MODULE_REL/phpcs.xml.dist"
 }
 
 run_phpcbf() {
-    run_logged phpcbf "$VENDOR_BIN/phpcbf" --standard="$MAGENTO_ROOT/$MODULE_REL/phpcs.xml.dist"
+    run_logged phpcbf "$PHP_BIN" "$VENDOR_BIN/phpcbf" --standard="$MAGENTO_ROOT/$MODULE_REL/phpcs.xml.dist"
 }
 
 run_phpmd() {
-    run_logged phpmd bash -c "cd '$MODULE_DIR' && '$VENDOR_BIN/phpmd' '$(echo $DIRS | tr ' ' ',')' text phpmd.xml.dist"
+    run_logged phpmd bash -c "cd '$MODULE_DIR' && '$PHP_BIN' '$VENDOR_BIN/phpmd' '$(echo $DIRS | tr ' ' ',')' text phpmd.xml.dist"
 }
 
 run_phpstan() {
-    run_logged phpstan "$VENDOR_BIN/phpstan" analyse -c "$MAGENTO_ROOT/$MODULE_REL/phpstan.neon" --memory-limit=1G
+    run_logged phpstan "$PHP_BIN" "$VENDOR_BIN/phpstan" analyse -c "$MAGENTO_ROOT/$MODULE_REL/phpstan.neon" --memory-limit=1G
 }
 
 run_unit() {
-    run_logged unit bash -c "cd '$MODULE_DIR' && '$VENDOR_BIN/phpunit' -c phpunit.xml"
+    run_logged unit bash -c "cd '$MODULE_DIR' && '$PHP_BIN' '$VENDOR_BIN/phpunit' -c phpunit.xml"
 }
 
 run_compat() {
@@ -103,7 +115,7 @@ run_integration() {
         return 0
     fi
 
-    run_logged integration bash -c "cd '$integration_dir' && '$VENDOR_BIN/phpunit' -c phpunit.xml.dist --filter Razorpay"
+    run_logged integration bash -c "cd '$integration_dir' && '$PHP_BIN' '$VENDOR_BIN/phpunit' -c phpunit.xml.dist --filter Razorpay"
 }
 
 print_summary() {
