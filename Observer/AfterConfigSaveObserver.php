@@ -220,10 +220,11 @@ class AfterConfigSaveObserver implements ObserverInterface
     {
         $storeName = "";
 
+        $razorpayParamsFormattedArray = array('config_settings' => array());
+
         $firstElement = array_values($razorpayParams)[0];
         if (empty($firstElement) === false and array_keys($firstElement)[0] === "value")
         {
-            $razorpayParamsFormattedArray = array('config_settings' => array());
             foreach($razorpayParams as $key=>$value)
             {
                 if ($key != "key_id" && $key != "key_secret")
@@ -233,7 +234,8 @@ class AfterConfigSaveObserver implements ObserverInterface
                         null;
                 }
             }
-            $storeName = $razorpayParamsFormattedArray['config_settings']['merchant_name_override'];
+            $storeName = isset($razorpayParamsFormattedArray['config_settings']['merchant_name_override']) ?
+                $razorpayParamsFormattedArray['config_settings']['merchant_name_override'] : "";
         }
 
         $metaData = array("store_name" => $storeName);
