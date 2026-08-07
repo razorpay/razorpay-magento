@@ -330,9 +330,7 @@ define(
                 $.ajax({
                     type: 'POST',
                     url: url.build('razorpay/payment/validate'),
-                    data: JSON.stringify(data),
-                    dataType: 'json',
-                    contentType: 'application/json',
+                    data: data,
 
                     /**
                      * Success callback

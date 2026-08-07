@@ -196,6 +196,27 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
                 'parameters'    => []
             ];
 
+        if (empty($post) === true || empty($post['razorpay_payment_id']) === true)
+        {
+            $responseContent['message'] = 'Payment validation failed: No payment data received.';
+
+            $this->logger->critical("Validate: Empty post data received in getPostData().");
+
+            $properties = [
+                "error_message" => "Empty post data received in getPostData()",
+                "file_path" => "controller/Payment/Validate.php",
+                "exception_type" => null,
+                "notes" => "getPostData returned empty array"
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.validate.handler.failed', $properties);
+
+            $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
+            $response->setData($responseContent);
+            $response->setHttpResponseCode(400);
+            return $response;
+        }
+
         try
         {
             $this->validateSignature($post);
@@ -453,13 +474,34 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
 
     
     /**
-     * @return Webhook post data as an array
+     * @return Payment post data as an array
      */
     protected function getPostData() : array
     {
         $request = $this->fileGetContents();
 
-        return json_decode($request, true);
+        if (empty($request) === true)
+        {
+            $request = $this->getRequest()->getContent();
+        }
+
+        if (empty($request) === false)
+        {
+            $data = json_decode($request, true);
+
+            if (is_array($data))
+            {
+                return $data;
+            }
+        }
+
+        $params = $this->getRequest()->getParams();
+        if (empty($params) === false)
+        {
+            return $params;
+        }
+
+        return [];
     }
 
     // @codeCoverageIgnoreStart

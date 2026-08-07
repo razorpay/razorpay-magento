@@ -49,6 +49,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     private const MAX_DEVICE_ID_LENGTH       = 255;
     private const MAX_USER_AGENT_LENGTH      = 512;
     private const MAX_LINE_ITEM_NAME_LENGTH  = 125;
+    private const MAX_SKU_LENGTH             = 128;
 
     protected $trackPluginInstrumentation;
 
@@ -660,7 +661,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
             $lineItems[] = [
                 'type'        => 'e-commerce',
-                'sku'         => (string)$item->getSku(),
+                'sku'         => substr((string)$item->getSku(), 0, self::MAX_SKU_LENGTH),
                 'variant_id'  => (string)$item->getProductId(),
                 'price'       => $price,
                 'offer_price' => $offerPrice,
