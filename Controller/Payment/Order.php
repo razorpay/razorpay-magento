@@ -356,10 +356,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                     'receipt'           => $receipt_id,
                     'currency'          => $mazeOrder->getOrderCurrencyCode(),
                     'payment_capture'   => $payment_capture,
-                    'line_items_total'  => $this->toPaise($mazeOrder->getSubtotal() + $mazeOrder->getDiscountAmount()),
                     'line_items'        => $this->buildLineItems($mazeOrder),
-                    'shipping_fee'      => $this->toPaise($mazeOrder->getShippingInclTax()),
-                    'customer_details'  => $this->buildCustomerDetails($mazeOrder),
                     'notes' => [
                         'referrer'          => (isset($_SERVER['HTTP_REFERER']) === true) ? $_SERVER['HTTP_REFERER'] : null,
                         'shield_device_id'  => $deviceId,
