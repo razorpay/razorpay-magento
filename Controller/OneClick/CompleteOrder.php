@@ -110,11 +110,6 @@ class CompleteOrder extends Action
     private static $umOrderCommentColumnExists = null;
 
     /**
-     * @var \Magento\Framework\Module\Manager
-     */
-    protected $moduleManager;
-
-    /**
      * CompleteOrder constructor.
      * @param Http $request
      * @param Context $context
@@ -149,12 +144,10 @@ class CompleteOrder extends Action
         CollectionFactory                                     $collectionFactory,
         StateMap                                              $stateNameMap,
         CartConverter                                         $cartConverter,
-        CustomerConsent                                       $customerConsent,
-        \Magento\Framework\Module\Manager                     $moduleManager
+        CustomerConsent                                       $customerConsent
     )
     {
         parent::__construct($context);
-        $this->moduleManager = $moduleManager;
         $this->request = $request;
         $this->resultJsonFactory = $jsonFactory;
         $this->cartManagement = $cartManagement;
@@ -499,18 +492,14 @@ class CompleteOrder extends Action
 
                     $order->setCustomerNote($orderInstructions);
 
-                    // Ulmod_OrderComment surfaces the shopper note in the admin "Order Comment"
-                    // section via sales_order.um_order_comment. The module check is an in-memory
-                    // config read, so installs without the module never reach the schema lookup;
-                    // the column check still guards installs where the module is present but the
-                    // column is not. The result is cached for the life of the process.
+                    // Ulmod_OrderComment (and similar extensions) surface the shopper note in the
+                    // admin "Order Comment" section via sales_order.um_order_comment. Only write it
+                    // when the column is actually present, so installs without it are unaffected.
                     if (self::$umOrderCommentColumnExists === null) {
                         $orderResource = $order->getResource();
 
-                        self::$umOrderCommentColumnExists =
-                            $this->moduleManager->isEnabled('Ulmod_OrderComment')
-                            && $orderResource->getConnection()
-                                ->tableColumnExists($orderResource->getMainTable(), 'um_order_comment');
+                        self::$umOrderCommentColumnExists = $orderResource->getConnection()
+                            ->tableColumnExists($orderResource->getMainTable(), 'um_order_comment');
                     }
 
                     if (self::$umOrderCommentColumnExists === true) {
