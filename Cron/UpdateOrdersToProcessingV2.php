@@ -497,6 +497,34 @@ class UpdateOrdersToProcessingV2
                 )->setStatus($order->getStatus())->setIsCustomerNotified(true);
             }
 
+            $orderInstructions = $rzpOrderData->notes->order_instructions ?? '';
+            if (empty($orderInstructions) === false) {
+                try {
+                    $orderInstructionsComment = __('Order Instructions: %1', $orderInstructions);
+
+                    $order->addStatusHistoryComment(
+                        $orderInstructionsComment
+                    )->setStatus($order->getStatus())->setIsCustomerNotified(true);
+
+                    $order->setCustomerNote($orderInstructions);
+
+                    // Ulmod_OrderComment (and similar extensions) surface the shopper note in the
+                    // admin "Order Comment" section via sales_order.um_order_comment. Only write it
+                    // when the column is actually present, so installs without it are unaffected.
+                    $orderResource = $order->getResource();
+                    if ($orderResource->getConnection()->tableColumnExists(
+                        $orderResource->getMainTable(),
+                        'um_order_comment'
+                    )) {
+                        $order->setData('um_order_comment', $orderInstructions);
+                    }
+                } catch (\Exception $e) {
+                    // Never fail order processing because the shopper note could not be attached.
+                    $this->logger->critical('Razorpay Error: unable to set order instructions: '
+                        . $e->getMessage());
+                }
+            }
+
             $codFee = $rzpOrderData->cod_fee;
             if ($codFee > 0) {
                 $codFeeComment = __('Razorpay COD Fee %1.', $codFee / 100);
