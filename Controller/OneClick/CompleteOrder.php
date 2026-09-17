@@ -102,6 +102,14 @@ class CompleteOrder extends Action
     const MAX_ATTEMPTS = "3";
 
     /**
+     * Cached result of the sales_order.um_order_comment column lookup. The schema
+     * does not change at runtime, so the check is only worth making once.
+     *
+     * @var bool|null
+     */
+    private static $umOrderCommentColumnExists = null;
+
+    /**
      * CompleteOrder constructor.
      * @param Http $request
      * @param Context $context
@@ -480,18 +488,21 @@ class CompleteOrder extends Action
 
                     $order->addStatusHistoryComment(
                         $orderInstructionsComment
-                    )->setStatus($order->getStatus())->setIsCustomerNotified(true);
+                    )->setStatus($order->getStatus())->setIsCustomerNotified(false);
 
                     $order->setCustomerNote($orderInstructions);
 
                     // Ulmod_OrderComment (and similar extensions) surface the shopper note in the
                     // admin "Order Comment" section via sales_order.um_order_comment. Only write it
                     // when the column is actually present, so installs without it are unaffected.
-                    $orderResource = $order->getResource();
-                    if ($orderResource->getConnection()->tableColumnExists(
-                        $orderResource->getMainTable(),
-                        'um_order_comment'
-                    )) {
+                    if (self::$umOrderCommentColumnExists === null) {
+                        $orderResource = $order->getResource();
+
+                        self::$umOrderCommentColumnExists = $orderResource->getConnection()
+                            ->tableColumnExists($orderResource->getMainTable(), 'um_order_comment');
+                    }
+
+                    if (self::$umOrderCommentColumnExists === true) {
                         $order->setData('um_order_comment', $orderInstructions);
                     }
                 } catch (\Exception $e) {
