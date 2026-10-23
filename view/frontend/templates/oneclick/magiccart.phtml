@@ -1,0 +1,52 @@
+<?php
+
+function getObjectManager()
+{
+    return \Magento\Framework\App\ObjectManager::getInstance();
+}
+
+$objectManager = getObjectManager();
+
+$configData = $objectManager->get(\Razorpay\Magento\Model\Config::class);
+
+$isMagicEnabled = $configData->getMagicStatus();
+
+$cartData = $objectManager->create('Magento\Checkout\Model\Cart')->getQuote()->getAllVisibleItems();
+$cartDataCount = count($cartData);
+
+?>
+<?php if ($isMagicEnabled == 1 && $cartDataCount > 0) : ?>
+
+    <div id="cart-occ-div">
+
+        <button type="button"
+
+                id="cart-occ-template"
+
+                data-role="proceed-to-checkout"
+
+                title="<?= $block->escapeHtmlAttr(__('Proceed to Checkout')) ?>"
+
+                data-mage-init='{
+
+                "Razorpay_Magento/js/magic-cart":{}
+            }'
+
+                class="action primary checkout<?= ($block->isDisabled()) ? ' disabled' : '' ?>"
+
+            <?php if ($block->isDisabled()) : ?>
+
+                disabled="disabled"
+
+            <?php endif; ?>>
+
+            <span><?= $block->escapeHtml(__('Proceed to Checkout')) ?></span>
+
+        </button>
+    </div>
+    <link rel="stylesheet" type="text/css"
+          href="<?php echo $block->getViewFileUrl('Razorpay_Magento::css/magic.css'); ?>">
+
+    <script type="text/javascript" src="https://checkout.razorpay.com/v1/magic-checkout.js"></script>
+
+<?php endif; ?>

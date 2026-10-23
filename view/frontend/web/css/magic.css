@@ -1,0 +1,15 @@
+#cart-occ-template {
+	width: 100%;
+}
+
+#product-oneclick-button {
+	margin-bottom: 10px;
+}
+
+.checkout.methods.items.checkout-methods-items {
+	display: none;
+}
+
+div.product-info-main #occ-template magic-checkout-btn {
+	display: none !important;
+}
