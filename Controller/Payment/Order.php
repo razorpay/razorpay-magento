@@ -6,6 +6,7 @@ use Razorpay\Api\Api;
 use Razorpay\Magento\Model\PaymentMethod;
 use Magento\Framework\Controller\ResultFactory;
 use Razorpay\Magento\Model\TrackPluginInstrumentation;
+use Magento\Bundle\Model\Product\Type as BundleType;
 
 class Order extends \Razorpay\Magento\Controller\BaseController
 {
@@ -635,48 +636,168 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
         foreach ($order->getAllVisibleItems() as $item)
         {
-            $product    = $item->getProduct();
-            $imageUrl   = '';
-            $productUrl = '';
-
-            if ($product)
+            if ($this->config->isBundleChildLineItemsEnabled() &&
+                $item->getProductType() === BundleType::TYPE_CODE)
             {
-                $imageUrl = $product->getImage() ? $mediaUrl . 'catalog/product' . $product->getImage() : '';
-                try
+                $children = $item->getChildrenItems();
+
+                if (empty($children) === false)
                 {
-                    $productUrl = $product->getProductUrl();
-                }
-                catch (\Exception $e)
-                {
-                    $productUrl = '';
+                    foreach ($this->buildBundleChildLineItems($item, $children, $mediaUrl) as $childLineItem)
+                    {
+                        $lineItems[] = $childLineItem;
+                    }
+
+                    continue;
                 }
             }
 
-            $price      = $this->toPaise($item->getPrice());
-            $qty        = (int)($item->getQtyOrdered() ?? 0);
-            // intdiv intentionally floors per-item discount; remainder (≤ qty-1 paise) is absorbed into line_items_total
-            $discount   = ($qty > 0 && $item->getDiscountAmount()) ? intdiv($this->toPaise((float)$item->getDiscountAmount()), $qty) : 0;
-            $offerPrice = max(0, $price - $discount);
-            $name       = substr((string)$item->getName(), 0, self::MAX_LINE_ITEM_NAME_LENGTH);
-
-            $sku = substr((string)$item->getSku(), 0, self::MAX_LINE_ITEM_SKU_LENGTH);
-
-            $lineItems[] = [
-                'type'        => 'e-commerce',
-                'sku'         => $sku,
-                'variant_id'  => (string)$item->getProductId(),
-                'price'       => $price,
-                'offer_price' => $offerPrice,
-                'tax_amount'  => ($qty > 0) ? intdiv($this->toPaise((float)$item->getTaxAmount()), $qty) : 0,
-                'quantity'    => $qty,
-                'name'        => $name,
-                'description' => $name,
-                'image_url'   => $imageUrl,
-                'product_url' => $productUrl,
-            ];
+            $lineItems[] = $this->buildLineItem($item, $mediaUrl);
         }
 
         return $lineItems;
+    }
+
+    private function buildBundleChildLineItems($parentItem, array $children, $mediaUrl)
+    {
+        $parentQty = max(1, (int)($parentItem->getQtyOrdered() ?? 0));
+        $priceTotal = $this->toPaise($parentItem->getPrice()) * $parentQty;
+        $offerTotal = max(0, $priceTotal - $this->toPaise($parentItem->getDiscountAmount()));
+        $taxTotal = $this->toPaise($parentItem->getTaxAmount());
+        $weights = [];
+
+        foreach ($children as $childItem)
+        {
+            $childQty = max(1, (int)($childItem->getQtyOrdered() ?? 0));
+            $originalPrice = (float)($childItem->getOriginalPrice() ?? 0);
+
+            if ($originalPrice <= 0)
+            {
+                $originalPrice = (float)($childItem->getPrice() ?? 0);
+            }
+
+            $product = $childItem->getProduct();
+
+            if ($originalPrice <= 0 && $product)
+            {
+                $originalPrice = (float)($product->getPrice() ?? 0);
+            }
+
+            $weights[] = $this->toPaise($originalPrice) * $childQty;
+        }
+
+        if (array_sum($weights) === 0)
+        {
+            $weights = array_fill(0, count($children), 1);
+        }
+
+        $priceAllocations = $this->allocateAmount($priceTotal, $weights);
+        $offerAllocations = $this->allocateAmount($offerTotal, $weights);
+        $taxAllocations = $this->allocateAmount($taxTotal, $weights);
+        $lineItems = [];
+
+        foreach ($children as $index => $childItem)
+        {
+            $childQty = max(1, (int)($childItem->getQtyOrdered() ?? 0));
+            $amounts = [
+                'price'       => intdiv($priceAllocations[$index], $childQty),
+                'offer_price' => intdiv($offerAllocations[$index], $childQty),
+                'tax_amount'  => intdiv($taxAllocations[$index], $childQty),
+            ];
+
+            $lineItems[] = $this->buildLineItem($childItem, $mediaUrl, $amounts, true);
+        }
+
+        return $lineItems;
+    }
+
+    private function allocateAmount($total, array $weights)
+    {
+        if ($total <= 0)
+        {
+            return array_fill(0, count($weights), 0);
+        }
+
+        $weightTotal = array_sum($weights);
+        $allocations = [];
+        $allocated = 0;
+
+        foreach ($weights as $weight)
+        {
+            $amount = intdiv($total * $weight, $weightTotal);
+            $allocations[] = $amount;
+            $allocated += $amount;
+        }
+
+        $weightedIndexes = array_keys(array_filter($weights));
+
+        for ($index = 0, $remainder = $total - $allocated; $remainder > 0; $remainder--, $index++)
+        {
+            $allocations[$weightedIndexes[$index % count($weightedIndexes)]]++;
+        }
+
+        return $allocations;
+    }
+
+    private function buildLineItem($item, $mediaUrl, ?array $amounts = null, $useProductSku = false)
+    {
+        $product    = $item->getProduct();
+        $imageUrl   = '';
+        $productUrl = '';
+
+        if ($product)
+        {
+            $imageUrl = $product->getImage()
+                ? $mediaUrl . 'catalog/product' . $product->getImage()
+                : '';
+            try
+            {
+                $productUrl = $product->getProductUrl();
+            }
+            catch (\Exception $e)
+            {
+                $productUrl = '';
+            }
+        }
+
+        $qty = (int)($item->getQtyOrdered() ?? 0);
+
+        if ($amounts !== null)
+        {
+            $price      = $amounts['price'];
+            $offerPrice = $amounts['offer_price'];
+            $taxAmount  = $amounts['tax_amount'];
+        }
+        else
+        {
+            $price = $this->toPaise($item->getPrice());
+            // intdiv intentionally floors per-item discount; remainder (≤ qty-1 paise) is absorbed into line_items_total
+            $discount = ($qty > 0 && $item->getDiscountAmount())
+                ? intdiv($this->toPaise((float)$item->getDiscountAmount()), $qty)
+                : 0;
+            $offerPrice = max(0, $price - $discount);
+            $taxAmount  = ($qty > 0) ? intdiv($this->toPaise((float)$item->getTaxAmount()), $qty) : 0;
+        }
+
+        $name = substr((string)$item->getName(), 0, self::MAX_LINE_ITEM_NAME_LENGTH);
+        $rawSku = ($useProductSku && $product && $product->getSku())
+            ? $product->getSku()
+            : $item->getSku();
+        $sku = substr((string)$rawSku, 0, self::MAX_LINE_ITEM_SKU_LENGTH);
+
+        return [
+            'type'        => 'e-commerce',
+            'sku'         => $sku,
+            'variant_id'  => (string)$item->getProductId(),
+            'price'       => $price,
+            'offer_price' => $offerPrice,
+            'tax_amount'  => $taxAmount,
+            'quantity'    => $qty,
+            'name'        => $name,
+            'description' => $name,
+            'image_url'   => $imageUrl,
+            'product_url' => $productUrl,
+        ];
     }
 
     private function buildCustomerDetails($order)

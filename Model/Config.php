@@ -28,6 +28,7 @@ class Config
     const CUSTOM_PAID_ORDER_STATUS = 'custom_paid_order_status';
     const ENABLE_UPDATE_ORDER_CRON_V1 = 'enable_update_order_cron_v1';
     const ENABLED_DEBUG_MODE = 'enable_debug_mode';
+    const ENABLE_BUNDLE_CHILD_LINE_ITEMS = 'enable_bundle_child_line_items';
     /**
      * @var string
      */
@@ -142,6 +143,19 @@ class Config
     public function isDebugModeEnabled()
     {
         return (bool) (int) $this->getConfigData(self::ENABLED_DEBUG_MODE, $this->storeId);
+    }
+
+    /**
+     * Whether bundle child SKUs should be included in order line items.
+     *
+     * @return bool
+     */
+    public function isBundleChildLineItemsEnabled()
+    {
+        return (bool) (int) $this->getConfigData(
+            self::ENABLE_BUNDLE_CHILD_LINE_ITEMS,
+            $this->storeId
+        );
     }
     /**
      * Retrieve information from payment configuration

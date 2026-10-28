@@ -190,6 +190,12 @@
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <config_path>payment/razorpay/enable_debug_mode</config_path>
                 </field>
+                <field id="enable_bundle_child_line_items" translate="label" type="select" sortOrder="102" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Include Bundle Child Line Items</label>
+                    <comment>Replaces a bundle line item with its child products and allocates the bundle price across them for SKU-based offer evaluation.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <config_path>payment/razorpay/enable_bundle_child_line_items</config_path>
+                </field>
             </group>
         </section>
     </system>
