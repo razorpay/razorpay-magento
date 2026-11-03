@@ -739,7 +739,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         return $allocations;
     }
 
-    private function buildLineItem($item, $mediaUrl, ?array $amounts = null, $useProductSku = false)
+    private function buildLineItem($item, $mediaUrl, $amounts = null, $useProductSku = false)
     {
         $product    = $item->getProduct();
         $imageUrl   = '';
