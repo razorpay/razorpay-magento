@@ -633,10 +633,11 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
         $mediaUrl = $this->_storeManager->getStore()
                         ->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA);
+        $bundleChildLineItemsEnabled = $this->config->isBundleChildLineItemsEnabled();
 
         foreach ($order->getAllVisibleItems() as $item)
         {
-            if ($this->config->isBundleChildLineItemsEnabled() &&
+            if ($bundleChildLineItemsEnabled &&
                 $item->getProductType() === BundleType::TYPE_CODE)
             {
                 $children = $item->getChildrenItems();
@@ -662,8 +663,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     {
         $parentQty = max(1, (int)($parentItem->getQtyOrdered() ?? 0));
         $priceTotal = $this->toPaise($parentItem->getPrice()) * $parentQty;
-        $offerTotal = max(0, $priceTotal - $this->toPaise($parentItem->getDiscountAmount()));
-        $taxTotal = $this->toPaise($parentItem->getTaxAmount());
+        $offerTotal = max(0, $priceTotal - $this->toPaise((float)$parentItem->getDiscountAmount()));
+        $taxTotal = $this->toPaise((float)$parentItem->getTaxAmount());
         $weights = [];
 
         foreach ($children as $childItem)
