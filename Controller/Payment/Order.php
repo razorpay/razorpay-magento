@@ -656,7 +656,62 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             $lineItems[] = $this->buildLineItem($item, $mediaUrl);
         }
 
+        if ($bundleChildLineItemsEnabled)
+        {
+            $lineItems = $this->mergeLineItemsBySku($lineItems);
+        }
+
         return $lineItems;
+    }
+
+    /**
+     * Merge line items that share the same SKU into a single entry.
+     *
+     * When bundle children are exploded, the same catalog SKU can appear both
+     * as a bundle child and as a standalone simple product. This consolidates
+     * them so the offer engine sees the total quantity per SKU.
+     *
+     * Per-unit prices are recalculated as weighted averages based on quantity.
+     *
+     * @param array $lineItems
+     * @return array
+     */
+    private function mergeLineItemsBySku(array $lineItems)
+    {
+        $grouped = [];
+
+        foreach ($lineItems as $item)
+        {
+            $sku = $item['sku'];
+
+            if (isset($grouped[$sku]) === false)
+            {
+                $grouped[$sku] = $item;
+                continue;
+            }
+
+            $existing = $grouped[$sku];
+            $existingQty = $existing['quantity'];
+            $incomingQty = $item['quantity'];
+            $totalQty = $existingQty + $incomingQty;
+
+            // weighted average per-unit amounts
+            $grouped[$sku]['price'] = intdiv(
+                $existing['price'] * $existingQty + $item['price'] * $incomingQty,
+                $totalQty
+            );
+            $grouped[$sku]['offer_price'] = intdiv(
+                $existing['offer_price'] * $existingQty + $item['offer_price'] * $incomingQty,
+                $totalQty
+            );
+            $grouped[$sku]['tax_amount'] = intdiv(
+                $existing['tax_amount'] * $existingQty + $item['tax_amount'] * $incomingQty,
+                $totalQty
+            );
+            $grouped[$sku]['quantity'] = $totalQty;
+        }
+
+        return array_values($grouped);
     }
 
     private function buildBundleChildLineItems($parentItem, array $children, $mediaUrl)
@@ -666,10 +721,13 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $offerTotal = max(0, $priceTotal - $this->toPaise((float)$parentItem->getDiscountAmount()));
         $taxTotal = $this->toPaise((float)$parentItem->getTaxAmount());
         $weights = [];
+        $childQties = [];
+        $childProducts = [];
 
-        foreach ($children as $childItem)
+        foreach ($children as $index => $childItem)
         {
             $childQty = max(1, (int)($childItem->getQtyOrdered() ?? 0));
+            $childQties[$index] = $childQty;
             $originalPrice = (float)($childItem->getOriginalPrice() ?? 0);
 
             if ($originalPrice <= 0)
@@ -678,6 +736,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             }
 
             $product = $childItem->getProduct();
+            $childProducts[$index] = $product;
 
             if ($originalPrice <= 0 && $product)
             {
@@ -692,57 +751,83 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             $weights = array_fill(0, count($children), 1);
         }
 
-        $priceAllocations = $this->allocateAmount($priceTotal, $weights);
-        $offerAllocations = $this->allocateAmount($offerTotal, $weights);
-        $taxAllocations = $this->allocateAmount($taxTotal, $weights);
+        $allAllocations = $this->allocateAmounts(
+            ['price' => $priceTotal, 'offer_price' => $offerTotal, 'tax_amount' => $taxTotal],
+            $weights
+        );
         $lineItems = [];
 
         foreach ($children as $index => $childItem)
         {
-            $childQty = max(1, (int)($childItem->getQtyOrdered() ?? 0));
+            $childQty = $childQties[$index];
             $amounts = [
-                'price'       => intdiv($priceAllocations[$index], $childQty),
-                'offer_price' => intdiv($offerAllocations[$index], $childQty),
-                'tax_amount'  => intdiv($taxAllocations[$index], $childQty),
+                'price'       => intdiv($allAllocations['price'][$index], $childQty),
+                'offer_price' => intdiv($allAllocations['offer_price'][$index], $childQty),
+                'tax_amount'  => intdiv($allAllocations['tax_amount'][$index], $childQty),
             ];
 
-            $lineItems[] = $this->buildLineItem($childItem, $mediaUrl, $amounts, true);
+            $lineItems[] = $this->buildLineItem($childItem, $mediaUrl, $amounts, true, $childProducts[$index]);
         }
 
         return $lineItems;
     }
 
-    private function allocateAmount($total, array $weights)
+    /**
+     * Allocate multiple totals across children by weight in a single pass.
+     *
+     * @param array $totals  associative array of key => total amount
+     * @param array $weights numeric weights for distribution
+     * @return array         associative array of key => allocations array
+     */
+    private function allocateAmounts(array $totals, array $weights)
     {
-        if ($total <= 0)
-        {
-            return array_fill(0, count($weights), 0);
-        }
-
+        $count = count($weights);
         $weightTotal = array_sum($weights);
-        $allocations = [];
-        $allocated = 0;
+        $result = [];
 
-        foreach ($weights as $weight)
+        foreach ($totals as $key => $total)
         {
-            $amount = intdiv($total * $weight, $weightTotal);
-            $allocations[] = $amount;
-            $allocated += $amount;
+            if ($total <= 0)
+            {
+                $result[$key] = array_fill(0, $count, 0);
+                continue;
+            }
+
+            $allocations = [];
+            $allocated = 0;
+
+            foreach ($weights as $weight)
+            {
+                $amount = intdiv($total * $weight, $weightTotal);
+                $allocations[] = $amount;
+                $allocated += $amount;
+            }
+
+            $remainder = $total - $allocated;
+
+            if ($remainder > 0)
+            {
+                $weightedIndexes = array_keys(array_filter($weights));
+                $weightedCount = count($weightedIndexes);
+
+                for ($i = 0; $remainder > 0; $remainder--, $i++)
+                {
+                    $allocations[$weightedIndexes[$i % $weightedCount]]++;
+                }
+            }
+
+            $result[$key] = $allocations;
         }
 
-        $weightedIndexes = array_keys(array_filter($weights));
-
-        for ($index = 0, $remainder = $total - $allocated; $remainder > 0; $remainder--, $index++)
-        {
-            $allocations[$weightedIndexes[$index % count($weightedIndexes)]]++;
-        }
-
-        return $allocations;
+        return $result;
     }
 
-    private function buildLineItem($item, $mediaUrl, $amounts = null, $useProductSku = false)
+    private function buildLineItem($item, $mediaUrl, $amounts = null, $useProductSku = false, $product = null)
     {
-        $product    = $item->getProduct();
+        if ($product === null)
+        {
+            $product = $item->getProduct();
+        }
         $imageUrl   = '';
         $productUrl = '';
 

@@ -157,6 +157,7 @@ class Config
             $this->storeId
         );
     }
+
     /**
      * Retrieve information from payment configuration
      *
