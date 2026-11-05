@@ -2,6 +2,11 @@
 # Change Log
 
 
+## [4.2.5] - 2026-11-05
+
+### Added
+- [Added support for sending bundle child products as individual Razorpay line items for SKU-based bank offer evaluation.](https://github.com/razorpay/razorpay-magento/pull/553)
+
 ## [4.2.4] - 2026-08-12
 
 ### Fixed
