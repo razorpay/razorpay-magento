@@ -8,6 +8,8 @@ use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
 use Magento\Framework\Controller\ResultFactory;
 use Razorpay\Magento\Model\PaymentMethod;
 use Razorpay\Magento\Constants\OrderCronStatus;
+use Razorpay\Magento\Model\CartGuard;
+use Razorpay\Magento\Model\Util\CartFingerprint;
 
 /**
  * CancelPendingOrders controller to cancel Magento order
@@ -87,6 +89,11 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
     protected $razorpayOrderID;
 
     /**
+     * @var \Razorpay\Magento\Model\CartGuard
+     */
+    protected $cartGuard;
+
+    /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession
@@ -95,7 +102,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
      * @param \Magento\Sales\Api\Data\OrderInterface $order
      * @param \Magento\Catalog\Model\Session $catalogSession
      */
-    public function __construct(\Magento\Framework\App\Action\Context $context, \Magento\Customer\Model\Session $customerSession, \Magento\Checkout\Model\Session $checkoutSession, \Razorpay\Magento\Model\Config $config, \Psr\Log\LoggerInterface $logger, OrderRepositoryInterface $orderRepository, \Magento\Framework\DB\Transaction $transaction, \Magento\Sales\Model\Service\InvoiceService $invoiceService, \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender, \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender, \Magento\Catalog\Model\Session $catalogSession, \Magento\Sales\Api\Data\OrderInterface $order
+    public function __construct(\Magento\Framework\App\Action\Context $context, \Magento\Customer\Model\Session $customerSession, \Magento\Checkout\Model\Session $checkoutSession, \Razorpay\Magento\Model\Config $config, \Psr\Log\LoggerInterface $logger, OrderRepositoryInterface $orderRepository, \Magento\Framework\DB\Transaction $transaction, \Magento\Sales\Model\Service\InvoiceService $invoiceService, \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender, \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender, \Magento\Catalog\Model\Session $catalogSession, \Magento\Sales\Api\Data\OrderInterface $order, CartGuard $cartGuard
 )
     {
         parent::__construct($context, $customerSession, $checkoutSession, $config);
@@ -112,6 +119,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
         $this->_invoiceSender   = $invoiceSender;
         $this->catalogSession   = $catalogSession;
         $this->order            = $order;
+        $this->cartGuard        = $cartGuard;
 
         $this->captureCommand = new CaptureCommand();
         $this->authorizeCommand = new AuthorizeCommand();
@@ -165,6 +173,53 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
             {
                 $this->validateSignature($params);
 
+                $rzpPayment = $this->rzp->request->request('GET', 'payments/'.$params['razorpay_payment_id']);
+
+                // PLUG-02: only Magic orders (marker is in the payment notes, which the api merges from the
+                // order notes and shoppers cannot strip). Standard-checkout orders never reach this block.
+                if (CartFingerprint::readNote($rzpPayment, 'cart_mask_id') !== null)
+                {
+                    $rejection = $this->cartGuard->isRejected($orderLink)
+                        ? 'order link already rejected'
+                        : ($this->cartGuard->identityRejection(
+                            $this->razorpayOrderID,
+                            $this->razorpayOrderID,
+                            $rzpPayment['order_id'] ?? null
+                        ) ?? $this->cartGuard->paymentStatusRejection($rzpPayment['status'] ?? null));
+
+                    if ($rejection !== null)
+                    {
+                        $this->logger->critical('PLUG-02: callback rejected: ' . $rejection);
+                        $this->messageManager->addError(__(CartGuard::GENERIC_REJECTION_MESSAGE));
+
+                        return $this->_redirect('checkout/cart');
+                    }
+
+                    // Kill switch off: no extra Razorpay call, no comparison.
+                    if ($this->cartGuard->isEnabled())
+                    {
+                        try
+                        {
+                            $rzpOrderData = $this->rzp->order->fetch($this->razorpayOrderID);
+                        }
+                        catch (\Exception $e)
+                        {
+                            $this->logger->critical('PLUG-02: could not fetch Razorpay order in callback: ' . $e->getMessage());
+                            $this->messageManager->addError(__(CartGuard::GENERIC_REJECTION_MESSAGE));
+
+                            return $this->_redirect('checkout/cart');
+                        }
+
+                        if ($this->cartGuard->check($rzpOrderData, $this->cartGuard->loadFreshOrder($order->getId())->getAllVisibleItems()) === CartFingerprint::VERDICT_MISMATCH)
+                        {
+                            $this->cartGuard->reject($rzpOrderData, $rzpPayment, 'callback', $order);
+                            $this->messageManager->addError(__(CartGuard::MISMATCH_MESSAGE));
+
+                            return $this->_redirect('checkout/cart');
+                        }
+                    }
+                }
+
                 $orderId = $order->getIncrementId();
 
                 $order->setState(static ::STATUS_PROCESSING)
@@ -172,8 +227,6 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
 
                 $payment = $order->getPayment();
                 $paymentId = $params['razorpay_payment_id'];
-
-                $rzpPayment = $this->rzp->request->request('GET', 'payments/'.$paymentId);
 
                 $payment->setLastTransId($paymentId)->setTransactionId($paymentId)->setIsTransactionClosed(true)
                     ->setShouldCloseParentTransaction(true);

@@ -25,6 +25,8 @@ use Razorpay\Magento\Controller\OneClick\StateMap;
 use Razorpay\Magento\Model\CartConverter;
 use Razorpay\Magento\Model\CustomerConsent;
 use Razorpay\Magento\Constants\OrderCronStatus;
+use Razorpay\Magento\Model\CartGuard;
+use Razorpay\Magento\Model\Util\CartFingerprint;
 
 class CompleteOrder extends Action
 {
@@ -91,6 +93,7 @@ class CompleteOrder extends Action
     protected $stateNameMap;
     protected $cartConverter;
     protected $customerConsent;
+    protected $cartGuard;
     protected $_order = null;
 
     const COD = 'cashondelivery';
@@ -136,7 +139,8 @@ class CompleteOrder extends Action
         CollectionFactory                                     $collectionFactory,
         StateMap                                              $stateNameMap,
         CartConverter                                         $cartConverter,
-        CustomerConsent                                       $customerConsent
+        CustomerConsent                                       $customerConsent,
+        CartGuard                                             $cartGuard
     )
     {
         parent::__construct($context);
@@ -163,6 +167,7 @@ class CompleteOrder extends Action
         $this->stateNameMap = $stateNameMap;
         $this->cartConverter = $cartConverter;
         $this->customerConsent = $customerConsent;
+        $this->cartGuard = $cartGuard;
         $this->resultRedirectFactory = $context->getResultFactory();;
         $this->orderStatus = static::STATE_PROCESSING;
         $this->authorizeCommand = new AuthorizeCommand();
@@ -184,12 +189,41 @@ class CompleteOrder extends Action
 
             $cartMaskId = isset($rzpOrderData->notes) ? $rzpOrderData->notes->cart_mask_id : null;
 
-            $this->validateSignature($params, $cartMaskId);
+            // PLUG-02: identity checks run first; they bind the signed session order to this payment.
+            $this->validateSignature($params, $cartMaskId, $rzpPaymentData);
+
+            $orderLink = $this->cartGuard->findOrderLink($rzpOrderId);
+            if ($this->cartGuard->isRejected($orderLink)) {
+                return $this->itemMismatchResponse($resultJson);
+            }
+
+            if ($rejection = $this->cartGuard->paymentStatusRejection($rzpPaymentData->status ?? null)) {
+                $this->logger->critical('PLUG-02: payment rejected: ' . $rejection . ' rzp_payment_id=' . $rzpPaymentId);
+                throw new \Exception(CartGuard::GENERIC_REJECTION_MESSAGE);
+            }
 
             $cartId = isset($rzpOrderData->notes) ? $rzpOrderData->notes->cart_id : null;
             $email = $rzpOrderData->customer_details->email ?? null;
 
             $quote = $this->cartRepositoryInterface->get($cartId);
+
+            // PLUG-02: compare BEFORE any quote/order mutation. An already placed order
+            // (AbandonedQuote pre-placement) wins over the quote.
+            if ($this->cartGuard->isEnabled()) {
+                $quote->collectTotals();
+            }
+            [$verdict, $existingOrder] = $this->cartGuard->compareForRow(
+                $rzpOrderData,
+                $quote,
+                $rzpOrderData->notes->merchant_order_id ?? null
+            );
+
+            if ($verdict === CartFingerprint::VERDICT_MISMATCH) {
+                $this->cartGuard->reject($rzpOrderData, $rzpPaymentData, 'complete_order', $existingOrder);
+
+                return $this->itemMismatchResponse($resultJson);
+            }
+
             $quote->setIsActive(true)->save();
 
             $this->updateQuote($quote, $rzpOrderData, $rzpPaymentData);
@@ -209,6 +243,10 @@ class CompleteOrder extends Action
             }
 
             $result = $this->placeMagentoOrder($cartId, $rzpPaymentData, $rzpOrderData);
+
+            if (($result['status'] ?? null) === 'item_mismatch') {
+                return $this->itemMismatchResponse($resultJson);
+            }
 
             return $resultJson->setData($result);
 
@@ -310,6 +348,14 @@ class CompleteOrder extends Action
                 }
                 continue;
             }
+        }
+
+        // PLUG-02: re-check the placed order's items (TOCTOU between the quote check and placement).
+        $freshOrder = $this->cartGuard->isEnabled() ? $this->cartGuard->loadFreshOrder($order->getId()) : null;
+        if ($freshOrder !== null && $this->cartGuard->check($rzpOrderData, $freshOrder->getAllVisibleItems()) === CartFingerprint::VERDICT_MISMATCH) {
+            $this->cartGuard->reject($rzpOrderData, $rzpPaymentData, 'complete_order_post_placement', $freshOrder);
+
+            return ['status' => 'item_mismatch'];
         }
 
         $order->setEmailSent(0);
@@ -575,6 +621,15 @@ class CompleteOrder extends Action
         return $result;
     }
 
+    protected function itemMismatchResponse($resultJson)
+    {
+        return $resultJson->setData([
+            'status' => 'error',
+            'code' => 'ORDER_ITEM_MISMATCH',
+            'message' => __(CartGuard::MISMATCH_MESSAGE),
+        ])->setHttpResponseCode(409);
+    }
+
     public function getAppliedDiscounts($order)
     {
         try {
@@ -773,7 +828,7 @@ class CompleteOrder extends Action
         ];
     }
 
-    protected function validateSignature($request, $cartMaskId)
+    protected function validateSignature($request, $cartMaskId, $rzpPaymentData = null)
     {
         if (empty($request['error']) === false) {
             $this->logger->critical("Validate: Payment Failed or error from gateway" . $request['razorpay_order_id']);
@@ -783,6 +838,23 @@ class CompleteOrder extends Action
         $catalogRzpKey = static::QUOTE_LINKED_RAZORPAY_ORDER_ID . '_' . $cartMaskId;
 
         $rzpOrderIdFromSession = $this->checkoutSession->getData($catalogRzpKey);
+
+        // PLUG-02: request order id == session order id (what the signature is verified against)
+        // == the order the payment was made on. Closes the PlaceOrder rotation attack.
+        $rejection = $this->cartGuard->identityRejection(
+            $request['razorpay_order_id'] ?? null,
+            $rzpOrderIdFromSession,
+            $rzpPaymentData->order_id ?? null
+        );
+
+        if ($rejection !== null) {
+            // Detail stays in the log; the shopper only sees a generic message.
+            $this->logger->critical('PLUG-02: identity check failed: ' . $rejection
+                . ' request_order_id=' . ($request['razorpay_order_id'] ?? '')
+                . ' session_order_id=' . $rzpOrderIdFromSession);
+            throw new \Exception(CartGuard::GENERIC_REJECTION_MESSAGE);
+        }
+
         $this->logger->info('razorpay_payment_id = ' . $request['razorpay_payment_id']);
         $this->logger->info('razorpay_order_id = ' . $rzpOrderIdFromSession);
         $this->logger->info('razorpay_signature = ' . $request['razorpay_signature']);

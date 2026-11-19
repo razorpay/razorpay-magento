@@ -13,6 +13,8 @@ use Razorpay\Magento\Model\Config;
 use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
 use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
 use Razorpay\Magento\Constants\OrderCronStatus;
+use Razorpay\Magento\Model\CartGuard;
+use Razorpay\Magento\Model\Util\CartFingerprint;
 
 /**
  * Mutation resolver for setting payment method for shopping cart
@@ -90,6 +92,11 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
     protected $captureCommand;
 
     /**
+     * @var \Razorpay\Magento\Model\CartGuard
+     */
+    protected $cartGuard;
+
+    /**
      * @param PaymentMethod $paymentMethod
      * @param \Magento\Sales\Api\Data\OrderInterface $order
      * @param \Razorpay\Magento\Model\Config $config
@@ -111,9 +118,11 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
         \Magento\Checkout\Model\Session $checkoutSession,
         \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender,
         \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
-        \Psr\Log\LoggerInterface $logger
+        \Psr\Log\LoggerInterface $logger,
+        CartGuard $cartGuard
     )
     {
+        $this->cartGuard       = $cartGuard;
         $this->rzp             = $paymentMethod->setAndGetRzpApiInstance();
         $this->order           = $order;
         $this->config          = $config;
@@ -213,6 +222,12 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
             throw new GraphQlInputException(__('Error: %1.', $e->getMessage()));
         }
 
+        // PLUG-02: status 7 means this payment was already rejected; never overwrite it.
+        if ($this->cartGuard->isRejected($orderLink))
+        {
+            throw new GraphQlInputException(__(CartGuard::MISMATCH_MESSAGE));
+        }
+
         $this->logger->info('graphQL: Verify Signature'
             . ' razorpay_payment_id:' . $rzp_payment_id . ','
             . ' razorpay_order_id:' . $rzp_order_id . ','
@@ -253,6 +268,29 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
 
             if ($order)
             {
+                // PLUG-02: payment identity + cart fingerprint, before the first state change.
+                $rzpPaymentCheck = $this->rzp->request->request('GET', 'payments/'.$rzp_payment_id);
+
+                $rejection = $this->cartGuard->identityRejection(
+                    $rzp_order_id,
+                    $rzp_order_id,
+                    $rzpPaymentCheck['order_id'] ?? null
+                ) ?? $this->cartGuard->paymentStatusRejection($rzpPaymentCheck['status'] ?? null);
+
+                if ($rejection !== null)
+                {
+                    $this->logger->critical('PLUG-02: payment rejected: ' . $rejection . ' rzp_payment_id=' . $rzp_payment_id);
+
+                    throw new GraphQlInputException(__(CartGuard::GENERIC_REJECTION_MESSAGE));
+                }
+
+                if ($this->cartGuard->check($rzp_order_data, $order->getAllVisibleItems()) === CartFingerprint::VERDICT_MISMATCH)
+                {
+                    $this->cartGuard->reject($rzp_order_data, $rzpPaymentCheck, 'set_rzp_payment_details', $order);
+
+                    throw new GraphQlInputException(__(CartGuard::MISMATCH_MESSAGE));
+                }
+
                 $amountPaid = number_format($rzpOrderAmount / 100, 2, ".", "");
                 if ($order->getStatus() === 'pending')
                 {
@@ -300,7 +338,7 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
 
                 $transaction->save();
 
-                $rzpPayment = $this->rzp->request->request('GET', 'payments/'.$rzp_payment_id);
+                $rzpPayment = $rzpPaymentCheck;
 
                 $rzpAmountPaid = number_format($rzpPayment['amount'] / 100, 2, ".", "");
         

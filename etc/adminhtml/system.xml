@@ -225,6 +225,12 @@
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <config_path>payment/razorpay/enable_debug_mode</config_path>
                 </field>
+                <field id="magic_cart_guard" translate="label comment" type="select" sortOrder="102" showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Magic Checkout Cart Guard</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <config_path>payment/razorpay/magic_cart_guard</config_path>
+                    <comment>Support escape hatch. When enabled (recommended), Magic Checkout orders are rejected and refunded if the cart items changed after payment was initiated. This is a global (default scope) switch, read by the cron and webhook as well. Turn off only on advice from Razorpay support; the module then behaves as it did before this protection existed.</comment>
+                </field>
             </group>
         </section>
     </system>

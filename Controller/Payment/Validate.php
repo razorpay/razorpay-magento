@@ -191,6 +191,17 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
 
         try
         {
+            // PLUG-02: status 7 means this payment was already rejected; never overwrite it.
+            $rejectedLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                            ->getCollection()
+                            ->addFilter('order_id', $order->getEntityId())
+                            ->getFirstItem();
+
+            if ($this->_objectManager->get('Razorpay\Magento\Model\CartGuard')->isRejected($rejectedLink))
+            {
+                throw new \Exception(\Razorpay\Magento\Model\CartGuard::GENERIC_REJECTION_MESSAGE, 409);
+            }
+
             $this->validateSignature($post);
 
             $orderId = $order->getIncrementId();
