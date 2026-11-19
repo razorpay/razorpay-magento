@@ -25,6 +25,7 @@ use Razorpay\Magento\Controller\OneClick\StateMap;
 use Razorpay\Magento\Model\CartConverter;
 use Razorpay\Magento\Model\CustomerConsent;
 use Razorpay\Magento\Constants\OrderCronStatus;
+use Razorpay\Magento\Model\OrderItemGuard;
 
 class CompleteOrder extends Action
 {
@@ -91,6 +92,7 @@ class CompleteOrder extends Action
     protected $stateNameMap;
     protected $cartConverter;
     protected $customerConsent;
+    protected $orderItemGuard;
     protected $_order = null;
 
     const COD = 'cashondelivery';
@@ -136,7 +138,8 @@ class CompleteOrder extends Action
         CollectionFactory                                     $collectionFactory,
         StateMap                                              $stateNameMap,
         CartConverter                                         $cartConverter,
-        CustomerConsent                                       $customerConsent
+        CustomerConsent                                       $customerConsent,
+        OrderItemGuard                                        $orderItemGuard
     )
     {
         parent::__construct($context);
@@ -163,6 +166,7 @@ class CompleteOrder extends Action
         $this->stateNameMap = $stateNameMap;
         $this->cartConverter = $cartConverter;
         $this->customerConsent = $customerConsent;
+        $this->orderItemGuard = $orderItemGuard;
         $this->resultRedirectFactory = $context->getResultFactory();;
         $this->orderStatus = static::STATE_PROCESSING;
         $this->authorizeCommand = new AuthorizeCommand();
@@ -314,6 +318,21 @@ class CompleteOrder extends Action
 
         $order->setEmailSent(0);
         if ($order) {
+            // PLUG-02: never re-process an order already flagged for item mismatch.
+            if ($this->orderItemGuard->isAlreadyFlagged($orderLink)) {
+                $this->logger->info('Order already flagged for item mismatch, skipping processing: ' . $order->getIncrementId());
+                return $this->buildSuccessResult($order);
+            }
+
+            // PLUG-02: compare placed order items with the paid cart before marking it paid/processing.
+            $itemCheck = $this->orderItemGuard->check($order, $rzpOrderData, $orderLink, $rzpPaymentData->method ?? null);
+            if ($itemCheck === OrderItemGuard::RESULT_HELD) {
+                $order->save();
+                $orderLink->setRzpPaymentId($rzpPaymentId);
+                $orderLink->save();
+                return $this->buildSuccessResult($order);
+            }
+
             // Return to failure page if payment is failed.
             if ($rzpPaymentData->status === 'failed') {
                 $this->logger->critical("Razorpay payment is failed for the order id " . $rzpOrderId);
@@ -549,23 +568,15 @@ class CompleteOrder extends Action
                     ->setLastOrderStatus($order->getStatus());
             }
 
+            if ($itemCheck === OrderItemGuard::RESULT_FLAGGED) {
+                // Keep the mismatch marker so later callbacks/cron runs do not re-process this order.
+                $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::ORDER_ITEMS_MISMATCH);
+            }
+
             $order->save();
             $orderLink->save();
 
-            // Get applied discounts data from the order object
-            $appliedDiscounts = $this->getAppliedDiscounts($order);
-
-            $result = [
-                'status' => 'success',
-                'order_id' => $order->getIncrementId(),
-                'total_amount' => $order->getGrandTotal() * 100,
-                'total_tax' => $order->getTaxAmount() * 100,
-                'shipping_fee' => $order->getShippingAmount() * 100,
-                'promotions' => $appliedDiscounts,
-                'cod_fee' => 0
-            ];
-
-            return $result;
+            return $this->buildSuccessResult($order);
         }
 
         $result = [
@@ -573,6 +584,19 @@ class CompleteOrder extends Action
         ];
 
         return $result;
+    }
+
+    protected function buildSuccessResult($order)
+    {
+        return [
+            'status' => 'success',
+            'order_id' => $order->getIncrementId(),
+            'total_amount' => $order->getGrandTotal() * 100,
+            'total_tax' => $order->getTaxAmount() * 100,
+            'shipping_fee' => $order->getShippingAmount() * 100,
+            'promotions' => $this->getAppliedDiscounts($order),
+            'cod_fee' => 0
+        ];
     }
 
     public function getAppliedDiscounts($order)

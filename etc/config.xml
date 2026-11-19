@@ -28,6 +28,7 @@
                 <allow_coupon_apply_magic>1</allow_coupon_apply_magic>
                 <enable_update_order_cron_v1>1</enable_update_order_cron_v1>
                 <enable_debug_mode>0</enable_debug_mode>
+                <magic_item_mismatch_hold>0</magic_item_mismatch_hold>
             </razorpay>
         </payment>
     </default>

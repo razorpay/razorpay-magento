@@ -225,6 +225,12 @@
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <config_path>payment/razorpay/enable_debug_mode</config_path>
                 </field>
+                <field id="magic_item_mismatch_hold" translate="label comment" type="select" sortOrder="102" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Magic: Hold Orders With Item Mismatch</label>
+                    <comment>If the placed order's items differ from the cart that was paid for, put the order on hold instead of processing. Mismatches are always logged and commented regardless of this setting.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <config_path>payment/razorpay/magic_item_mismatch_hold</config_path>
+                </field>
             </group>
         </section>
     </system>
