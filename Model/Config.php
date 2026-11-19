@@ -28,6 +28,7 @@ class Config
     const CUSTOM_PAID_ORDER_STATUS = 'custom_paid_order_status';
     const ENABLE_UPDATE_ORDER_CRON_V1 = 'enable_update_order_cron_v1';
     const ENABLED_DEBUG_MODE = 'enable_debug_mode';
+    const ENABLE_ITEM_MISMATCH_HOLD = 'magic_item_mismatch_hold';
     const KEY_MAGIC_CHECKOUT_STATUS = 'activate_magic';
     const KEY_MAGIC_BUY_NOW_STATUS = 'activate_magic_buy_now';
     const KEY_MAGIC_MINI_CART_STATUS = 'activate_magic_mini_cart';
@@ -160,6 +161,11 @@ class Config
     {
         $this->storeId = $storeId;
         return $this;
+    }
+
+    public function isItemMismatchHoldEnabled()
+    {
+        return (bool) (int) $this->getConfigData(self::ENABLE_ITEM_MISMATCH_HOLD, $this->storeId);
     }
 
     public function isDebugModeEnabled()

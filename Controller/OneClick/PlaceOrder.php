@@ -10,6 +10,7 @@ use Magento\Quote\Api\CartManagementInterface;
 use Magento\Quote\Model\QuoteFactory;
 use Razorpay\Magento\Model\QuoteBuilderFactory;
 use Razorpay\Magento\Model\QuoteBuilder;
+use Razorpay\Magento\Model\Util\CartFingerprint;
 use Magento\Framework\Pricing\Helper\Data;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Store\Model\ScopeInterface;
@@ -319,6 +320,7 @@ class PlaceOrder extends Action
             'cart_id' => $quoteId,
             'merchant_order_id' => (string)$quote->getReservedOrderId() ?? 'order pending'
         ];
+        $orderNotes[CartFingerprint::NOTE_KEY] = CartFingerprint::fromItems($cartItems);
         $customerEmail = $this->getCustomerEmailFromQuote();
 
         if($customerEmail !== false)

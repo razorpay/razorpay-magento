@@ -11,4 +11,6 @@ class OrderCronStatus
     const INVOICE_GENERATION_NOT_POSSIBLE = 4;
     const PAYMENT_AUTHORIZED_CRON_REPEAT = 5;
     const ORDER_NOT_PLACED_DUE_TO_STOCK_UNAVAILABILITY = 6;
+    // 7 is reserved by another branch
+    const ORDER_ITEMS_MISMATCH = 8;
 }

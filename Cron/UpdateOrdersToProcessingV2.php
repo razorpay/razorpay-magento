@@ -14,6 +14,7 @@ use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
 use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
 use \Magento\Sales\Model\Order;
 use Razorpay\Magento\Constants\OrderCronStatus;
+use Razorpay\Magento\Model\OrderItemGuard;
 use Razorpay\Magento\Controller\OneClick\AbandonedQuote;
 use Razorpay\Magento\Controller\OneClick\CompleteOrder;
 use Magento\Quote\Api\CartManagementInterface;
@@ -119,6 +120,7 @@ class UpdateOrdersToProcessingV2
     protected $cartRepositoryInterface;
     protected $cartManagement;
     protected $oneCCMagentoOrder;
+    protected $orderItemGuard;
 
     /**
      * CancelOrder constructor.
@@ -146,7 +148,8 @@ class UpdateOrdersToProcessingV2
         \Magento\Quote\Api\CartRepositoryInterface            $cartRepositoryInterface,
         CartManagementInterface                               $cartManagement,
         CompleteOrder                                         $oneCCMagentoOrder,
-        \Magento\Sales\Model\Order                            $order
+        \Magento\Sales\Model\Order                            $order,
+        OrderItemGuard                                        $orderItemGuard
     )
     {
         $this->config = $config;
@@ -169,6 +172,7 @@ class UpdateOrdersToProcessingV2
         $this->cartManagement = $cartManagement;
         $this->oneCCMagentoOrder = $oneCCMagentoOrder;
         $this->order = $order;
+        $this->orderItemGuard = $orderItemGuard;
 
         $this->enableCustomPaidOrderStatus = $this->config->isCustomPaidOrderStatusEnabled();
 
@@ -313,6 +317,21 @@ class UpdateOrdersToProcessingV2
 
         $order->setEmailSent(0);
         if ($order) {
+            // PLUG-02: never re-process an order already flagged for item mismatch.
+            if ($this->orderItemGuard->isAlreadyFlagged($orderLink)) {
+                $this->logger->info('Cronjob: order already flagged for item mismatch, skipping: ' . $order->getIncrementId());
+                return ['status' => 'failed', 'message' => 'Order flagged for item mismatch'];
+            }
+
+            // PLUG-02: compare placed order items with the paid cart before marking it paid/processing.
+            $itemCheck = $this->orderItemGuard->check($order, $rzpOrderData, $orderLink, $rzpPaymentData->method ?? null);
+            if ($itemCheck === OrderItemGuard::RESULT_HELD) {
+                $order->save();
+                $orderLink->setRzpPaymentId($rzpPaymentId);
+                $orderLink->save();
+                return ['status' => 'failed', 'message' => 'Order held: items differ from paid cart'];
+            }
+
             // Return to failure page if payment is failed.
             if ($rzpPaymentData->status === 'failed') {
 
@@ -530,6 +549,10 @@ class UpdateOrdersToProcessingV2
                     ->setLastOrderId($order->getId())
                     ->setLastRealOrderId($order->getIncrementId())
                     ->setLastOrderStatus($order->getStatus());
+            }
+
+            if ($itemCheck === OrderItemGuard::RESULT_FLAGGED) {
+                $orderLink->setRzpUpdateOrderCronStatus(OrderCronStatus::ORDER_ITEMS_MISMATCH);
             }
 
             $order->save();
