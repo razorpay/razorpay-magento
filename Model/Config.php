@@ -14,6 +14,7 @@ class Config
     const KEY_PRIVATE_KEY = 'key_secret';
     const KEY_MERCHANT_NAME_OVERRIDE = 'merchant_name_override';
     const KEY_PAYMENT_ACTION = 'rzp_payment_action';
+    const KEY_MAGIC_CART_GUARD = 'magic_cart_guard';
     const KEY_AUTO_INVOICE = 'auto_invoice';
     const KEY_NEW_ORDER_STATUS = 'order_status';
     const ENABLE_WEBHOOK = 'enable_webhook';
@@ -83,6 +84,16 @@ class Config
         return $this->getConfigData(self::WEBHOOK_SECRET);
     }
     
+    /**
+     * PLUG-02 kill switch (support escape hatch). Default ON. Off = pre-PLUG-02 behaviour.
+     */
+    public function isMagicCartGuardEnabled()
+    {
+        $value = $this->getConfigData(self::KEY_MAGIC_CART_GUARD);
+
+        return $value === null || $value === '' ? true : (bool)(int)$value;
+    }
+
     public function isCancelPendingOrderCronEnabled()
     {
         return (bool) (int) $this->getConfigData(self::ENABLE_PENDING_ORDERS_CRON, $this->storeId);

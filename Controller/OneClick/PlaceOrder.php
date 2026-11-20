@@ -28,6 +28,7 @@ use Magento\Customer\Model\Session as CustomerSession;
 use Magento\SalesSequence\Model\Manager as SequenceManager;
 use Magento\ConfigurableProduct\Model\Product\Type\Configurable as ConfigurableProduct;
 use Magento\GroupedProduct\Model\Product\Type\Grouped as GroupedProduct;
+use Razorpay\Magento\Model\Util\CartFingerprint;
 
 class PlaceOrder extends Action
 {
@@ -289,6 +290,14 @@ class PlaceOrder extends Action
             }
             $totalAmount = (int) round($quote->getSubtotalWithDiscount() * 100);
 
+            // PLUG-02: with the kill switch off this block is skipped entirely (no collectTotals, no fingerprint).
+            $cartFingerprint = null;
+            if ($this->config->isMagicCartGuardEnabled()) {
+                // Collect totals (the non-cart branch already did) so quote items are final before fingerprinting.
+                $quote->collectTotals();
+                $cartFingerprint = CartFingerprint::compute($quote->getAllVisibleItems());
+            }
+
         } catch (LocalizedException $e) {
             return $resultJson->setData([
                 'status' => 'error',
@@ -319,6 +328,11 @@ class PlaceOrder extends Action
             'cart_id' => $quoteId,
             'merchant_order_id' => (string)$quote->getReservedOrderId() ?? 'order pending'
         ];
+
+        // PLUG-02: server-set; compared before the order is placed / marked paid. Not written when the kill switch is off.
+        if ($cartFingerprint !== null) {
+            $orderNotes[CartFingerprint::NOTE_KEY] = $cartFingerprint;
+        }
         $customerEmail = $this->getCustomerEmailFromQuote();
 
         if($customerEmail !== false)

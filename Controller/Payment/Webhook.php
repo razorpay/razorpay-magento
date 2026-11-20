@@ -227,6 +227,16 @@ class Webhook extends \Razorpay\Magento\Controller\BaseController implements
 
                     $this->setWebhookNotifiedAt($merchantOrderId, true);
                     $this->setPaymentId($merchantOrderId, $paymentId);
+
+                    // PLUG-02: a payment rejected for an item mismatch while it was not captured yet is refunded
+                    // as soon as the capture (order.paid) arrives.
+                    if ($post['event'] === 'order.paid') {
+                        try {
+                            $this->objectManagement->get('Razorpay\Magento\Model\CartGuard')->retryPendingRefund($rzpOrderId);
+                        } catch (\Exception $e) {
+                            $this->logger->critical('PLUG-02: pending refund retry from webhook failed: ' . $e->getMessage());
+                        }
+                    }
                 }
 
                 if (isset($post['payload']['payment']['entity']['notes']['merchant_order_id']) === true &&

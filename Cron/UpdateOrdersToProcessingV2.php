@@ -14,6 +14,8 @@ use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
 use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
 use \Magento\Sales\Model\Order;
 use Razorpay\Magento\Constants\OrderCronStatus;
+use Razorpay\Magento\Model\CartGuard;
+use Razorpay\Magento\Model\Util\CartFingerprint;
 use Razorpay\Magento\Controller\OneClick\AbandonedQuote;
 use Razorpay\Magento\Controller\OneClick\CompleteOrder;
 use Magento\Quote\Api\CartManagementInterface;
@@ -119,6 +121,7 @@ class UpdateOrdersToProcessingV2
     protected $cartRepositoryInterface;
     protected $cartManagement;
     protected $oneCCMagentoOrder;
+    protected $cartGuard;
 
     /**
      * CancelOrder constructor.
@@ -146,7 +149,8 @@ class UpdateOrdersToProcessingV2
         \Magento\Quote\Api\CartRepositoryInterface            $cartRepositoryInterface,
         CartManagementInterface                               $cartManagement,
         CompleteOrder                                         $oneCCMagentoOrder,
-        \Magento\Sales\Model\Order                            $order
+        \Magento\Sales\Model\Order                            $order,
+        CartGuard                                             $cartGuard
     )
     {
         $this->config = $config;
@@ -169,6 +173,7 @@ class UpdateOrdersToProcessingV2
         $this->cartManagement = $cartManagement;
         $this->oneCCMagentoOrder = $oneCCMagentoOrder;
         $this->order = $order;
+        $this->cartGuard = $cartGuard;
 
         $this->enableCustomPaidOrderStatus = $this->config->isCustomPaidOrderStatusEnabled();
 
@@ -199,31 +204,40 @@ class UpdateOrdersToProcessingV2
 
         $orderLink = $orderLinkCollection->getData();
 
+        // PLUG-02: refunds owed for rejected payments that were not captured yet.
+        try {
+            $this->cartGuard->retryAllPendingRefunds();
+        } catch (\Exception $e) {
+            $this->logger->critical('Cronjob: PLUG-02 pending refund retry failed: ' . $e->getMessage());
+        }
+
         if (count($orderLink) > 0) {
             foreach ($orderLink as $orderData) {
                 $this->debug->log("Cronjob: Magento Order Id = " . $orderData['order_id'] . " picked for updation");
 
+                // PLUG-02: until a row is known to be a Magic order NOTHING here may mark it terminal; standard
+                // checkout rows share this table and must survive a Razorpay outage of any length.
                 if (empty($orderData['rzp_order_id']) === true) {
-                    return;
+                    $this->logger->info('Cronjob: row ' . ($orderData['entity_id'] ?? '?') . ' has no rzp_order_id, skipping this run');
+                    continue;
                 }
-                $razorpayOrderData = $this->api->order->fetch($orderData['rzp_order_id']);
+
+                try {
+                    $razorpayOrderData = $this->api->order->fetch($orderData['rzp_order_id']);
+                } catch (\Exception $e) {
+                    $this->logger->critical('Cronjob: could not fetch Razorpay order ' . $orderData['rzp_order_id'] . ', will retry: ' . $e->getMessage());
+                    continue;
+                }
+
                 $isMagicOrder = $this->checkMagicOrder($razorpayOrderData);
 
                 if ($isMagicOrder) {
-                    $rzpPaymentData = $this->api->payment->fetch($orderData['rzp_payment_id']);
-                    $cartId = isset($razorpayOrderData->notes) ? $razorpayOrderData->notes->cart_id : null;
-                    $merchantOrderId = isset($razorpayOrderData->notes) ? $razorpayOrderData->notes->merchant_order_id : null;
-
-                    $this->debug->log("Cronjob: Razorpay Order data = " . json_encode($cartId));
-
-                    $quote = $this->cartRepositoryInterface->get($cartId);
-                    $this->quoteUpdate->updateQuote($quote, $razorpayOrderData, $rzpPaymentData);
-
-                    $result = $this->placeMagentoOrderthroughCron($cartId, $rzpPaymentData, $razorpayOrderData);
-                    if ($result['status'] == 'success') {
-                        $this->debug->log("Cronjob: Successfully placed Magento Order Id = " . $merchantOrderId);
-                    } else {
-                        $this->debug->log("Cronjob: Failed to place Magento Order Id = " . $merchantOrderId);
+                    // Only the Magic branch may mark rows terminal.
+                    try {
+                        $this->processMagicRow($orderData, $razorpayOrderData);
+                    } catch (\Exception $e) {
+                        $this->logger->critical('Cronjob: row for rzp order ' . $orderData['rzp_order_id'] . ' failed: ' . $e->getMessage());
+                        $this->handleTransientFailure($orderData, $e->getMessage(), $razorpayOrderData);
                     }
                 } else {
                     $order = $this->orderRepository->get($orderData['order_id']);
@@ -267,6 +281,112 @@ class UpdateOrdersToProcessingV2
         }
     }
 
+    /**
+     * Magic row: payment checks -> fingerprint compare -> placement. Permanent causes (bad ids, payment
+     * failed/refunded, quote gone) are abandoned; anything else throws/returns and stays retryable.
+     */
+    private function processMagicRow($orderData, $razorpayOrderData)
+    {
+        if (empty($orderData['rzp_payment_id']) === true) {
+            // No payment recorded for this row: nothing to refund.
+            $this->cartGuard->abandonRow($orderData, 'empty rzp_payment_id', $razorpayOrderData, null, true);
+            return;
+        }
+
+        try {
+            $rzpPaymentData = $this->api->payment->fetch($orderData['rzp_payment_id']);
+        } catch (\Exception $e) {
+            if (CartGuard::isPermanentNotFound($e)) {
+                $this->cartGuard->abandonRow($orderData, 'razorpay payment not found: ' . $e->getMessage(), $razorpayOrderData, null, true);
+                return;
+            }
+
+            throw $e; // 401/429/5xx/network: retryable
+        }
+
+        $cartId = isset($razorpayOrderData->notes) ? $razorpayOrderData->notes->cart_id : null;
+        $merchantOrderId = isset($razorpayOrderData->notes) ? $razorpayOrderData->notes->merchant_order_id : null;
+
+        $this->debug->log("Cronjob: Razorpay Order data = " . json_encode($cartId));
+
+        // PLUG-02: payment identity/status checks BEFORE anything is placed or mutated.
+        $identity = $this->cartGuard->identityRejection(
+            $orderData['rzp_order_id'],
+            $orderData['rzp_order_id'],
+            $rzpPaymentData->order_id ?? null
+        );
+
+        if ($identity !== null) {
+            // Not our payment: never refund it from here.
+            $this->cartGuard->abandonRow($orderData, $identity, $razorpayOrderData, null, true);
+            return;
+        }
+
+        $statusRejection = $this->cartGuard->paymentStatusRejection($rzpPaymentData->status ?? null);
+
+        if ($statusRejection !== null) {
+            $this->cartGuard->abandonRow($orderData, $statusRejection, $razorpayOrderData, $rzpPaymentData);
+            return;
+        }
+
+        try {
+            $quote = $this->cartRepositoryInterface->get($cartId);
+        } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
+            // Permanent. A captured payment with no order is refunded by abandonRow.
+            $this->cartGuard->abandonRow($orderData, 'quote not found: ' . $e->getMessage(), $razorpayOrderData, $rzpPaymentData);
+            return;
+        }
+
+        if ($this->cartGuard->isEnabled()) {
+            $quote->collectTotals();
+        }
+
+        // Fresh order model per row (the shared $this->order caches its items collection across loads).
+        [$verdict, $existingOrder] = $this->cartGuard->compareForRow($razorpayOrderData, $quote, $merchantOrderId);
+
+        if ($verdict === CartFingerprint::VERDICT_MISMATCH) {
+            $this->cartGuard->reject($razorpayOrderData, $rzpPaymentData, 'cron_v2', $existingOrder);
+            return;
+        }
+
+        $this->quoteUpdate->updateQuote($quote, $razorpayOrderData, $rzpPaymentData);
+
+        $result = $this->placeMagentoOrderthroughCron($cartId, $rzpPaymentData, $razorpayOrderData);
+
+        if ($result['status'] == 'success') {
+            $this->debug->log("Cronjob: Successfully placed Magento Order Id = " . $merchantOrderId);
+            return;
+        }
+
+        $this->debug->log("Cronjob: Failed to place Magento Order Id = " . $merchantOrderId);
+
+        if (($result['status'] ?? null) === 'item_mismatch') {
+            return;
+        }
+
+        if (($result['terminal'] ?? false) === true) {
+            // Order already exists: nothing to refund.
+            $this->cartGuard->abandonRow($orderData, $result['message'] ?? 'unrecoverable', $razorpayOrderData, $rzpPaymentData);
+            return;
+        }
+
+        $this->handleTransientFailure($orderData, $result['message'] ?? 'placement failed', $razorpayOrderData, $rzpPaymentData);
+    }
+
+    /**
+     * Retryable failure: count the attempt; once the cap is reached the row is abandoned with an alert
+     * (and a refund when money was captured and no order exists), so it cannot starve the batch.
+     */
+    private function handleTransientFailure($orderData, $reason, $razorpayOrderData = null, $rzpPaymentData = null)
+    {
+        $attempts = $this->cartGuard->recordCronAttempt($orderData['entity_id']);
+
+        if ($attempts >= CartGuard::MAX_CRON_ATTEMPTS) {
+            // abandonRow fetches the payment itself when unknown and stays retryable if that fails.
+            $this->cartGuard->abandonRow($orderData, 'attempt cap reached: ' . $reason, $razorpayOrderData, $rzpPaymentData);
+        }
+    }
+
     public function placeMagentoOrderthroughCron($cartId, $rzpPaymentData, $rzpOrderData)
     {
         $merchantOrderId = isset($rzpOrderData->notes) ? $rzpOrderData->notes->merchant_order_id : null;
@@ -282,11 +402,13 @@ class UpdateOrdersToProcessingV2
         $rzpPaymentId = $rzpPaymentData->id;
 
         try {
-            $order = $this->order->loadByIncrementId($merchantOrderId);
+            // Fresh models: the shared $this->order caches items across loads, and a stale hit here can make
+            // the cron treat a genuine customer's order as already placed (and refund it).
+            $order = $this->cartGuard->loadFreshByIncrementId($merchantOrderId);
 
             if (!$order->getId()) {
                 $orderId = $this->cartManagement->placeOrder($cartId);
-                $order = $this->order->load($orderId);
+                $order = $this->cartGuard->loadFreshOrder($orderId);
             } else {
                 $payment = $order->getPayment();
                 $paymentMethod = $payment->getMethod();
@@ -296,6 +418,7 @@ class UpdateOrdersToProcessingV2
 
                     $result = [
                         'status' => 'failed',
+                        'terminal' => true,
                         'message' => "Cron failed to place the Magento order for rzp order id " . $rzpOrderId . " & rzp payment id " . $rzpPaymentId . " & magento cart id " . $cartId . " with error message - order was already placed",
                     ];
                     return $result;
@@ -309,6 +432,14 @@ class UpdateOrdersToProcessingV2
                 'message' => "Cron failed to place the Magento order for rzp order id " . $rzpOrderId . " & rzp payment id " . $rzpPaymentId . " & magento cart id " . $cartId . " with error message - " . $e->getMessage(),
             ];
             return $result;
+        }
+
+        // PLUG-02: re-check the placed order's items (TOCTOU between the quote check and placement).
+        $freshOrder = $this->cartGuard->isEnabled() ? $this->cartGuard->loadFreshOrder($order->getId()) : null;
+        if ($freshOrder !== null && $this->cartGuard->check($rzpOrderData, $freshOrder->getAllVisibleItems()) === CartFingerprint::VERDICT_MISMATCH) {
+            $this->cartGuard->reject($rzpOrderData, $rzpPaymentData, 'cron_v2_post_placement', $freshOrder);
+
+            return ['status' => 'item_mismatch', 'message' => 'cart items changed after payment was initiated'];
         }
 
         $order->setEmailSent(0);
