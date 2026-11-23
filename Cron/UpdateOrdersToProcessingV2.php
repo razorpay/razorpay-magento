@@ -14,6 +14,7 @@ use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
 use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
 use \Magento\Sales\Model\Order;
 use Razorpay\Magento\Constants\OrderCronStatus;
+use Razorpay\Magento\Model\CartGuard;
 use Razorpay\Magento\Controller\OneClick\AbandonedQuote;
 use Razorpay\Magento\Controller\OneClick\CompleteOrder;
 use Magento\Quote\Api\CartManagementInterface;
@@ -119,6 +120,7 @@ class UpdateOrdersToProcessingV2
     protected $cartRepositoryInterface;
     protected $cartManagement;
     protected $oneCCMagentoOrder;
+    protected $cartGuard;
 
     /**
      * CancelOrder constructor.
@@ -146,7 +148,8 @@ class UpdateOrdersToProcessingV2
         \Magento\Quote\Api\CartRepositoryInterface            $cartRepositoryInterface,
         CartManagementInterface                               $cartManagement,
         CompleteOrder                                         $oneCCMagentoOrder,
-        \Magento\Sales\Model\Order                            $order
+        \Magento\Sales\Model\Order                            $order,
+        CartGuard                                             $cartGuard = null
     )
     {
         $this->config = $config;
@@ -169,6 +172,7 @@ class UpdateOrdersToProcessingV2
         $this->cartManagement = $cartManagement;
         $this->oneCCMagentoOrder = $oneCCMagentoOrder;
         $this->order = $order;
+        $this->cartGuard = $cartGuard ?: \Magento\Framework\App\ObjectManager::getInstance()->get(CartGuard::class);
 
         $this->enableCustomPaidOrderStatus = $this->config->isCustomPaidOrderStatusEnabled();
 
@@ -285,6 +289,17 @@ class UpdateOrdersToProcessingV2
             $order = $this->order->loadByIncrementId($merchantOrderId);
 
             if (!$order->getId()) {
+                // PLUG-02: placeOrder builds the order from this same cart object (cached per process).
+                if ($this->cartGuard->isEnabled()
+                    && $this->cartGuard->quoteMismatch($rzpOrderData, $this->cartRepositoryInterface->get($cartId))) {
+                    $this->cartGuard->reject($this->api, $orderLink, $rzpOrderData, $rzpPaymentData, null, 'cron_v2');
+
+                    return [
+                        'status' => 'failed',
+                        'message' => "Cron did not place the Magento order for rzp order id " . $rzpOrderId . " because the cart items changed after payment was started",
+                    ];
+                }
+
                 $orderId = $this->cartManagement->placeOrder($cartId);
                 $order = $this->order->load($orderId);
             } else {

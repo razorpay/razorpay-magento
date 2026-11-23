@@ -26,6 +26,7 @@
                 <activate_magic_buy_now>0</activate_magic_buy_now>
                 <activate_magic_mini_cart>1</activate_magic_mini_cart>
                 <allow_coupon_apply_magic>1</allow_coupon_apply_magic>
+                <magic_cart_guard>1</magic_cart_guard>
                 <enable_update_order_cron_v1>1</enable_update_order_cron_v1>
                 <enable_debug_mode>0</enable_debug_mode>
             </razorpay>

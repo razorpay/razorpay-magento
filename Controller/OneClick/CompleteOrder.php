@@ -25,6 +25,7 @@ use Razorpay\Magento\Controller\OneClick\StateMap;
 use Razorpay\Magento\Model\CartConverter;
 use Razorpay\Magento\Model\CustomerConsent;
 use Razorpay\Magento\Constants\OrderCronStatus;
+use Razorpay\Magento\Model\CartGuard;
 
 class CompleteOrder extends Action
 {
@@ -91,6 +92,7 @@ class CompleteOrder extends Action
     protected $stateNameMap;
     protected $cartConverter;
     protected $customerConsent;
+    protected $cartGuard;
     protected $_order = null;
 
     const COD = 'cashondelivery';
@@ -136,7 +138,8 @@ class CompleteOrder extends Action
         CollectionFactory                                     $collectionFactory,
         StateMap                                              $stateNameMap,
         CartConverter                                         $cartConverter,
-        CustomerConsent                                       $customerConsent
+        CustomerConsent                                       $customerConsent,
+        CartGuard                                             $cartGuard = null
     )
     {
         parent::__construct($context);
@@ -163,6 +166,7 @@ class CompleteOrder extends Action
         $this->stateNameMap = $stateNameMap;
         $this->cartConverter = $cartConverter;
         $this->customerConsent = $customerConsent;
+        $this->cartGuard = $cartGuard ?: \Magento\Framework\App\ObjectManager::getInstance()->get(CartGuard::class);
         $this->resultRedirectFactory = $context->getResultFactory();;
         $this->orderStatus = static::STATE_PROCESSING;
         $this->authorizeCommand = new AuthorizeCommand();
@@ -185,6 +189,12 @@ class CompleteOrder extends Action
             $cartMaskId = isset($rzpOrderData->notes) ? $rzpOrderData->notes->cart_mask_id : null;
 
             $this->validateSignature($params, $cartMaskId);
+
+            // PLUG-02: the signature binds the payment to the session's Razorpay order; this binds it to the
+            // order in the request, whose notes (cart, fingerprint) are used below.
+            if ($this->cartGuard->isEnabled() && (string)($rzpPaymentData->order_id ?? '') !== (string)$rzpOrderId) {
+                throw new \Exception('Payment does not belong to Razorpay order ' . $rzpOrderId);
+            }
 
             $cartId = isset($rzpOrderData->notes) ? $rzpOrderData->notes->cart_id : null;
             $email = $rzpOrderData->customer_details->email ?? null;
@@ -209,6 +219,12 @@ class CompleteOrder extends Action
             }
 
             $result = $this->placeMagentoOrder($cartId, $rzpPaymentData, $rzpOrderData);
+
+            if (($result['code'] ?? null) === 'ORDER_ITEM_MISMATCH') {
+                $this->messageManager->addError(__(CartGuard::MISMATCH_MESSAGE));
+
+                return $resultJson->setData($result)->setHttpResponseCode(500);
+            }
 
             return $resultJson->setData($result);
 
@@ -286,6 +302,15 @@ class CompleteOrder extends Action
         $rzpOrderId = $rzpOrderData->id;
         $rzpPaymentId = $rzpPaymentData->id;
 
+        // PLUG-02: a payment rejected for changed cart items is never completed later.
+        if ($this->cartGuard->isRejected($orderLink)) {
+            $this->logger->critical('PLUG-02: Razorpay order ' . $rzpOrderId . ' was already rejected, not completing it');
+
+            return $this->itemMismatchResult();
+        }
+
+        $itemMismatch = false;
+
         //Callback will retry MAX_ATTEMPTS to place order on magento.
         $attempts = 0;
         while ($attempts < self::MAX_ATTEMPTS) {
@@ -294,9 +319,26 @@ class CompleteOrder extends Action
                 $order = $this->order->loadByIncrementId($merchantOrderId);
 
                 if (!$order->getId()) {
+                    // PLUG-02: placeOrder builds the order from this same cart object (the quote repository
+                    // caches it per request), so these are exactly the items that get ordered.
+                    if ($this->cartGuard->isEnabled()
+                        && $this->cartGuard->quoteMismatch($rzpOrderData, $this->cartRepositoryInterface->get($cartId))) {
+                        $itemMismatch = true;
+                        break;
+                    }
+
                     $orderId = $this->cartManagement->placeOrder($cartId);
                     $order = $this->order->load($orderId);
                 } else {
+                    // PLUG-02: an order placed before payment completion (AbandonedQuote) is about to be marked
+                    // paid. Only orders not yet marked paid (no payment transaction id) are checked, so a repeated
+                    // call never re-checks an order this flow already completed.
+                    if (!($order->getPayment() && $order->getPayment()->getLastTransId())
+                        && $this->cartGuard->orderMismatch($rzpOrderData, $order)) {
+                        $itemMismatch = true;
+                        break;
+                    }
+
                     $orderId = $order->getId();
                 }
                 break;
@@ -310,6 +352,12 @@ class CompleteOrder extends Action
                 }
                 continue;
             }
+        }
+
+        if ($itemMismatch) {
+            $this->cartGuard->reject($this->rzp, $orderLink, $rzpOrderData, $rzpPaymentData, $order, 'complete_order');
+
+            return $this->itemMismatchResult();
         }
 
         $order->setEmailSent(0);
@@ -770,6 +818,15 @@ class CompleteOrder extends Action
                 'telephone' => $rzpAddress->contact,
                 'save_in_address_book' => 1
             ]
+        ];
+    }
+
+    protected function itemMismatchResult()
+    {
+        return [
+            'status' => 'error',
+            'code' => 'ORDER_ITEM_MISMATCH',
+            'message' => __(CartGuard::MISMATCH_MESSAGE),
         ];
     }
 
