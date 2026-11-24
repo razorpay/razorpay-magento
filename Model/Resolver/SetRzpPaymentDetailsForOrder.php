@@ -13,6 +13,7 @@ use Razorpay\Magento\Model\Config;
 use Magento\Sales\Model\Order\Payment\State\CaptureCommand;
 use Magento\Sales\Model\Order\Payment\State\AuthorizeCommand;
 use Razorpay\Magento\Constants\OrderCronStatus;
+use Razorpay\Magento\Model\CartGuard;
 
 /**
  * Mutation resolver for setting payment method for shopping cart
@@ -90,6 +91,11 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
     protected $captureCommand;
 
     /**
+     * @var CartGuard
+     */
+    protected $cartGuard;
+
+    /**
      * @param PaymentMethod $paymentMethod
      * @param \Magento\Sales\Api\Data\OrderInterface $order
      * @param \Razorpay\Magento\Model\Config $config
@@ -111,10 +117,12 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
         \Magento\Checkout\Model\Session $checkoutSession,
         \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender,
         \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
-        \Psr\Log\LoggerInterface $logger
+        \Psr\Log\LoggerInterface $logger,
+        CartGuard $cartGuard = null
     )
     {
         $this->rzp             = $paymentMethod->setAndGetRzpApiInstance();
+        $this->cartGuard       = $cartGuard ?: \Magento\Framework\App\ObjectManager::getInstance()->get(CartGuard::class);
         $this->order           = $order;
         $this->config          = $config;
         $this->invoiceService  = $invoiceService;
@@ -250,6 +258,17 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
                 throw new GraphQlInputException(__('Not a valid Razorpay orderID'));
             }
             $rzpOrderAmount = $rzp_order_data->amount;
+
+            // PLUG-02: a Magic order can be looked up here when an order's id equals a Magic order number.
+            // Never mark it paid if its items differ from the paid cart, or if the payment was already rejected.
+            if ($order && ($this->cartGuard->isRejected($orderLink)
+                || $this->cartGuard->orderMismatch($rzp_order_data, $order)))
+            {
+                $this->logger->critical('graphQL: PLUG-02: refused to mark order ' . $order_id
+                    . ' paid for Razorpay order ' . $rzp_order_id);
+
+                throw new GraphQlInputException(__('Payment could not be confirmed.'));
+            }
 
             if ($order)
             {
