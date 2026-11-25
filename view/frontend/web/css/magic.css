@@ -1,15 +1,23 @@
 #cart-occ-template {
-	width: 100%;
+  width: 100%;
+  background-color: black;
+  color: white;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.375rem;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  text-transform: uppercase;
 }
 
 #product-oneclick-button {
-	margin-bottom: 10px;
+  margin-bottom: 10px;
 }
 
-.checkout.methods.items.checkout-methods-items {
-	display: none;
+.checkout.methods.items.checkout-methods-items, #cart-drawer a.btn-theme {
+  display: none !important;
 }
 
 div.product-info-main #occ-template magic-checkout-btn {
-	display: none !important;
+  display: none !important;
 }
