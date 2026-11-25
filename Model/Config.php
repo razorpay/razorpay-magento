@@ -32,6 +32,7 @@ class Config
     const KEY_MAGIC_BUY_NOW_STATUS = 'activate_magic_buy_now';
     const KEY_MAGIC_MINI_CART_STATUS = 'activate_magic_mini_cart';
     const KEY_MAGIC_ALLOW_COUPON_APPLICATION_STATUS = 'allow_coupon_apply_magic';
+    const KEY_MAGIC_CART_GUARD = 'magic_cart_guard';
     /**
      * @var string
      */
@@ -83,6 +84,16 @@ class Config
         return $this->getConfigData(self::WEBHOOK_SECRET);
     }
     
+    /**
+     * PLUG-02 cart guard. On unless explicitly set to 0 (a missing value counts as on).
+     */
+    public function isMagicCartGuardEnabled()
+    {
+        $value = $this->getConfigData(self::KEY_MAGIC_CART_GUARD);
+
+        return ($value === null || $value === '') ? true : (bool) (int) $value;
+    }
+
     public function isCancelPendingOrderCronEnabled()
     {
         return (bool) (int) $this->getConfigData(self::ENABLE_PENDING_ORDERS_CRON, $this->storeId);

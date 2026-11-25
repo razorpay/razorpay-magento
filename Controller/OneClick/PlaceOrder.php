@@ -28,6 +28,7 @@ use Magento\Customer\Model\Session as CustomerSession;
 use Magento\SalesSequence\Model\Manager as SequenceManager;
 use Magento\ConfigurableProduct\Model\Product\Type\Configurable as ConfigurableProduct;
 use Magento\GroupedProduct\Model\Product\Type\Grouped as GroupedProduct;
+use Razorpay\Magento\Model\Util\CartFingerprint;
 
 class PlaceOrder extends Action
 {
@@ -319,6 +320,11 @@ class PlaceOrder extends Action
             'cart_id' => $quoteId,
             'merchant_order_id' => (string)$quote->getReservedOrderId() ?? 'order pending'
         ];
+
+        // PLUG-02: SKU + qty of the same items sent as line_items; checked before the order is placed or marked paid.
+        if ($this->config->isMagicCartGuardEnabled()) {
+            $orderNotes[CartFingerprint::NOTE_KEY] = CartFingerprint::compute($cartItems, 'qty');
+        }
         $customerEmail = $this->getCustomerEmailFromQuote();
 
         if($customerEmail !== false)

@@ -154,6 +154,13 @@
                     </depends>
                 </field>
 
+                <field id="magic_cart_guard" translate="label comment" type="select" sortOrder="29" showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Magic Checkout Cart Guard</label>
+                    <comment>Recommended: Yes. Rejects and refunds Magic Checkout orders whose cart items changed after the shopper started payment. Turn off only if Razorpay support advises it.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <config_path>payment/razorpay/magic_cart_guard</config_path>
+                </field>
+
                 <field id="auto_invoice" translate="label" type="select" sortOrder="2" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Auto Generate Invoice</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
