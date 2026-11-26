@@ -6,6 +6,7 @@ use Razorpay\Api\Api;
 use Razorpay\Magento\Model\PaymentMethod;
 use Magento\Framework\Controller\ResultFactory;
 use Razorpay\Magento\Model\TrackPluginInstrumentation;
+use Razorpay\Magento\Model\Util\BundleChildLogger;
 use Magento\Bundle\Model\Product\Type as BundleType;
 
 class Order extends \Razorpay\Magento\Controller\BaseController
@@ -55,6 +56,11 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     protected $trackPluginInstrumentation;
 
     /**
+     * @var BundleChildLogger
+     */
+    private $bundleChildLogger;
+
+    /**
      * @var \Magento\Directory\Model\CountryFactory
      */
     private $countryFactory;
@@ -79,7 +85,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Psr\Log\LoggerInterface $logger,
         TrackPluginInstrumentation $trackPluginInstrumentation,
-        \Magento\Directory\Model\CountryFactory $countryFactory
+        \Magento\Directory\Model\CountryFactory $countryFactory,
+        BundleChildLogger $bundleChildLogger
     )
     {
         parent::__construct(
@@ -107,6 +114,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $this->webhooks->items  = [];
         $this->trackPluginInstrumentation = $trackPluginInstrumentation;
         $this->countryFactory             = $countryFactory;
+        $this->bundleChildLogger          = $bundleChildLogger;
     }
 
     public function execute()
@@ -634,23 +642,83 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $mediaUrl = $this->_storeManager->getStore()
                         ->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA);
         $bundleChildLineItemsEnabled = $this->config->isBundleChildLineItemsEnabled();
+        $visibleItems = $order->getAllVisibleItems();
+        $bundleParentCount = 0;
 
-        foreach ($order->getAllVisibleItems() as $item)
+        $this->bundleChildLogger->info('buildLineItems started', [
+            'magento_order_id'   => $order->getEntityId(),
+            'increment_id'       => $order->getIncrementId(),
+            'flag_enabled'       => (int) $bundleChildLineItemsEnabled,
+            'visible_item_count' => count($visibleItems),
+        ]);
+
+        foreach ($visibleItems as $item)
         {
-            if ($bundleChildLineItemsEnabled &&
-                $item->getProductType() === BundleType::TYPE_CODE)
+            $productType = $item->getProductType();
+            $isBundle    = ($productType === BundleType::TYPE_CODE);
+
+            // Logged before the branch so that items which never enter the
+            // bundle path (non-bundle type, or flag disabled) are still visible.
+            $this->bundleChildLogger->info('visible item evaluated', [
+                'item_id'               => $item->getItemId(),
+                'sku'                   => $item->getSku(),
+                'name'                  => $item->getName(),
+                'product_type'          => $productType,
+                'is_bundle'             => (int) $isBundle,
+                'flag_enabled'          => (int) $bundleChildLineItemsEnabled,
+                'will_explode_children' => (int) ($bundleChildLineItemsEnabled && $isBundle),
+                'qty_ordered'           => (int) $item->getQtyOrdered(),
+                'parent_item_id'        => $item->getParentItemId(),
+                'has_children_flag'     => (int) $item->getHasChildren(),
+            ]);
+
+            if ($bundleChildLineItemsEnabled && $isBundle)
             {
+                $bundleParentCount++;
                 $children = $item->getChildrenItems();
+
+                // Why children can be empty: Magento links child rows to their
+                // parent in the sales order item collection. If the item was
+                // loaded without that collection, or the children were not
+                // persisted, this is empty and the bundle is skipped below.
+                $this->bundleChildLogger->info('bundle parent amounts and children', [
+                    'parent_item_id'    => $item->getItemId(),
+                    'parent_price'      => $item->getPrice(),
+                    'parent_discount'   => $item->getDiscountAmount(),
+                    'parent_tax'        => $item->getTaxAmount(),
+                    'children_count'    => is_array($children) ? count($children) : 0,
+                    'children_item_ids' => $this->childItemIds($children),
+                ]);
 
                 if (empty($children) === false)
                 {
-                    foreach ($this->buildBundleChildLineItems($item, $children, $mediaUrl) as $childLineItem)
+                    $childLineItems = $this->buildBundleChildLineItems($item, $children, $mediaUrl);
+
+                    foreach ($childLineItems as $childLineItem)
                     {
                         $lineItems[] = $childLineItem;
                     }
 
+                    $this->bundleChildLogger->info('bundle children converted to line items', [
+                        'parent_item_id'    => $item->getItemId(),
+                        'parent_sku'        => $item->getSku(),
+                        'children_count'    => count($children),
+                        'child_line_items'  => count($childLineItems),
+                        'child_skus'        => array_column($childLineItems, 'sku'),
+                    ]);
+
                     continue;
                 }
+
+                $this->bundleChildLogger->warning(
+                    'bundle parent has no children - falling back to parent line item',
+                    [
+                        'parent_item_id' => $item->getItemId(),
+                        'parent_sku'     => $item->getSku(),
+                        'product_type'   => $productType,
+                        'parent_qty'     => (int) $item->getQtyOrdered(),
+                    ]
+                );
             }
 
             $lineItems[] = $this->buildLineItem($item, $mediaUrl);
@@ -661,7 +729,38 @@ class Order extends \Razorpay\Magento\Controller\BaseController
             $lineItems = $this->mergeLineItemsBySku($lineItems);
         }
 
+        $this->bundleChildLogger->info('buildLineItems finished', [
+            'magento_order_id'   => $order->getEntityId(),
+            'increment_id'       => $order->getIncrementId(),
+            'bundle_parents'     => $bundleParentCount,
+            'line_items_count'   => count($lineItems),
+            'line_item_skus'     => array_column($lineItems, 'sku'),
+        ]);
+
         return $lineItems;
+    }
+
+    /**
+     * Collect child item ids for logging.
+     *
+     * @param mixed $children
+     * @return array
+     */
+    private function childItemIds($children)
+    {
+        if (is_array($children) === false || empty($children))
+        {
+            return [];
+        }
+
+        $ids = [];
+
+        foreach ($children as $child)
+        {
+            $ids[] = $child->getItemId();
+        }
+
+        return $ids;
     }
 
     /**
@@ -709,6 +808,13 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 $totalQty
             );
             $grouped[$sku]['quantity'] = $totalQty;
+
+            $this->bundleChildLogger->info('line items merged by sku', [
+                'sku'       => $sku,
+                'new_qty'   => $totalQty,
+                'price'     => $grouped[$sku]['price'],
+                'offer_price' => $grouped[$sku]['offer_price'],
+            ]);
         }
 
         return array_values($grouped);
@@ -766,7 +872,27 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                 'tax_amount'  => intdiv($allAllocations['tax_amount'][$index], $childQty),
             ];
 
-            $lineItems[] = $this->buildLineItem($childItem, $mediaUrl, $amounts, true, $childProducts[$index]);
+            $childLineItem = $this->buildLineItem(
+                $childItem,
+                $mediaUrl,
+                $amounts,
+                true,
+                $childProducts[$index]
+            );
+            $lineItems[] = $childLineItem;
+
+            $this->bundleChildLogger->info('bundle child allocated', [
+                'parent_item_id'   => $parentItem->getItemId(),
+                'child_item_id'    => $childItem->getItemId(),
+                'child_product_id' => $childItem->getProductId(),
+                'child_sku'        => $childLineItem['sku'],
+                'child_name'       => $childLineItem['name'],
+                'child_qty'        => $childQty,
+                'weight'           => $weights[$index],
+                'price'            => $childLineItem['price'],
+                'offer_price'      => $childLineItem['offer_price'],
+                'tax_amount'       => $childLineItem['tax_amount'],
+            ]);
         }
 
         return $lineItems;
