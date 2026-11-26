@@ -96,6 +96,16 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
     protected $trackPluginInstrumentation;
 
     /**
+     * @var \Razorpay\Magento\Model\Util\PaymentGuard
+     */
+    protected $paymentGuard;
+
+    /**
+     * @var \Magento\Store\Model\StoreManagerInterface
+     */
+    protected $storeManager;
+
+    /**
      * @param PaymentMethod $paymentMethod
      * @param \Magento\Sales\Api\Data\OrderInterface $order
      * @param \Razorpay\Magento\Model\Config $config
@@ -118,7 +128,9 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
         \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender,
         \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
         \Psr\Log\LoggerInterface $logger,
-        TrackPluginInstrumentation $trackPluginInstrumentation
+        TrackPluginInstrumentation $trackPluginInstrumentation,
+        \Razorpay\Magento\Model\Util\PaymentGuard $paymentGuard,
+        \Magento\Store\Model\StoreManagerInterface $storeManager
     )
     {
         $this->rzp             = $paymentMethod->setAndGetRzpApiInstance();
@@ -133,6 +145,8 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
         $this->logger          = $logger;
         $this->orderStatus     = static::STATUS_PROCESSING;
         $this->trackPluginInstrumentation = $trackPluginInstrumentation;
+        $this->paymentGuard                = $paymentGuard;
+        $this->storeManager                = $storeManager;
         $this->enableCustomPaidOrderStatus = $this->config->isCustomPaidOrderStatusEnabled();
 
         if ($this->enableCustomPaidOrderStatus === true
@@ -225,6 +239,10 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
                 {
                     $this->logger->info('graphQL: Razorpay'
                     . ' Order ID:'  . $rzp_order_id);
+                    if ((int) $order->getStoreId() !== (int) $this->storeManager->getStore()->getId())
+                    {
+                        throw new GraphQlInputException(__('This order belongs to a different store.'));
+                    }
                 } else
                 {
                     $this->logger->critical('graphQL: ' .
@@ -300,6 +318,12 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
 
             if ($order)
             {
+                $rzpPayment = $this->rzp->request->request('GET', 'payments/'.$rzp_payment_id);
+
+                // The payment must belong to this order's Razorpay order and
+                // the Razorpay order must cover the Magento total.
+                $this->paymentGuard->assertMatches($order, $rzp_order_id, $rzpPayment, $rzp_order_data);
+
                 $amountPaid = number_format($rzpOrderAmount / 100, 2, ".", "");
                 if ($order->getStatus() === 'pending')
                 {
@@ -346,8 +370,6 @@ class SetRzpPaymentDetailsForOrder implements ResolverInterface
                 $transaction->setIsClosed(true);
 
                 $transaction->save();
-
-                $rzpPayment = $this->rzp->request->request('GET', 'payments/'.$rzp_payment_id);
 
                 $rzpAmountPaid = number_format($rzpPayment['amount'] / 100, 2, ".", "");
         

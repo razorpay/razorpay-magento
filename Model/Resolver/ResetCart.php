@@ -46,6 +46,16 @@ class ResetCart implements ResolverInterface
     protected $orderAccessGuard;
 
     /**
+     * @var \Razorpay\Magento\Model\Util\CallerIdentity
+     */
+    protected $callerIdentity;
+
+    /**
+     * @var \Magento\Store\Model\StoreManagerInterface
+     */
+    protected $storeManager;
+
+    /**
      * @param \Psr\Log\LoggerInterface $logger
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param OrderRepositoryInterface $orderRepository
@@ -55,7 +65,9 @@ class ResetCart implements ResolverInterface
         SearchCriteriaBuilder $searchCriteriaBuilder,
         OrderRepositoryInterface $orderRepository,
         TrackPluginInstrumentation $trackPluginInstrumentation,
-        \Razorpay\Magento\Model\Util\OrderAccessGuard $orderAccessGuard
+        \Razorpay\Magento\Model\Util\OrderAccessGuard $orderAccessGuard,
+        \Razorpay\Magento\Model\Util\CallerIdentity $callerIdentity,
+        \Magento\Store\Model\StoreManagerInterface $storeManager
     )
     {
         $this->logger = $logger;
@@ -64,6 +76,8 @@ class ResetCart implements ResolverInterface
         $this->orderRepository = $orderRepository;
         $this->trackPluginInstrumentation = $trackPluginInstrumentation;
         $this->orderAccessGuard = $orderAccessGuard;
+        $this->callerIdentity = $callerIdentity;
+        $this->storeManager = $storeManager;
     }
 
     /**
@@ -129,10 +143,12 @@ class ResetCart implements ResolverInterface
 
             $this->orderAccessGuard->assertOwnerForGraphQl(
                 $orderModel,
-                $context !== null ? $context->getUserId() : null,
+                $this->callerIdentity->customerId($context),
                 isset($args['masked_cart_id']) === true ? (string) $args['masked_cart_id'] : null,
                 isset($args['token']) === true ? (string) $args['token'] : null
             );
+            $this->orderAccessGuard->assertStore($orderModel, (int) $this->storeManager->getStore()->getId());
+            $this->orderAccessGuard->assertPayable($orderModel);
 
             if ($orderModel->canCancel())
             {
@@ -186,6 +202,12 @@ class ResetCart implements ResolverInterface
             $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.graphql.resetcart.denied', $properties);
 
             throw $e;
+        }
+        catch(\Magento\Framework\Exception\LocalizedException $e)
+        {
+            $this->logger->critical('graphQL: Refused: ' . $e->getMessage());
+
+            throw new GraphQlInputException(__($e->getMessage()));
         }
         catch(\Exception $e)
         {

@@ -15,6 +15,7 @@ type RazorpayOrder {
 	order_id: String
 	amount: String
 	currency: String
+	callback_token: String @doc(description: "Signed token to append to the hosted checkout callback URL.")
 	message: String
 }
 

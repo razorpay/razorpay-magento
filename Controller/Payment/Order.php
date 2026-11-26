@@ -589,7 +589,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $preferences = [];
 
         $preferences['embedded_url'] = Api::getFullUrl("checkout/embedded");
-        $preferences['is_hosted'] = true;
+        $preferences['is_hosted'] = false;
         $preferences['image'] = '';
         
         try

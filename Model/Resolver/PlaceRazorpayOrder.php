@@ -66,6 +66,16 @@ class PlaceRazorpayOrder implements ResolverInterface
     protected $orderAccessGuard;
 
     /**
+     * @var \Razorpay\Magento\Model\Util\CallerIdentity
+     */
+    protected $callerIdentity;
+
+    /**
+     * @var \Magento\Store\Model\StoreManagerInterface
+     */
+    protected $storeManager;
+
+    /**
      * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
      * @param GetCartForUser $getCartForUser
      * @param \Magento\Quote\Api\CartManagementInterface $cartManagement
@@ -83,7 +93,9 @@ class PlaceRazorpayOrder implements ResolverInterface
         \Psr\Log\LoggerInterface $logger,
         \Razorpay\Magento\Model\Config $config,
         TrackPluginInstrumentation $trackPluginInstrumentation,
-        \Razorpay\Magento\Model\Util\OrderAccessGuard $orderAccessGuard
+        \Razorpay\Magento\Model\Util\OrderAccessGuard $orderAccessGuard,
+        \Razorpay\Magento\Model\Util\CallerIdentity $callerIdentity,
+        \Magento\Store\Model\StoreManagerInterface $storeManager
     )
     {
         $this->scopeConfig    = $scopeConfig;
@@ -96,6 +108,8 @@ class PlaceRazorpayOrder implements ResolverInterface
         $this->config          = $config;
         $this->trackPluginInstrumentation = $trackPluginInstrumentation;
         $this->orderAccessGuard           = $orderAccessGuard;
+        $this->callerIdentity             = $callerIdentity;
+        $this->storeManager               = $storeManager;
     }
 
     /**
@@ -167,11 +181,34 @@ class PlaceRazorpayOrder implements ResolverInterface
             // overwrite the existing one.
             $this->orderAccessGuard->assertOwnerForGraphQl(
                 $order,
-                $context !== null ? $context->getUserId() : null,
+                $this->callerIdentity->customerId($context),
                 isset($args['masked_cart_id']) === true ? (string) $args['masked_cart_id'] : null,
                 isset($args['token']) === true ? (string) $args['token'] : null
             );
+            $this->orderAccessGuard->assertStore($order, (int) $this->storeManager->getStore()->getId());
             $this->orderAccessGuard->assertPayable($order);
+
+            // Reuse the Razorpay order already linked to this Magento order.
+            // Minting a second one would break the payment a buyer is making.
+            $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                        ->getCollection()
+                        ->addFilter('order_id', $order->getEntityId())
+                        ->getFirstItem();
+
+            $existingRzpOrderId = (string) $orderLink->getRzpOrderId();
+
+            if ($existingRzpOrderId !== '')
+            {
+                return [
+                    'success'        => true,
+                    'rzp_order_id'   => $existingRzpOrderId,
+                    'order_id'       => $order_id,
+                    'amount'         => number_format((float) $order->getGrandTotal(), 2, ".", ""),
+                    'currency'       => $order->getOrderCurrencyCode(),
+                    'callback_token' => $this->orderAccessGuard->issueCallbackToken($order),
+                    'message'        => 'Razorpay Order already created for this order',
+                ];
+            }
 
             $order_grand_total          = $order->getGrandTotal();
             $order_currency_code        = $order->getOrderCurrencyCode();
@@ -245,6 +282,7 @@ class PlaceRazorpayOrder implements ResolverInterface
                     'order_id'       => $order_id,
                     'amount'         => number_format((float) $order_grand_total, 2, ".", ""),
                     'currency'       => $order_currency_code,
+                    'callback_token' => $this->orderAccessGuard->issueCallbackToken($orderModel),
                     'message'        => 'Razorpay Order created successfully'
                 ];
                 
@@ -280,6 +318,11 @@ class PlaceRazorpayOrder implements ResolverInterface
             $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.graphql.placeorder.denied', $properties);
 
             throw $e;
+        } catch (\Magento\Framework\Exception\LocalizedException $e)
+        {
+            $this->logger->critical('graphQL: Refused: ' . $e->getMessage());
+
+            throw new GraphQlInputException(__($e->getMessage()));
         } catch (\Razorpay\Api\Errors\Error $e)
         {
             $this->logger->critical('graphQL: Razorpay API Error: ' . $e->getMessage());

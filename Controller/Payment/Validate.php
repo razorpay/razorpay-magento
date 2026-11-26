@@ -92,6 +92,11 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
     protected $trackPluginInstrumentation;
 
     /**
+     * @var \Razorpay\Magento\Model\Util\PaymentGuard
+     */
+    protected $paymentGuard;
+
+    /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession
@@ -112,7 +117,8 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
         OrderRepositoryInterface $orderRepository,
         \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
         Logger $logger,
-        TrackPluginInstrumentation $trackPluginInstrumentation
+        TrackPluginInstrumentation $trackPluginInstrumentation,
+        \Razorpay\Magento\Model\Util\PaymentGuard $paymentGuard
     ) 
     {
         parent::__construct(
@@ -149,6 +155,7 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
         $this->authorizeCommand = new AuthorizeCommand();
         $this->captureCommand = new CaptureCommand();
         $this->trackPluginInstrumentation = $trackPluginInstrumentation;
+        $this->paymentGuard = $paymentGuard;
     }
 
     // @codeCoverageIgnoreStart
@@ -198,18 +205,70 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
 
         try
         {
-            $this->validateSignature($post);
+            if (empty($order->getEntityId()))
+            {
+                throw new \Magento\Framework\Exception\LocalizedException(__('No active order found.'));
+            }
 
             $orderId = $order->getIncrementId();
-            $order->setState(static::STATUS_PROCESSING)->setStatus($this->orderStatus);
-            
 
-            $payment = $order->getPayment();        
-        
+            $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                            ->getCollection()
+                            ->addFilter('order_id', $order->getEntityId())
+                            ->getFirstItem();
+
+            $rzpOrderId = (string) $orderLink->getRzpOrderId();
+
+            if ($rzpOrderId === '')
+            {
+                throw new \Magento\Framework\Exception\LocalizedException(
+                    __('No Razorpay order is linked to this order.')
+                );
+            }
+
+            $payment   = $order->getPayment();
             $paymentId = $post['razorpay_payment_id'];
 
+            if ($payment === null
+                || $payment->getMethod() !== \Razorpay\Magento\Model\PaymentMethod::METHOD_CODE
+                || $order->getState() !== \Magento\Sales\Model\Order::STATE_NEW)
+            {
+                // A repeated confirmation for a payment already applied must
+                // stay a success, not an error.
+                if ($payment !== null && $payment->getLastTransId() === $paymentId)
+                {
+                    $responseContent = [
+                        'success'      => true,
+                        'redirect_url' => 'checkout/onepage/success/',
+                        'order_id'     => $orderId,
+                    ];
+
+                    $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
+                    $response->setData($responseContent);
+                    $response->setHttpResponseCode(200);
+                    return $response;
+                }
+
+                throw new \Magento\Framework\Exception\LocalizedException(
+                    __('This order is no longer open for payment.')
+                );
+            }
+
+            // Verify against this order's Razorpay order, never against a
+            // leftover value in the session.
+            $this->validateSignature($post, $rzpOrderId);
+
             $rzpPayment = $this->rzp->request->request('GET', 'payments/'.$paymentId);
-        
+            $rzpOrder   = $this->rzp->order->fetch($rzpOrderId);
+
+            // The payment must belong to this order's Razorpay order and the
+            // Razorpay order must cover the Magento total.
+            $this->paymentGuard->assertMatches($order, $rzpOrderId, $rzpPayment, $rzpOrder);
+
+            $this->catalogSession->unsRazorpayOrderID();
+
+            $order->setState(static::STATUS_PROCESSING)->setStatus($this->orderStatus);
+
             $payment->setLastTransId($paymentId)
                 ->setTransactionId($paymentId)
                 ->setIsTransactionClosed(true)
@@ -263,11 +322,6 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
                     $order->getBaseCurrency()->formatTxt($amountPaid)
                 )
             );
-
-            $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
-                            ->getCollection()
-                            ->addFilter('order_id', $order->getEntityId())
-                            ->getFirstItem();
 
             $orderLink->setRzpPaymentId($paymentId);
 
@@ -373,6 +427,22 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
             return $response;
 
         } // @codeCoverageIgnoreStart
+        catch(\Magento\Framework\Exception\LocalizedException $e)
+        {
+            $this->logger->critical("Validate: Refused: " . $e->getMessage());
+            $responseContent['message'] = $e->getMessage();
+
+            $code = 409;
+
+            $properties = [
+                "error_message" => $e->getMessage(),
+                "file_path" => "controller/Payment/Validate.php",
+                "exception_type" => get_class($e),
+                "notes" => "Order refused before payment confirmation."
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.validate.handler.refused', $properties);
+        }
         catch(\Razorpay\Api\Errors\Error $e)
         {
             $this->logger->critical("Validate: Razorpay Error message:" . $e->getMessage());
@@ -408,9 +478,12 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
         // @codeCoverageIgnoreEnd
 
         //update/disable the quote
-        $quote = $this->_objectManager->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
-        $quote->setIsActive(true)->save();
-        $this->checkoutSession->setFirstTimeChk('0');
+        if (empty($order->getEntityId()) === false)
+        {
+            $quote = $this->_objectManager->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
+            $quote->setIsActive(true)->save();
+            $this->checkoutSession->setFirstTimeChk('0');
+        }
         
         $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
         $response->setData($responseContent);
@@ -418,7 +491,7 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
         return $response;
     }
 
-    protected function validateSignature($request)
+    protected function validateSignature($request, $rzpOrderId)
     { 
         // @codeCoverageIgnoreStart
         if(empty($request['error']) === false)
@@ -439,12 +512,12 @@ class Validate extends \Razorpay\Magento\Controller\BaseController implements Cs
         }
         // @codeCoverageIgnoreEnd
 
-        $this->logger->info('RZP signature validate: razorpay_payment_id = ' . $request['razorpay_payment_id'] . ', razorpay_order_id = ' . $this->catalogSession->getRazorpayOrderID()  . ', razorpay_signature = ' . $request['razorpay_signature']);
+        $this->logger->info('RZP signature validate: razorpay_payment_id = ' . $request['razorpay_payment_id'] . ', razorpay_order_id = ' . $rzpOrderId  . ', razorpay_signature = ' . $request['razorpay_signature']);
        
 
         $attributes = array(
             'razorpay_payment_id' => $request['razorpay_payment_id'],
-            'razorpay_order_id'   => $this->catalogSession->getRazorpayOrderID(),
+            'razorpay_order_id'   => $rzpOrderId,
             'razorpay_signature'  => $request['razorpay_signature'],
         );
         

@@ -177,6 +177,22 @@ class CancelPendingOrders {
     {
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
 
+        $order = $objectManager->get('Magento\Sales\Model\Order')->load($entity_id);
+
+        if ($order->getId())
+        {
+            $state = (string) $order->getState();
+
+            // An order that has been invoiced or paid is never cancelled by
+            // the cron, even when its webhook timestamp is missing.
+            if ($order->hasInvoices() === true
+                || (float) $order->getTotalPaid() > 0
+                || in_array($state, ['processing', 'complete', 'closed'], true))
+            {
+                return true;
+            }
+        }
+
         $orderLinkData = $objectManager->get('Razorpay\Magento\Model\OrderLink')
                         ->getCollection()
                         ->addFilter('order_id', $entity_id)

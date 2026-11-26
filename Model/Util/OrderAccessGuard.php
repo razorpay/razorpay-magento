@@ -71,9 +71,23 @@ class OrderAccessGuard
     public function issueCallbackToken(OrderInterface $order): string
     {
         $expiry  = time() + self::TOKEN_TTL;
-        $payload = $order->getIncrementId() . '|' . $expiry;
+        $payload = $this->tokenPayload($order, $expiry);
 
         return $expiry . '.' . $this->sign($payload);
+    }
+
+    /**
+     * The token is bound to both identities of the order, so it cannot be
+     * replayed against an order that reuses the same increment id in another
+     * store or after a database restore.
+     *
+     * @param OrderInterface $order
+     * @param string|int $expiry
+     * @return string
+     */
+    private function tokenPayload(OrderInterface $order, $expiry): string
+    {
+        return (int) $order->getEntityId() . '|' . $order->getIncrementId() . '|' . $expiry;
     }
 
     /**
@@ -95,7 +109,7 @@ class OrderAccessGuard
             return false;
         }
 
-        return hash_equals($this->sign($order->getIncrementId() . '|' . $expiry), $signature);
+        return hash_equals($this->sign($this->tokenPayload($order, $expiry)), $signature);
     }
 
     /**
@@ -203,6 +217,35 @@ class OrderAccessGuard
         if ($payment !== null && $payment->getMethod() !== PaymentMethod::METHOD_CODE) {
             throw new LocalizedException(
                 __('This order was not placed with Razorpay.')
+            );
+        }
+
+        // A paid or invoiced order must never be re-opened for payment, even
+        // when its state still reads new.
+        $hasInvoices = method_exists($order, 'hasInvoices') ? $order->hasInvoices() : false;
+
+        if ($hasInvoices === true || (float) $order->getTotalPaid() > 0) {
+            throw new LocalizedException(
+                __('This order is already paid.')
+            );
+        }
+    }
+
+    /**
+     * An order may only be paid through the store it was placed on.
+     *
+     * @param OrderInterface $order
+     * @param int $storeId
+     * @return void
+     * @throws LocalizedException
+     */
+    public function assertStore(OrderInterface $order, int $storeId): void
+    {
+        $orderStoreId = (int) $order->getStoreId();
+
+        if ($orderStoreId > 0 && $storeId > 0 && $orderStoreId !== $storeId) {
+            throw new LocalizedException(
+                __('This order belongs to a different store.')
             );
         }
     }
