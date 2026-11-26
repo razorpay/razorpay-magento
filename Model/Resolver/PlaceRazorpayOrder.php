@@ -4,6 +4,7 @@ declare (strict_types = 1);
 namespace Razorpay\Magento\Model\Resolver;
 
 use Magento\Framework\GraphQl\Config\Element\Field;
+use Magento\Framework\GraphQl\Exception\GraphQlAuthorizationException;
 use Magento\Framework\GraphQl\Exception\GraphQlInputException;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
@@ -60,6 +61,11 @@ class PlaceRazorpayOrder implements ResolverInterface
     protected $trackPluginInstrumentation;
 
     /**
+     * @var \Razorpay\Magento\Model\Util\OrderAccessGuard
+     */
+    protected $orderAccessGuard;
+
+    /**
      * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
      * @param GetCartForUser $getCartForUser
      * @param \Magento\Quote\Api\CartManagementInterface $cartManagement
@@ -76,7 +82,8 @@ class PlaceRazorpayOrder implements ResolverInterface
         \Magento\Sales\Api\Data\OrderInterface $order,
         \Psr\Log\LoggerInterface $logger,
         \Razorpay\Magento\Model\Config $config,
-        TrackPluginInstrumentation $trackPluginInstrumentation
+        TrackPluginInstrumentation $trackPluginInstrumentation,
+        \Razorpay\Magento\Model\Util\OrderAccessGuard $orderAccessGuard
     )
     {
         $this->scopeConfig    = $scopeConfig;
@@ -88,6 +95,7 @@ class PlaceRazorpayOrder implements ResolverInterface
         $this->logger         = $logger;
         $this->config          = $config;
         $this->trackPluginInstrumentation = $trackPluginInstrumentation;
+        $this->orderAccessGuard           = $orderAccessGuard;
     }
 
     /**
@@ -153,6 +161,17 @@ class PlaceRazorpayOrder implements ResolverInterface
             $this->logger->info('graphQL: Order ID: ' . $order_id);
 
             $order = $this->order->load($order_id, $this->order::INCREMENT_ID);
+
+            // The order id comes from the request and is sequential, so the
+            // caller must prove ownership before we mint a Razorpay order or
+            // overwrite the existing one.
+            $this->orderAccessGuard->assertOwnerForGraphQl(
+                $order,
+                $context !== null ? $context->getUserId() : null,
+                isset($args['masked_cart_id']) === true ? (string) $args['masked_cart_id'] : null,
+                isset($args['token']) === true ? (string) $args['token'] : null
+            );
+            $this->orderAccessGuard->assertPayable($order);
 
             $order_grand_total          = $order->getGrandTotal();
             $order_currency_code        = $order->getOrderCurrencyCode();
@@ -247,6 +266,20 @@ class PlaceRazorpayOrder implements ResolverInterface
                     'message' => "Razorpay Order not generated. Something went wrong",
                 ];
             }
+        } catch (GraphQlAuthorizationException $e)
+        {
+            $this->logger->critical('graphQL: Access denied: ' . $e->getMessage());
+
+            $properties = [
+                "error_message" => $e->getMessage(),
+                "file_path" => "model/Resolver/PlaceRazorpayOrder.php",
+                "exception_type" => get_class($e),
+                "notes" => "graphql: caller does not own the order",
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.graphql.placeorder.denied', $properties);
+
+            throw $e;
         } catch (\Razorpay\Api\Errors\Error $e)
         {
             $this->logger->critical('graphQL: Razorpay API Error: ' . $e->getMessage());

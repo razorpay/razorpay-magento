@@ -93,6 +93,11 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
     protected $trackPluginInstrumentation;
 
     /**
+     * @var \Razorpay\Magento\Model\Util\OrderAccessGuard
+     */
+    protected $orderAccessGuard;
+
+    /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession
@@ -101,7 +106,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
      * @param \Magento\Sales\Api\Data\OrderInterface $order
      * @param \Magento\Catalog\Model\Session $catalogSession
      */
-    public function __construct(\Magento\Framework\App\Action\Context $context, \Magento\Customer\Model\Session $customerSession, \Magento\Checkout\Model\Session $checkoutSession, \Razorpay\Magento\Model\Config $config, \Psr\Log\LoggerInterface $logger, OrderRepositoryInterface $orderRepository, \Magento\Framework\DB\Transaction $transaction, \Magento\Sales\Model\Service\InvoiceService $invoiceService, \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender, \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender, \Magento\Catalog\Model\Session $catalogSession, \Magento\Sales\Api\Data\OrderInterface $order, TrackPluginInstrumentation $trackPluginInstrumentation
+    public function __construct(\Magento\Framework\App\Action\Context $context, \Magento\Customer\Model\Session $customerSession, \Magento\Checkout\Model\Session $checkoutSession, \Razorpay\Magento\Model\Config $config, \Psr\Log\LoggerInterface $logger, OrderRepositoryInterface $orderRepository, \Magento\Framework\DB\Transaction $transaction, \Magento\Sales\Model\Service\InvoiceService $invoiceService, \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender, \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender, \Magento\Catalog\Model\Session $catalogSession, \Magento\Sales\Api\Data\OrderInterface $order, TrackPluginInstrumentation $trackPluginInstrumentation, \Razorpay\Magento\Model\Util\OrderAccessGuard $orderAccessGuard
 )
     {
         parent::__construct($context, $customerSession, $checkoutSession, $config);
@@ -122,6 +127,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
         $this->captureCommand = new CaptureCommand();
         $this->authorizeCommand = new AuthorizeCommand();
         $this->trackPluginInstrumentation = $trackPluginInstrumentation;
+        $this->orderAccessGuard          = $orderAccessGuard;
     }
     
     public function execute()
@@ -151,6 +157,24 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                 ->order
                 ->load($collection->getEntityId());
 
+            // Order ids are sequential: refuse any order the caller does not
+            // own before touching quote or payment state.
+            $this->orderAccessGuard->assertOwner(
+                $order,
+                $this->customerSession->getCustomerId(),
+                isset($params['masked_cart_id']) === true ? (string) $params['masked_cart_id'] : null,
+                isset($params['token']) === true ? (string) $params['token'] : null
+            );
+        }
+        catch(\Magento\Framework\Exception\LocalizedException $e)
+        {
+            $this->logger->critical(
+                'Callback access denied for order ' . $orderId . ': ' . $e->getMessage()
+            );
+
+            $this->messageManager->addError(__('You are not authorized to access this order.'));
+
+            return $this->_redirect('checkout/cart');
         }
         catch(\Exception $e)
         {
@@ -379,6 +403,24 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
         }
         else
         {
+            // No payment id: this is a cancelled or failed return. Only the
+            // caller's own order may have its cart restored and, since we are
+            // about to reactivate a quote, the order must still be payable.
+            try
+            {
+                $this->orderAccessGuard->assertPayable($order);
+            }
+            catch(\Magento\Framework\Exception\LocalizedException $e)
+            {
+                $this->logger->critical(
+                    'Callback access denied for order ' . $orderId . ': ' . $e->getMessage()
+                );
+
+                $this->messageManager->addError(__('You are not authorized to access this order.'));
+
+                return $this->_redirect('checkout/cart');
+            }
+
             $quote = $this->objectManagement->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
 
             $quote->setIsActive(1)

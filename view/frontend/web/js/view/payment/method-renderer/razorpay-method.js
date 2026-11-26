@@ -284,7 +284,7 @@ define(
                         self.rzp_response = data;
                         self.validateOrder(data);
                     },
-                    callback_url: url.build('razorpay/payment/callback?order_id=' + data.order_id),
+                    callback_url: url.build('razorpay/payment/callback?order_id=' + data.order_id + '&token=' + encodeURIComponent(data.callback_token || '')),
                     order_id: data.rzp_order,
                     modal: {
                         ondismiss: function(data) {
@@ -485,7 +485,7 @@ define(
                         contact: this.user.contact,
                         email: this.user.email
                     },
-                    callback_url: url.build('razorpay/payment/callback?order_id=' + data.order_id),
+                    callback_url: url.build('razorpay/payment/callback?order_id=' + data.order_id + '&token=' + encodeURIComponent(data.callback_token || '')),
                     cancel_url  : url.build('checkout/cart'),
                     _: {
                         integration: 'magento',

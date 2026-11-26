@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Razorpay\Magento\Model\Resolver;
 
 use Magento\Framework\GraphQl\Config\Element\Field;
+use Magento\Framework\GraphQl\Exception\GraphQlAuthorizationException;
 use Magento\Framework\GraphQl\Exception\GraphQlInputException;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
@@ -40,6 +41,11 @@ class ResetCart implements ResolverInterface
     protected $trackPluginInstrumentation;
 
     /**
+     * @var \Razorpay\Magento\Model\Util\OrderAccessGuard
+     */
+    protected $orderAccessGuard;
+
+    /**
      * @param \Psr\Log\LoggerInterface $logger
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param OrderRepositoryInterface $orderRepository
@@ -48,7 +54,8 @@ class ResetCart implements ResolverInterface
         \Psr\Log\LoggerInterface $logger,
         SearchCriteriaBuilder $searchCriteriaBuilder,
         OrderRepositoryInterface $orderRepository,
-        TrackPluginInstrumentation $trackPluginInstrumentation
+        TrackPluginInstrumentation $trackPluginInstrumentation,
+        \Razorpay\Magento\Model\Util\OrderAccessGuard $orderAccessGuard
     )
     {
         $this->logger = $logger;
@@ -56,6 +63,7 @@ class ResetCart implements ResolverInterface
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
         $this->orderRepository = $orderRepository;
         $this->trackPluginInstrumentation = $trackPluginInstrumentation;
+        $this->orderAccessGuard = $orderAccessGuard;
     }
 
     /**
@@ -119,6 +127,13 @@ class ResetCart implements ResolverInterface
         {
             $orderModel = $this->objectManager->get('Magento\Sales\Model\Order')->load($order_id);
 
+            $this->orderAccessGuard->assertOwnerForGraphQl(
+                $orderModel,
+                $context !== null ? $context->getUserId() : null,
+                isset($args['masked_cart_id']) === true ? (string) $args['masked_cart_id'] : null,
+                isset($args['token']) === true ? (string) $args['token'] : null
+            );
+
             if ($orderModel->canCancel())
             {
                 $quote_id = $orderModel->getQuoteId();
@@ -156,6 +171,21 @@ class ResetCart implements ResolverInterface
                     'success'           => false,
                 ];
             }
+        }
+        catch(GraphQlAuthorizationException $e)
+        {
+            $this->logger->critical('graphQL: Access denied: ' . $e->getMessage());
+
+            $properties = [
+                "error_message" => $e->getMessage(),
+                "file_path" => "model/Resolver/ResetCart.php",
+                "exception_type" => get_class($e),
+                "notes" => "graphql: caller does not own the order",
+            ];
+
+            $this->trackPluginInstrumentation->rzpTrackDataLake('razorpay.std.graphql.resetcart.denied', $properties);
+
+            throw $e;
         }
         catch(\Exception $e)
         {

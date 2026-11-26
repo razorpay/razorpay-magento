@@ -55,6 +55,11 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     protected $trackPluginInstrumentation;
 
     /**
+     * @var \Razorpay\Magento\Model\Util\OrderAccessGuard
+     */
+    protected $orderAccessGuard;
+
+    /**
      * @var \Magento\Directory\Model\CountryFactory
      */
     private $countryFactory;
@@ -79,7 +84,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Psr\Log\LoggerInterface $logger,
         TrackPluginInstrumentation $trackPluginInstrumentation,
-        \Magento\Directory\Model\CountryFactory $countryFactory
+        \Magento\Directory\Model\CountryFactory $countryFactory,
+        \Razorpay\Magento\Model\Util\OrderAccessGuard $orderAccessGuard
     )
     {
         parent::__construct(
@@ -106,6 +112,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $this->webhooks->entity = 'collection';
         $this->webhooks->items  = [];
         $this->trackPluginInstrumentation = $trackPluginInstrumentation;
+        $this->orderAccessGuard           = $orderAccessGuard;
         $this->countryFactory             = $countryFactory;
     }
 
@@ -406,6 +413,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                     'is_hosted'         => $merchantPreferences['is_hosted'],
                     'image'             => $merchantPreferences['image'],
                     'embedded_url'      => $merchantPreferences['embedded_url'],
+                    'callback_token'    => $this->orderAccessGuard->issueCallbackToken($mazeOrder),
                 ];
 
                 $code = 200;
@@ -581,7 +589,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
         $preferences = [];
 
         $preferences['embedded_url'] = Api::getFullUrl("checkout/embedded");
-        $preferences['is_hosted'] = false;
+        $preferences['is_hosted'] = true;
         $preferences['image'] = '';
         
         try

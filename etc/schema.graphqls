@@ -5,8 +5,8 @@ type StoreConfig @doc(description: "The type contains information about a store 
 
 type Mutation {
 	setRzpPaymentDetailsForOrder(input: SetRzpPaymentDetailsForOrderInput) : SetRzpPaymentDetailsForOrderOutput @resolver(class: "Razorpay\\Magento\\Model\\Resolver\\SetRzpPaymentDetailsForOrder")
-	placeRazorpayOrder (order_id: String @doc(description: "order_id to generate Razorpay Order ID."), referrer: String @doc(description: "Checkout page URL of store.")) : RazorpayOrder @resolver( class: "Razorpay\\Magento\\Model\\Resolver\\PlaceRazorpayOrder") @doc(description: "Place Razorpay Order with cart amount and currency to generate RZP order ID.")
-	resetCart(order_id: String @doc(description: "order_id used to generate Razorpay Order ID.")) : ResetCart @resolver( class: "Razorpay\\Magento\\Model\\Resolver\\ResetCart")
+	placeRazorpayOrder (order_id: String @doc(description: "order_id to generate Razorpay Order ID."), referrer: String @doc(description: "Checkout page URL of store."), masked_cart_id: String @doc(description: "Masked cart ID proving ownership of the order's cart."), token: String @doc(description: "Signed token proving ownership of the order.")) : RazorpayOrder @resolver( class: "Razorpay\\Magento\\Model\\Resolver\\PlaceRazorpayOrder") @doc(description: "Place Razorpay Order with cart amount and currency to generate RZP order ID.")
+	resetCart(order_id: String @doc(description: "order_id used to generate Razorpay Order ID."), masked_cart_id: String @doc(description: "Masked cart ID proving ownership of the order's cart."), token: String @doc(description: "Signed token proving ownership of the order.")) : ResetCart @resolver( class: "Razorpay\\Magento\\Model\\Resolver\\ResetCart")
 }
 
 type RazorpayOrder {
