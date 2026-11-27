@@ -2,6 +2,21 @@
 # Change Log
 
 
+## [4.3.0] - 2026-11-26
+
+### Security
+- Every route that accepts an order id now proves that the caller owns the order, through the checkout session, the customer token, the masked cart id or a signed callback token (`MAGM-R01`, `MAGM-R02`, `MAGM-B01`, `MAGM-B02`, `MAGM-B03`).
+- `placeRazorpayOrder` and `resetCart` now require a customer token or `masked_cart_id`, refuse an order that is not in state `new` and payment method Razorpay, and `placeRazorpayOrder` reuses the Razorpay order already linked to the Magento order instead of replacing it.
+- The callback verifies the caller owns the order; its failure branch uses the session's last order and ignores the request id.
+- Every path that marks an order paid now checks that the payment belongs to the order's Razorpay order, is authorized or captured and not refunded, and that the Razorpay order amount matches the Magento grand total (`MAGM-R02`, `MAGM-B27`).
+- `Validate` verifies the signature against the order's own Razorpay order instead of a leftover session value.
+- An order can only be paid through the store it was placed on (`MAGM-R10`).
+- The callback token and the masked cart id are no longer written to the log, and the cancel cron no longer cancels invoiced or paid orders.
+
+### Changed
+- `placeRazorpayOrder` returns `callback_token`, and the `RazorpayOrder` GraphQL type exposes it.
+- Guest GraphQL integrations must send `masked_cart_id`; this is a breaking change for integrations that sent only `order_id`.
+
 ## [4.2.5] - 2026-11-05
 
 ### Added

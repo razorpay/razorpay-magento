@@ -105,16 +105,25 @@ mutation {
   placeRazorpayOrder (
       order_id: "{{order_ID}}"
       referrer: "{{referrer}}"
+      masked_cart_id: "{{MASKED_CART_ID}}"
   ){
     success
     rzp_order_id
     order_id
     amount
     currency
+    callback_token
     message
   }
 }
 ```
+
+`masked_cart_id` must be the masked cart id the storefront used to place the order. A logged-in
+customer may send the customer token instead (`Authorization: Bearer <customer token>`). A request
+that proves neither is refused.
+
+`callback_token` must be appended to the hosted checkout `callback_url` as `&token=<callback_token>`,
+because the hosted return can arrive without the session cookie.
 
 4. Use Razorpay Order ID `rzp_order_id` and other details from step-3 and create frontend form using razorpay's checkout.js , complete the payment and obtain razorpay_payment_id & razorpay_signature
   https://razorpay.com/docs/payment-gateway/web-integration/standard/
@@ -135,16 +144,22 @@ mutation {
   }
 }
 ```
-6.  Pass the Magento Order ID to reset the cart.
+6. Pass the Magento Order ID to reset the cart, only when the payment failed or the buyer closed
+   the Razorpay checkout. Do not call it after a successful payment: the storefront reset also
+   requires the order to be in state `new`.
 ```
 mutation {
   resetCart (
       order_id: "{{order_ID}}"
+      masked_cart_id: "{{MASKED_CART_ID}}"
   ){
     success
   }
 }
 ```
+
+A logged-in customer may send the customer token instead of `masked_cart_id`. A request that
+proves neither is refused.
 
 ## **Upgrade Razorpay plugin through composer**
 If you are an existing user, you can upgrade the Magento extension using the composer. Enter the command given below:

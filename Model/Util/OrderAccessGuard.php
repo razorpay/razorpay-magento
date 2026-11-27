@@ -65,27 +65,70 @@ class OrderAccessGuard
      * The hosted return can arrive cross-site without the session cookie, so
      * the token is what carries proof of ownership across that boundary.
      *
+     * The Razorpay order id must be passed in by the caller. It is deliberately
+     * NOT looked up here: both call sites mint the token before they write the
+     * new id to the link row, so an internal lookup would sign a stale or empty
+     * value and every hosted callback would fail verification.
+     *
      * @param OrderInterface $order
+     * @param string $rzpOrderId the Razorpay order id already saved, or about to be saved, to the link
      * @return string
+     * @throws LocalizedException when the Razorpay order id is unknown
      */
-    public function issueCallbackToken(OrderInterface $order): string
+    public function issueCallbackToken(OrderInterface $order, string $rzpOrderId): string
     {
+        $rzpOrderId = trim($rzpOrderId);
+
+        if ($rzpOrderId === '') {
+            throw new LocalizedException(
+                __('Cannot issue a callback token without a Razorpay order id.')
+            );
+        }
+
         $expiry  = time() + self::TOKEN_TTL;
-        $payload = $order->getIncrementId() . '|' . $expiry;
+        $payload = $this->tokenPayload($order, $rzpOrderId, $expiry);
 
         return $expiry . '.' . $this->sign($payload);
     }
 
     /**
-     * Constant-time verification of a callback token.
+     * Bind the token to the order's increment id and its Razorpay order id, so
+     * it cannot be replayed against another order and cannot survive a re-point
+     * of the link row to a different Razorpay order.
      *
      * @param OrderInterface $order
+     * @param string $rzpOrderId
+     * @param string|int $expiry
+     * @return string
+     */
+    private function tokenPayload(OrderInterface $order, string $rzpOrderId, $expiry): string
+    {
+        return $order->getIncrementId()
+            . '|' . $rzpOrderId
+            . '|' . $expiry;
+    }
+
+    /**
+     * Constant-time verification of a callback token.
+     *
+     * Fails closed when the Razorpay order id is empty, so a token signed with
+     * an empty component can never validate against an order whose link is
+     * also empty.
+     *
+     * @param OrderInterface $order
+     * @param string|null $rzpOrderId
      * @param string|null $token
      * @return bool
      */
-    public function hasValidToken(OrderInterface $order, ?string $token): bool
+    public function hasValidToken(OrderInterface $order, ?string $rzpOrderId, ?string $token): bool
     {
         if (empty($token) === true || substr_count($token, '.') !== 1) {
+            return false;
+        }
+
+        $rzpOrderId = trim((string) $rzpOrderId);
+
+        if ($rzpOrderId === '') {
             return false;
         }
 
@@ -95,24 +138,27 @@ class OrderAccessGuard
             return false;
         }
 
-        return hash_equals($this->sign($order->getIncrementId() . '|' . $expiry), $signature);
+        return hash_equals($this->sign($this->tokenPayload($order, $rzpOrderId, $expiry)), $signature);
     }
 
     /**
      * Whether the caller owns the order, by any accepted proof.
      *
      * @param OrderInterface $order
-     * @param int|null $maskedCartId resolved from the request, if supplied
+     * @param int|null $customerId
+     * @param string|null $maskedCartId resolved from the request, if supplied
      * @param string|null $token
+     * @param string|null $rzpOrderId the order's linked Razorpay order id, for token verification
      * @return bool
      */
     public function isOwner(
         OrderInterface $order,
         ?int $customerId,
         ?string $maskedCartId = null,
-        ?string $token = null
+        ?string $token = null,
+        ?string $rzpOrderId = null
     ): bool {
-        if ($this->hasValidToken($order, $token) === true) {
+        if ($this->hasValidToken($order, $rzpOrderId, $token) === true) {
             return true;
         }
 
@@ -143,6 +189,7 @@ class OrderAccessGuard
      * @param int|null $customerId
      * @param string|null $maskedCartId
      * @param string|null $token
+     * @param string|null $rzpOrderId
      * @return void
      * @throws GraphQlAuthorizationException
      */
@@ -150,9 +197,10 @@ class OrderAccessGuard
         OrderInterface $order,
         ?int $customerId,
         ?string $maskedCartId = null,
-        ?string $token = null
+        ?string $token = null,
+        ?string $rzpOrderId = null
     ): void {
-        if ($this->isOwner($order, $customerId, $maskedCartId, $token) === false) {
+        if ($this->isOwner($order, $customerId, $maskedCartId, $token, $rzpOrderId) === false) {
             throw new GraphQlAuthorizationException(
                 __('You are not authorized to access this order.')
             );
@@ -166,6 +214,7 @@ class OrderAccessGuard
      * @param int|null $customerId
      * @param string|null $maskedCartId
      * @param string|null $token
+     * @param string|null $rzpOrderId
      * @return void
      * @throws LocalizedException
      */
@@ -173,9 +222,10 @@ class OrderAccessGuard
         OrderInterface $order,
         ?int $customerId,
         ?string $maskedCartId = null,
-        ?string $token = null
+        ?string $token = null,
+        ?string $rzpOrderId = null
     ): void {
-        if ($this->isOwner($order, $customerId, $maskedCartId, $token) === false) {
+        if ($this->isOwner($order, $customerId, $maskedCartId, $token, $rzpOrderId) === false) {
             throw new LocalizedException(
                 __('You are not authorized to access this order.')
             );
@@ -203,6 +253,35 @@ class OrderAccessGuard
         if ($payment !== null && $payment->getMethod() !== PaymentMethod::METHOD_CODE) {
             throw new LocalizedException(
                 __('This order was not placed with Razorpay.')
+            );
+        }
+
+        // A paid or invoiced order must never be re-opened for payment, even
+        // when its state still reads new.
+        $hasInvoices = method_exists($order, 'hasInvoices') ? $order->hasInvoices() : false;
+
+        if ($hasInvoices === true || (float) $order->getTotalPaid() > 0) {
+            throw new LocalizedException(
+                __('This order is already paid.')
+            );
+        }
+    }
+
+    /**
+     * An order may only be paid through the store it was placed on.
+     *
+     * @param OrderInterface $order
+     * @param int $storeId
+     * @return void
+     * @throws LocalizedException
+     */
+    public function assertStore(OrderInterface $order, int $storeId): void
+    {
+        $orderStoreId = (int) $order->getStoreId();
+
+        if ($orderStoreId > 0 && $storeId > 0 && $orderStoreId !== $storeId) {
+            throw new LocalizedException(
+                __('This order belongs to a different store.')
             );
         }
     }
@@ -239,6 +318,11 @@ class OrderAccessGuard
     }
 
     /**
+     * The signing key is the Razorpay key secret, which is the same key used by
+     * verifyPaymentSignature(). The versioned purpose prefix keeps this
+     * construction from ever being confusable with that one if either payload
+     * shape changes.
+     *
      * @param string $payload
      * @return string
      */
@@ -246,7 +330,7 @@ class OrderAccessGuard
     {
         return hash_hmac(
             'sha256',
-            $payload,
+            'v1|cb|' . $payload,
             (string) $this->config->getConfigData(Config::KEY_PRIVATE_KEY)
         );
     }

@@ -98,6 +98,11 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
     protected $orderAccessGuard;
 
     /**
+     * @var \Razorpay\Magento\Model\Util\PaymentGuard
+     */
+    protected $paymentGuard;
+
+    /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Checkout\Model\Session $checkoutSession
@@ -106,7 +111,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
      * @param \Magento\Sales\Api\Data\OrderInterface $order
      * @param \Magento\Catalog\Model\Session $catalogSession
      */
-    public function __construct(\Magento\Framework\App\Action\Context $context, \Magento\Customer\Model\Session $customerSession, \Magento\Checkout\Model\Session $checkoutSession, \Razorpay\Magento\Model\Config $config, \Psr\Log\LoggerInterface $logger, OrderRepositoryInterface $orderRepository, \Magento\Framework\DB\Transaction $transaction, \Magento\Sales\Model\Service\InvoiceService $invoiceService, \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender, \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender, \Magento\Catalog\Model\Session $catalogSession, \Magento\Sales\Api\Data\OrderInterface $order, TrackPluginInstrumentation $trackPluginInstrumentation, \Razorpay\Magento\Model\Util\OrderAccessGuard $orderAccessGuard
+    public function __construct(\Magento\Framework\App\Action\Context $context, \Magento\Customer\Model\Session $customerSession, \Magento\Checkout\Model\Session $checkoutSession, \Razorpay\Magento\Model\Config $config, \Psr\Log\LoggerInterface $logger, OrderRepositoryInterface $orderRepository, \Magento\Framework\DB\Transaction $transaction, \Magento\Sales\Model\Service\InvoiceService $invoiceService, \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender, \Magento\Sales\Model\Order\Email\Sender\InvoiceSender $invoiceSender, \Magento\Catalog\Model\Session $catalogSession, \Magento\Sales\Api\Data\OrderInterface $order, TrackPluginInstrumentation $trackPluginInstrumentation, \Razorpay\Magento\Model\Util\OrderAccessGuard $orderAccessGuard, \Razorpay\Magento\Model\Util\PaymentGuard $paymentGuard
 )
     {
         parent::__construct($context, $customerSession, $checkoutSession, $config);
@@ -128,6 +133,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
         $this->authorizeCommand = new AuthorizeCommand();
         $this->trackPluginInstrumentation = $trackPluginInstrumentation;
         $this->orderAccessGuard          = $orderAccessGuard;
+        $this->paymentGuard              = $paymentGuard;
     }
     
     public function execute()
@@ -138,7 +144,13 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
 
         $orderId = strip_tags($params["order_id"]);
 
-        $this->logger->info('Callback started for RZP order : ' . print_r($params, true));
+        $logParams = $params;
+
+        // The callback token and the masked cart id are bearer credentials:
+        // never write them to the log.
+        unset($logParams['token'], $logParams['masked_cart_id']);
+
+        $this->logger->info('Callback started for RZP order : ' . print_r($logParams, true));
 
         try
         {
@@ -156,15 +168,6 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
             $order = $this
                 ->order
                 ->load($collection->getEntityId());
-
-            // Order ids are sequential: refuse any order the caller does not
-            // own before touching quote or payment state.
-            $this->orderAccessGuard->assertOwner(
-                $order,
-                $this->customerSession->getCustomerId(),
-                isset($params['masked_cart_id']) === true ? (string) $params['masked_cart_id'] : null,
-                isset($params['token']) === true ? (string) $params['token'] : null
-            );
         }
         catch(\Magento\Framework\Exception\LocalizedException $e)
         {
@@ -212,17 +215,50 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
         {
             try
             {
+                // Order ids are sequential: refuse any order the caller does
+                // not own before touching payment state.
+                $this->orderAccessGuard->assertOwner(
+                    $order,
+                    $this->customerSession->getCustomerId(),
+                    isset($params['masked_cart_id']) === true ? (string) $params['masked_cart_id'] : null,
+                    isset($params['token']) === true ? (string) $params['token'] : null,
+                    $this->razorpayOrderID
+                );
+
+                $payment = $order->getPayment();
+
+                if ($order->getState() !== \Magento\Sales\Model\Order::STATE_NEW
+                    || $payment === null
+                    || $payment->getMethod() !== \Razorpay\Magento\Model\PaymentMethod::METHOD_CODE)
+                {
+                    // A repeated callback for a payment already applied to the
+                    // order must stay a success, not an error.
+                    if ($payment !== null
+                        && $payment->getLastTransId() === $params['razorpay_payment_id'])
+                    {
+                        return $this->_redirect('checkout/onepage/success');
+                    }
+
+                    $this->messageManager->addError(__('This order is no longer open for payment.'));
+
+                    return $this->_redirect('checkout/cart');
+                }
+
                 $this->validateSignature($params);
 
                 $orderId = $order->getIncrementId();
 
-                $order->setState(static ::STATUS_PROCESSING)
-                    ->setStatus(static ::STATUS_PROCESSING);
-
-                $payment = $order->getPayment();
                 $paymentId = $params['razorpay_payment_id'];
 
                 $rzpPayment = $this->rzp->request->request('GET', 'payments/'.$paymentId);
+                $rzpOrder   = $this->rzp->order->fetch($this->razorpayOrderID);
+
+                // The payment must belong to this order's Razorpay order and
+                // the Razorpay order must cover the Magento total.
+                $this->paymentGuard->assertMatches($order, $this->razorpayOrderID, $rzpPayment, $rzpOrder);
+
+                $order->setState(static ::STATUS_PROCESSING)
+                    ->setStatus(static ::STATUS_PROCESSING);
 
                 $payment->setLastTransId($paymentId)->setTransactionId($paymentId)->setIsTransactionClosed(true)
                     ->setShouldCloseParentTransaction(true);
@@ -364,6 +400,16 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                 return $this->_redirect('checkout/onepage/success');
 
             }
+            catch(\Magento\Framework\Exception\LocalizedException $e)
+            {
+                $this->logger->critical(
+                    'Callback refused for order ' . $orderId . ': ' . $e->getMessage()
+                );
+
+                $this->messageManager->addError($e->getMessage());
+
+                return $this->_redirect('checkout/cart');
+            }
             catch(\Razorpay\Api\Errors\Error $e)
             {
                 // @codeCoverageIgnoreStart
@@ -403,25 +449,40 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
         }
         else
         {
-            // No payment id: this is a cancelled or failed return. Only the
-            // caller's own order may have its cart restored and, since we are
-            // about to reactivate a quote, the order must still be payable.
-            try
-            {
-                $this->orderAccessGuard->assertPayable($order);
-            }
-            catch(\Magento\Framework\Exception\LocalizedException $e)
+            // No payment id: this is a cancelled or failed return and there is
+            // no signature to verify, so the order may only come from the
+            // caller's own checkout session. The request id is never trusted.
+            $sessionOrder = $this->checkoutSession->getLastRealOrder();
+
+            if ($sessionOrder === null
+                || $sessionOrder->getEntityId() === null
+                || (string) $sessionOrder->getIncrementId() !== (string) $orderId)
             {
                 $this->logger->critical(
-                    'Callback access denied for order ' . $orderId . ': ' . $e->getMessage()
+                    'Callback refused: request order ' . $orderId . ' is not the session order.'
                 );
 
-                $this->messageManager->addError(__('You are not authorized to access this order.'));
+                $this->messageManager->addError(__('Payment Failed.'));
 
                 return $this->_redirect('checkout/cart');
             }
 
-            $quote = $this->objectManagement->get('Magento\Quote\Model\Quote')->load($order->getQuoteId());
+            try
+            {
+                $this->orderAccessGuard->assertPayable($sessionOrder);
+            }
+            catch(\Magento\Framework\Exception\LocalizedException $e)
+            {
+                $this->logger->critical(
+                    'Callback refused for order ' . $orderId . ': ' . $e->getMessage()
+                );
+
+                $this->messageManager->addError($e->getMessage());
+
+                return $this->_redirect('checkout/cart');
+            }
+
+            $quote = $this->objectManagement->get('Magento\Quote\Model\Quote')->load($sessionOrder->getQuoteId());
 
             $quote->setIsActive(1)
                 ->setReservedOrderId(null)

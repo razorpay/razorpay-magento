@@ -108,6 +108,11 @@ class UpdateOrdersToProcessingV2 {
     protected $debug;
 
     /**
+     * @var \Razorpay\Magento\Model\Util\PaymentGuard
+     */
+    protected $paymentGuard;
+
+    /**
      * CancelOrder constructor.
      * @param \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
      * @param \Magento\Framework\Api\SearchCriteriaBuilder $searchCriteriaBuilder
@@ -128,7 +133,8 @@ class UpdateOrdersToProcessingV2 {
         \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender,
         \Razorpay\Magento\Model\Config $config,
         \Psr\Log\LoggerInterface $logger,
-        \Razorpay\Magento\Model\Util\DebugUtils $debug
+        \Razorpay\Magento\Model\Util\DebugUtils $debug,
+        \Razorpay\Magento\Model\Util\PaymentGuard $paymentGuard
     )
     {
         $this->config                   = $config;
@@ -146,6 +152,7 @@ class UpdateOrdersToProcessingV2 {
         $this->logger                   = $logger;
         $this->orderStatus              = static::STATUS_PROCESSING;
         $this->debug                    = $debug;
+        $this->paymentGuard             = $paymentGuard;
 
         $this->enableCustomPaidOrderStatus = $this->config->isCustomPaidOrderStatusEnabled();
 
@@ -243,6 +250,43 @@ class UpdateOrdersToProcessingV2 {
         $payment        = $order->getPayment();
         $paymentId      = $rzpWebhookData['payment_id'];
         $rzpOrderAmount = $rzpWebhookData['amount'];
+        $rzpOrderId     = (string) $orderLinkCollection->getRzpOrderId();
+
+        try
+        {
+            $rzpOrder   = $this->api->order->fetch($rzpOrderId);
+            $rzpPayment = $this->api->payment->fetch($paymentId);
+        }
+        catch (\Exception $e)
+        {
+            // Transient API failure: leave the row for the next cron run.
+            $this->logger->critical(
+                'Cronjob: payment fetch failed for order ' . $order->getIncrementId() . ': ' . $e->getMessage()
+            );
+            return;
+        }
+
+        try
+        {
+            // The payment must belong to this order's Razorpay order and the
+            // Razorpay order must cover the Magento total.
+            $this->paymentGuard->assertMatches($order, $rzpOrderId, $rzpPayment, $rzpOrder);
+        }
+        catch (\Magento\Framework\Exception\LocalizedException $e)
+        {
+            $this->logger->critical(
+                'Cronjob: refusing to mark order ' . $order->getIncrementId() . ' paid: ' . $e->getMessage()
+            );
+
+            $order->addStatusHistoryComment(
+                __('Payment could not be verified: %1', $e->getMessage())
+            );
+            $order->setState(\Magento\Sales\Model\Order::STATE_PAYMENT_REVIEW)
+                ->setStatus(\Magento\Sales\Model\Order::STATE_PAYMENT_REVIEW);
+            $order->save();
+
+            return;
+        }
 
         $payment->setLastTransId($paymentId)
                 ->setTransactionId($paymentId)
