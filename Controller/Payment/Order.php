@@ -413,7 +413,7 @@ class Order extends \Razorpay\Magento\Controller\BaseController
                     'is_hosted'         => $merchantPreferences['is_hosted'],
                     'image'             => $merchantPreferences['image'],
                     'embedded_url'      => $merchantPreferences['embedded_url'],
-                    'callback_token'    => $this->orderAccessGuard->issueCallbackToken($mazeOrder),
+                    'callback_token'    => $this->orderAccessGuard->issueCallbackToken($mazeOrder, $rzpOrderId),
                 ];
 
                 $code = 200;

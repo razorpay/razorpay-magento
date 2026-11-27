@@ -141,11 +141,17 @@ class ResetCart implements ResolverInterface
         {
             $orderModel = $this->objectManager->get('Magento\Sales\Model\Order')->load($order_id);
 
+            $orderLink = $this->objectManager->get('Razorpay\Magento\Model\OrderLink')
+                        ->getCollection()
+                        ->addFilter('order_id', $orderModel->getEntityId())
+                        ->getFirstItem();
+
             $this->orderAccessGuard->assertOwnerForGraphQl(
                 $orderModel,
                 $this->callerIdentity->customerId($context),
                 isset($args['masked_cart_id']) === true ? (string) $args['masked_cart_id'] : null,
-                isset($args['token']) === true ? (string) $args['token'] : null
+                isset($args['token']) === true ? (string) $args['token'] : null,
+                (string) $orderLink->getRzpOrderId()
             );
             $this->orderAccessGuard->assertStore($orderModel, (int) $this->storeManager->getStore()->getId());
             $this->orderAccessGuard->assertPayable($orderModel);

@@ -221,7 +221,8 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
                     $order,
                     $this->customerSession->getCustomerId(),
                     isset($params['masked_cart_id']) === true ? (string) $params['masked_cart_id'] : null,
-                    isset($params['token']) === true ? (string) $params['token'] : null
+                    isset($params['token']) === true ? (string) $params['token'] : null,
+                    $this->razorpayOrderID
                 );
 
                 $payment = $order->getPayment();

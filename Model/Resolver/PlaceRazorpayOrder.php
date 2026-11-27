@@ -176,6 +176,13 @@ class PlaceRazorpayOrder implements ResolverInterface
 
             $order = $this->order->load($order_id, $this->order::INCREMENT_ID);
 
+            $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
+                        ->getCollection()
+                        ->addFilter('order_id', $order->getEntityId())
+                        ->getFirstItem();
+
+            $existingRzpOrderId = (string) $orderLink->getRzpOrderId();
+
             // The order id comes from the request and is sequential, so the
             // caller must prove ownership before we mint a Razorpay order or
             // overwrite the existing one.
@@ -183,19 +190,14 @@ class PlaceRazorpayOrder implements ResolverInterface
                 $order,
                 $this->callerIdentity->customerId($context),
                 isset($args['masked_cart_id']) === true ? (string) $args['masked_cart_id'] : null,
-                isset($args['token']) === true ? (string) $args['token'] : null
+                isset($args['token']) === true ? (string) $args['token'] : null,
+                $existingRzpOrderId
             );
             $this->orderAccessGuard->assertStore($order, (int) $this->storeManager->getStore()->getId());
             $this->orderAccessGuard->assertPayable($order);
 
             // Reuse the Razorpay order already linked to this Magento order.
             // Minting a second one would break the payment a buyer is making.
-            $orderLink = $this->_objectManager->get('Razorpay\Magento\Model\OrderLink')
-                        ->getCollection()
-                        ->addFilter('order_id', $order->getEntityId())
-                        ->getFirstItem();
-
-            $existingRzpOrderId = (string) $orderLink->getRzpOrderId();
 
             if ($existingRzpOrderId !== '')
             {
@@ -205,7 +207,7 @@ class PlaceRazorpayOrder implements ResolverInterface
                     'order_id'       => $order_id,
                     'amount'         => number_format((float) $order->getGrandTotal(), 2, ".", ""),
                     'currency'       => $order->getOrderCurrencyCode(),
-                    'callback_token' => $this->orderAccessGuard->issueCallbackToken($order),
+                    'callback_token' => $this->orderAccessGuard->issueCallbackToken($order, $existingRzpOrderId),
                     'message'        => 'Razorpay Order already created for this order',
                 ];
             }
@@ -282,7 +284,7 @@ class PlaceRazorpayOrder implements ResolverInterface
                     'order_id'       => $order_id,
                     'amount'         => number_format((float) $order_grand_total, 2, ".", ""),
                     'currency'       => $order_currency_code,
-                    'callback_token' => $this->orderAccessGuard->issueCallbackToken($orderModel),
+                    'callback_token' => $this->orderAccessGuard->issueCallbackToken($orderModel, $razorpay_order->id),
                     'message'        => 'Razorpay Order created successfully'
                 ];
                 
