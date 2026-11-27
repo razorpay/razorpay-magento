@@ -48,6 +48,22 @@ class Order extends \Razorpay\Magento\Controller\BaseController
     protected $webhooks;
 
     protected const THREE_DECIMAL_CURRENCIES = ["KWD", "OMR", "BHD"];
+
+    /**
+     * Product types treated as bundles for child line item handling.
+     *
+     * Magento's native bundle type plus the bundle types added by common
+     * custom bundle extensions (tight bundle, fixed bundle, custom
+     * bundle). An order item of any of these types is exploded into its
+     * child line items when the feature flag is enabled.
+     */
+    private const BUNDLE_PRODUCT_TYPES = [
+        BundleType::TYPE_CODE, // 'bundle'
+        'tightbundle',
+        'fixedbundle',
+        'custombundle',
+    ];
+
     private const MAX_DEVICE_ID_LENGTH       = 255;
     private const MAX_USER_AGENT_LENGTH      = 512;
     private const MAX_LINE_ITEM_NAME_LENGTH  = 125;
@@ -654,8 +670,8 @@ class Order extends \Razorpay\Magento\Controller\BaseController
 
         foreach ($visibleItems as $item)
         {
-            $productType = $item->getProductType();
-            $isBundle    = ($productType === BundleType::TYPE_CODE);
+            $productType = (string) $item->getProductType();
+            $isBundle    = in_array($productType, self::BUNDLE_PRODUCT_TYPES, true);
 
             // Logged before the branch so that items which never enter the
             // bundle path (non-bundle type, or flag disabled) are still visible.
