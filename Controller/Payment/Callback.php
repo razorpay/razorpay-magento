@@ -491,7 +491,7 @@ class Callback extends \Razorpay\Magento\Controller\BaseController
             $this->checkoutSession->replaceQuote($quote);
 
             // @codeCoverageIgnoreStart
-            $this->logger->critical(__('Razorpay front-end callback: Payment Failed with response:  ' . json_encode($params, 1)));
+            $this->logger->critical(__('Razorpay front-end callback: Payment Failed with response:  ' . json_encode($logParams, 1)));
             // @codeCoverageIgnoreEnd
 
             $this->messageManager->addError(__('Payment Failed.'));
